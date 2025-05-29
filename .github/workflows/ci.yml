@@ -11,7 +11,7 @@ env:
 
 jobs:
   lint:
-    name: Lint
+    name: Lint & Security Scan
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -35,7 +35,7 @@ jobs:
     - name: Download dependencies
       run: go mod download
 
-    - name: Run golangci-lint
+    - name: Run golangci-lint (includes gosec security scan)
       uses: golangci/golangci-lint-action@v3
       with:
         version: latest
@@ -130,23 +130,6 @@ jobs:
         name: todotui-${{ matrix.goos }}-${{ matrix.goarch }}
         path: bin/todotui-*
         retention-days: 30
-
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Run Gosec Security Scanner
-      uses: securego/gosec@master
-      with:
-        args: './...'
 
   dependency-check:
     name: Dependency Check
