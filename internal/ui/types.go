@@ -1,11 +1,11 @@
 package ui
 
 import (
+	"time"
+
 	todotxt "github.com/1set/todotxt"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/fsnotify/fsnotify"
-	"os"
-	"strings"
 )
 
 type pane int
@@ -33,34 +33,14 @@ type FilterData struct {
 	count    int
 }
 
-// Config represents application configuration
-type Config struct {
-	// Priority levels in order (empty string means no priority)
-	PriorityLevels []string
-}
-
-// DefaultConfig returns the default configuration
-func DefaultConfig() Config {
-	// Try to read priority levels from environment variable
-	envPriorities := os.Getenv("TODO_TUI_PRIORITY_LEVELS")
-	if envPriorities != "" {
-		// Parse comma-separated priority levels
-		levels := strings.Split(envPriorities, ",")
-		for i, level := range levels {
-			levels[i] = strings.TrimSpace(level)
-		}
-		// Ensure empty string is first (no priority)
-		if len(levels) > 0 && levels[0] != "" {
-			levels = append([]string{""}, levels...)
-		}
-		return Config{
-			PriorityLevels: levels,
-		}
-	}
-	
-	return Config{
-		PriorityLevels: []string{"", "A", "B", "C", "D"}, // "" means no priority, then A->B->C->D
-	}
+// TaskCache はタスクデータのキャッシュを管理
+type TaskCache struct {
+	projects       []string
+	contexts       []string
+	deletedTasks   []int // deleted taskのインデックス
+	completedTasks []int // completed taskのインデックス
+	lastRefresh    time.Time
+	taskVersion    int // タスクリストのバージョン管理
 }
 
 // Model represents the main application state
@@ -80,6 +60,7 @@ type Model struct {
 	filteredTasks todotxt.TaskList
 	deleteIndex   int // Index of task to delete in filteredTasks
 	currentTheme  Theme
-	config        Config // Application configuration
+	appConfig     AppConfig  // Application configuration
 	imeHelper     *IMEHelper // Add IME helper for Japanese input
-} 
+	taskCache     *TaskCache // Add task cache for performance optimization
+}

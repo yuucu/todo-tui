@@ -1,13 +1,14 @@
 package ui
 
 import (
+	"os"
 	"strings"
 	"time"
 
+	todotxt "github.com/1set/todotxt"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fsnotify/fsnotify"
-	todotxt "github.com/1set/todotxt"
 	"github.com/yuucu/todo-tui/internal/todo"
 )
 
@@ -34,11 +35,16 @@ func (m *Model) watchFile() tea.Cmd {
 }
 
 // NewModel creates a new model instance
-func NewModel(todoFile string) (*Model, error) {
+func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 	// Load tasks from file
 	taskList, err := todo.Load(todoFile)
 	if err != nil {
 		return nil, err
+	}
+
+	// Set theme from config
+	if appConfig.Theme != "" {
+		os.Setenv("TODO_TUI_THEME", appConfig.Theme)
 	}
 
 	model := &Model{
@@ -49,6 +55,7 @@ func NewModel(todoFile string) (*Model, error) {
 		textarea:     textarea.New(),
 		deleteIndex:  -1,
 		currentTheme: GetTheme(),
+		appConfig:    appConfig,
 		imeHelper:    NewIMEHelper(),
 	}
 
@@ -108,11 +115,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							// Add deleted_at field to mark as soft deleted
 							currentDate := time.Now().Format("2006-01-02")
 							taskString := m.tasks[i].String()
-							
+
 							// Add deleted_at field to the task string
 							if !strings.Contains(taskString, "deleted_at:") {
 								taskString += " deleted_at:" + currentDate
-								
+
 								// Parse the modified task string back to update the task
 								if newTask, err := todotxt.ParseTask(taskString); err == nil {
 									m.tasks[i] = *newTask
@@ -133,7 +140,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 			return m, nil
 		}
-		
+
 		// Handle input mode (add/edit)
 		if m.currentMode == modeAdd || m.currentMode == modeEdit {
 			switch msg.String() {
@@ -259,6 +266,21 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
+		case "p":
+			if m.activePane == paneTask {
+				// Toggle priority level
+				if m.taskList.selected < len(m.filteredTasks) {
+					taskToUpdate := m.filteredTasks[m.taskList.selected]
+					// Find the task in main tasks list and cycle priority
+					for i := 0; i < len(m.tasks); i++ {
+						if m.tasks[i].String() == taskToUpdate.String() {
+							m.cyclePriority(&m.tasks[i])
+							break
+						}
+					}
+					return m, m.saveAndRefresh()
+				}
+			}
 		case "r":
 			if m.activePane == paneTask {
 				// Restore deleted or completed task
@@ -267,9 +289,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if m.filterList.selected < len(m.filters) {
 						currentFilter = m.filters[m.filterList.selected].name
 					}
-					
+
 					taskToRestore := m.filteredTasks[m.taskList.selected]
-					
+
 					// Handle deleted tasks restoration
 					if currentFilter == "Deleted Tasks" {
 						// Find the task in main tasks list and remove deleted_at field
@@ -277,7 +299,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							if m.tasks[i].String() == taskToRestore.String() {
 								// Remove deleted_at field to restore the task
 								taskString := m.tasks[i].String()
-								
+
 								// Remove deleted_at field from the task string
 								if strings.Contains(taskString, "deleted_at:") {
 									// Simple approach: split and rejoin without deleted_at parts
@@ -289,7 +311,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 										}
 									}
 									taskString = strings.Join(cleanParts, " ")
-									
+
 									// Parse the modified task string back to update the task
 									if newTask, err := todotxt.ParseTask(taskString); err == nil {
 										m.tasks[i] = *newTask
@@ -300,7 +322,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 						return m, m.saveAndRefresh()
 					}
-					
+
 					// Handle completed tasks restoration
 					if currentFilter == "Completed Tasks" {
 						// Find the task in main tasks list and mark as incomplete
@@ -353,9 +375,37 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
+// cyclePriority cycles through priority levels based on configuration
+func (m *Model) cyclePriority(task *todotxt.Task) {
+	currentPriority := ""
+	if task.HasPriority() {
+		currentPriority = task.Priority
+	}
+
+	// Find current priority index in configuration
+	currentIndex := 0
+	for i, priority := range m.appConfig.PriorityLevels {
+		if priority == currentPriority {
+			currentIndex = i
+			break
+		}
+	}
+
+	// Move to next priority level (cycle around)
+	nextIndex := (currentIndex + 1) % len(m.appConfig.PriorityLevels)
+	nextPriority := m.appConfig.PriorityLevels[nextIndex]
+
+	// Set the new priority
+	if nextPriority == "" {
+		task.Priority = ""
+	} else {
+		task.Priority = nextPriority
+	}
+}
+
 // Cleanup closes the file watcher
 func (m *Model) Cleanup() {
 	if m.watcher != nil {
 		m.watcher.Close()
 	}
-} 
+}
