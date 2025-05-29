@@ -3,6 +3,7 @@
 BINARY_NAME=todo-tui
 MAIN_PATH=./cmd/todo-tui
 BUILD_DIR=bin
+REQUIRED_GO_VERSION=1.24
 
 # Go コマンド
 GO=go
@@ -11,12 +12,26 @@ GO=go
 GREEN=\033[0;32m
 BLUE=\033[0;34m
 YELLOW=\033[0;33m
+RED=\033[0;31m
 NC=\033[0m # No Color
 
-.PHONY: help build run test fmt lint clean deps tidy all lint-install
+.PHONY: help build run test fmt lint clean deps tidy all lint-install check-go-version
 
 # デフォルトターゲット
-all: fmt test build
+all: check-go-version fmt test build
+
+# Goバージョンチェック
+check-go-version: ## 必要なGoバージョンをチェック
+	@echo "$(BLUE)Checking Go version...$(NC)"
+	@GO_VERSION=$$($(GO) version | sed 's/go version go\([0-9]*\.[0-9]*\).*/\1/'); \
+	REQUIRED_VERSION=$(REQUIRED_GO_VERSION); \
+	if [ "$$(echo "$$GO_VERSION $$REQUIRED_VERSION" | awk '{print ($$1 >= $$2)}')" = "1" ]; then \
+		echo "$(GREEN)✓ Go version $$GO_VERSION is compatible (required: $$REQUIRED_VERSION+)$(NC)"; \
+	else \
+		echo "$(RED)✗ Go version $$GO_VERSION is not compatible. Required: $$REQUIRED_VERSION+$(NC)"; \
+		echo "$(YELLOW)Please update Go to version $$REQUIRED_VERSION or higher$(NC)"; \
+		exit 1; \
+	fi
 
 # ヘルプ表示
 help: ## 使用可能なコマンドを表示
@@ -24,7 +39,7 @@ help: ## 使用可能なコマンドを表示
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  $(GREEN)%-15s$(NC) %s\n", $$1, $$2}'
 
 # ビルド
-build: ## バイナリをビルド
+build: check-go-version ## バイナリをビルド
 	@echo "$(BLUE)Building $(BINARY_NAME)...$(NC)"
 	@mkdir -p $(BUILD_DIR)
 	$(GO) build -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)

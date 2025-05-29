@@ -83,7 +83,7 @@ make build
 
 ## 📋 Requirements
 
-- Go 1.23+
+- Go 1.24+
 - Terminal with color support
 
 ---
