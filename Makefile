@@ -1,7 +1,7 @@
 # Go プロジェクト用 Makefile (シンプル版)
 # プロジェクト情報
-BINARY_NAME=todo-tui
-MAIN_PATH=./cmd/todo-tui
+BINARY_NAME=todotui
+MAIN_PATH=./cmd/todotui
 BUILD_DIR=bin
 REQUIRED_GO_VERSION=1.24
 

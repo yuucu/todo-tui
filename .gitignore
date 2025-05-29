@@ -23,8 +23,8 @@ go.work
 go.work.sum
 
 # Build output
-/todo-tui
-/cmd/todo-tui/todo-tui
+/todotui
+/cmd/todotui/todotui
 
 # OS generated files
 .DS_Store

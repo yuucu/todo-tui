@@ -1,4 +1,4 @@
-module github.com/yuucu/todo-tui
+module github.com/yuucu/todotui
 
 go 1.24
 

@@ -118,17 +118,17 @@ jobs:
         GOARCH: ${{ matrix.goarch }}
       run: |
         mkdir -p bin
-        BINARY_NAME=todo-tui
+        BINARY_NAME=todotui
         if [ "$GOOS" = "windows" ]; then
           BINARY_NAME="${BINARY_NAME}.exe"
         fi
-        go build -o bin/${BINARY_NAME}-${GOOS}-${GOARCH} ./cmd/todo-tui
+        go build -o bin/${BINARY_NAME}-${GOOS}-${GOARCH} ./cmd/todotui
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: todo-tui-${{ matrix.goos }}-${{ matrix.goarch }}
-        path: bin/todo-tui-*
+        name: todotui-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: bin/todotui-*
         retention-days: 30
 
   security:

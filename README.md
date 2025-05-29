@@ -2,7 +2,7 @@
 
 A clean, efficient terminal-based todo manager that respects the [todo.txt](http://todotxt.org/) format.
 
-![todo-tui](https://github.com/user-attachments/assets/8e7223f2-0429-4733-a128-53ef2935a6aa)
+![todotui](https://github.com/user-attachments/assets/8e7223f2-0429-4733-a128-53ef2935a6aa)
 
 ## ✨ Features
 
@@ -15,16 +15,16 @@ A clean, efficient terminal-based todo manager that respects the [todo.txt](http
 
 ```bash
 # Install
-go install github.com/yuucu/todo-tui/cmd/todo-tui@latest
+go install github.com/yuucu/todotui/cmd/todotui@latest
 
 # Run with your todo file
-todo-tui ~/todo.txt
+todotui ~/todo.txt
 
 # Run with custom config
-todo-tui --config config.yaml ~/todo.txt
+todotui --config config.yaml ~/todo.txt
 
 # Or use the sample file
-todo-tui sample.todo.txt
+todotui sample.todo.txt
 ```
 
 ## ⌨️ Key Bindings
@@ -76,8 +76,8 @@ Place your config file in `~/.config/todo-tui/` or specify with `--config` flag.
 ## 🏗️ Build from Source
 
 ```bash
-git clone https://github.com/yuucu/todo-tui.git
-cd todo-tui
+git clone https://github.com/yuucu/todotui.git
+cd todotui
 make build
 ```
 
@@ -89,3 +89,10 @@ make build
 ---
 
 *Simple. Fast. Distraction-free task management.* 
+
+## Development
+
+```bash
+git clone https://github.com/yuucu/todotui.git
+cd todotui
+```

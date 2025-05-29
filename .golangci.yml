@@ -25,7 +25,7 @@ linters-settings:
     min-len: 3
     min-occurrences: 3
   goimports:
-    local-prefixes: github.com/todo-tui
+    local-prefixes: github.com/todotui
   mnd:  # gomndの代わりにmndを使用
     settings:
       checks: argument,case,condition,operation,return,assign

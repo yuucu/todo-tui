@@ -9,7 +9,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fsnotify/fsnotify"
-	"github.com/yuucu/todo-tui/internal/todo"
+	"github.com/yuucu/todotui/internal/todo"
 )
 
 // よく使用されるキー文字列定数
