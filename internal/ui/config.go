@@ -9,6 +9,9 @@ import (
 	"github.com/spf13/viper"
 )
 
+// 設定ファイル用のディレクトリパーミッション
+const defaultConfigDirMode = 0755
+
 // AppConfig represents the complete application configuration
 type AppConfig struct {
 	// Theme settings
@@ -189,7 +192,7 @@ func validateAndFixConfig(config AppConfig) AppConfig {
 func SaveConfigToFile(config AppConfig, configPath string) error {
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(configPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, defaultConfigDirMode); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 

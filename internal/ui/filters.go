@@ -10,6 +10,12 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// よく使用される文字列定数
+const (
+	deletedTasksFilter = "Deleted Tasks"
+	enterKeyStr        = "enter"
+)
+
 // isTaskDeleted checks if a task has been soft deleted
 func isTaskDeleted(task todotxt.Task) bool {
 	taskString := task.String()
@@ -120,18 +126,17 @@ func (m *Model) refreshFilterList() {
 		},
 	})
 
-	filters = append(filters, FilterData{
-		name: "Deleted Tasks",
-		filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
-			var result todotxt.TaskList
-			for _, task := range tasks {
-				if isTaskDeleted(task) {
-					result = append(result, task)
-				}
-			}
-			return result
-		},
-	})
+	// Deleted Tasks filter
+	deletedTasks := m.tasks.Filter(isTaskDeleted)
+	if len(deletedTasks) > 0 {
+		filters = append(filters, FilterData{
+			name: deletedTasksFilter,
+			filterFn: func(list todotxt.TaskList) todotxt.TaskList {
+				return list.Filter(isTaskDeleted)
+			},
+			count: len(deletedTasks),
+		})
+	}
 
 	// Calculate counts and create display items
 	var items []string
@@ -145,11 +150,8 @@ func (m *Model) refreshFilterList() {
 		if strings.Contains(filters[i].name, "─") {
 			// Header
 			items = append(items, filters[i].name)
-		} else if strings.HasPrefix(filters[i].name, "  ") {
-			// Project/Context
-			items = append(items, fmt.Sprintf("%s (%d)", filters[i].name, filters[i].count))
 		} else {
-			// Other filters
+			// Project/Context and Other filters
 			items = append(items, fmt.Sprintf("%s (%d)", filters[i].name, filters[i].count))
 		}
 	}
@@ -174,7 +176,7 @@ func (m *Model) refreshTaskList() {
 	if len(filteredTasks) == 0 {
 		// Check if current filter is "Deleted Tasks"
 		isDeletedTasksFilter := m.filterList.selected < len(m.filters) &&
-			m.filters[m.filterList.selected].name == "Deleted Tasks"
+			m.filters[m.filterList.selected].name == deletedTasksFilter
 
 		if !isDeletedTasksFilter {
 			// Default to all incomplete tasks (only for non-deleted task filters)

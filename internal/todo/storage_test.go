@@ -10,7 +10,7 @@ import (
 
 func TestLoadAndSave(t *testing.T) {
 	// Create temporary directory for testing
-	tmpDir, err := os.MkdirTemp("", "todo-tui-test")
+	tmpDir, err := os.MkdirTemp("", "todotui-test")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,8 +42,8 @@ func TestLoadAndSave(t *testing.T) {
 	list.AddTask(task2)
 
 	// Test saving
-	if err := Save(list, todoPath); err != nil {
-		t.Fatalf("Save failed: %v", err)
+	if saveErr := Save(list, todoPath); saveErr != nil {
+		t.Fatalf("Save failed: %v", saveErr)
 	}
 
 	// Test loading again
@@ -76,7 +76,7 @@ func TestLoadAndSave(t *testing.T) {
 }
 
 func TestLoadNonExistentDirectory(t *testing.T) {
-	tmpDir, err := os.MkdirTemp("", "todo-tui-test")
+	tmpDir, err := os.MkdirTemp("", "todotui-test")
 	if err != nil {
 		t.Fatal(err)
 	}

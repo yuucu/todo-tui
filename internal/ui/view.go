@@ -29,7 +29,6 @@ func (m *Model) updatePaneSizes() {
 	}
 	if rightWidth < m.appConfig.UI.MinRightPaneWidth {
 		rightWidth = m.appConfig.UI.MinRightPaneWidth
-		leftWidth = availableWidth - rightWidth
 	}
 
 	// Reserve space for:
@@ -147,7 +146,6 @@ func (m *Model) renderMainView() string {
 	}
 	if rightWidth < m.appConfig.UI.MinRightPaneWidth {
 		rightWidth = m.appConfig.UI.MinRightPaneWidth
-		leftWidth = availableWidth - rightWidth
 	}
 
 	// Calculate content height (reserve space for combined help/status bar and configurable padding)
@@ -221,7 +219,7 @@ func (m *Model) renderCombinedHelpStatusBar() string {
 		helpText = "j/k: navigate | Enter: select filter & move to tasks | Tab/h/l: switch panes | a: add | q: quit"
 	} else {
 		// Check if we're viewing deleted tasks
-		isViewingDeleted := m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name == "Deleted Tasks"
+		isViewingDeleted := m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name == deletedTasksFilter
 		if isViewingDeleted {
 			helpText = "j/k: navigate | r: restore task | Tab/h/l: switch panes | a: add | q: quit"
 		} else {

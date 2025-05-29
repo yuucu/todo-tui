@@ -1,6 +1,6 @@
-module github.com/yuucu/todo-tui
+module github.com/yuucu/todotui
 
-go 1.24.3
+go 1.24
 
 require (
 	github.com/1set/todotxt v0.0.4

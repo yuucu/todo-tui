@@ -7,11 +7,11 @@ on:
     branches: [ main, develop ]
 
 env:
-  GO_VERSION: "1.21"
+  GO_VERSION: "1.24"
 
 jobs:
   lint:
-    name: Lint
+    name: Lint & Security Scan
     runs-on: ubuntu-latest
     steps:
     - name: Checkout code
@@ -35,7 +35,7 @@ jobs:
     - name: Download dependencies
       run: go mod download
 
-    - name: Run golangci-lint
+    - name: Run golangci-lint (includes gosec security scan)
       uses: golangci/golangci-lint-action@v3
       with:
         version: latest
@@ -118,35 +118,18 @@ jobs:
         GOARCH: ${{ matrix.goarch }}
       run: |
         mkdir -p bin
-        BINARY_NAME=todo-tui
+        BINARY_NAME=todotui
         if [ "$GOOS" = "windows" ]; then
           BINARY_NAME="${BINARY_NAME}.exe"
         fi
-        go build -o bin/${BINARY_NAME}-${GOOS}-${GOARCH} ./cmd/todo-tui
+        go build -o bin/${BINARY_NAME}-${GOOS}-${GOARCH} ./cmd/todotui
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: todo-tui-${{ matrix.goos }}-${{ matrix.goarch }}
-        path: bin/todo-tui-*
+        name: todotui-${{ matrix.goos }}-${{ matrix.goarch }}
+        path: bin/todotui-*
         retention-days: 30
-
-  security:
-    name: Security Scan
-    runs-on: ubuntu-latest
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ env.GO_VERSION }}
-
-    - name: Run Gosec Security Scanner
-      run: |
-        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
-        gosec ./...
 
   dependency-check:
     name: Dependency Check

@@ -7,11 +7,14 @@ import (
 	todotxt "github.com/1set/todotxt"
 )
 
+// ディレクトリ作成時のデフォルトパーミッション
+const defaultDirMode = 0755
+
 // Load reads a todo.txt file and returns a TaskList
 func Load(path string) (todotxt.TaskList, error) {
 	// Ensure the directory exists
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, defaultDirMode); err != nil {
 		return nil, err
 	}
 
@@ -31,7 +34,7 @@ func Load(path string) (todotxt.TaskList, error) {
 func Save(list todotxt.TaskList, path string) error {
 	// Ensure the directory exists
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, defaultDirMode); err != nil {
 		return err
 	}
 
