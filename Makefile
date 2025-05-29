@@ -61,28 +61,6 @@ lint: ## リンターを実行 (CIと同じ設定)
 		golangci-lint run --config=.golangci.yml --timeout=10m; \
 	fi
 
-# 依存関係
-deps: ## 依存関係をダウンロード
-	@echo "$(BLUE)Downloading dependencies...$(NC)"
-	$(GO) mod download
-
-tidy: ## go.mod を整理
-	@echo "$(BLUE)Tidying modules...$(NC)"
-	$(GO) mod tidy
-
-# クリーンアップ
-clean: ## ビルド成果物を削除
-	@echo "$(BLUE)Cleaning up...$(NC)"
-	rm -rf $(BUILD_DIR)
-	$(GO) clean
-
-# 開発用
-dev: ## 開発用：フォーマット→テスト→ビルド→実行
-	@make fmt
-	@make test
-	@make build
-	@make run
-
 install: ## バイナリをシステムにインストール
 	@echo "$(BLUE)Installing $(BINARY_NAME)...$(NC)"
 	$(GO) install $(MAIN_PATH)

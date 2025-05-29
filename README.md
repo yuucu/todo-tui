@@ -2,6 +2,8 @@
 
 A clean, efficient terminal-based todo manager that respects the [todo.txt](http://todotxt.org/) format.
 
+![todo-tui](https://github.com/user-attachments/assets/8e7223f2-0429-4733-a128-53ef2935a6aa)
+
 ## ✨ Features
 
 - **Clean TUI Interface** - Navigate with intuitive keyboard shortcuts
@@ -81,7 +83,7 @@ make build
 
 ## 📋 Requirements
 
-- Go 1.21+
+- Go 1.23+
 - Terminal with color support
 
 ---
