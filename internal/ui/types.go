@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"time"
-
 	todotxt "github.com/1set/todotxt"
 	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/fsnotify/fsnotify"
@@ -35,12 +33,7 @@ type FilterData struct {
 
 // TaskCache はタスクデータのキャッシュを管理
 type TaskCache struct {
-	projects       []string
-	contexts       []string
-	deletedTasks   []int // deleted taskのインデックス
-	completedTasks []int // completed taskのインデックス
-	lastRefresh    time.Time
-	taskVersion    int // タスクリストのバージョン管理
+	// 基本的なキャッシュ機能のみ残す（現在は使用していない）
 }
 
 // Model represents the main application state
@@ -62,5 +55,4 @@ type Model struct {
 	currentTheme  Theme
 	appConfig     AppConfig  // Application configuration
 	imeHelper     *IMEHelper // Add IME helper for Japanese input
-	taskCache     *TaskCache // Add task cache for performance optimization
 }

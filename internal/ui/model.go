@@ -12,6 +12,11 @@ import (
 	"github.com/yuucu/todo-tui/internal/todo"
 )
 
+// よく使用されるキー文字列定数
+const (
+	ctrlCKey = "ctrl+c"
+)
+
 // watchFile returns a command that watches for file changes
 func (m *Model) watchFile() tea.Cmd {
 	return func() tea.Msg {
@@ -83,13 +88,12 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 }
 
 // saveAndRefresh saves the task list and refreshes the UI
-func (m *Model) saveAndRefresh() tea.Cmd {
+func (m *Model) saveAndRefresh() {
 	if err := todo.Save(m.tasks, m.todoFile); err != nil {
 		// TODO: Handle error properly
-		return nil
+		return
 	}
 	m.refreshLists()
-	return nil
 }
 
 // Init initializes the model
@@ -131,8 +135,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 				m.currentMode = modeView
 				m.deleteIndex = -1
-				return m, m.saveAndRefresh()
-			case "n", "N", "esc", "ctrl+c":
+				m.saveAndRefresh()
+				return m, nil
+			case "n", "N", "esc", ctrlCKey:
 				// Cancel deletion
 				m.currentMode = modeView
 				m.deleteIndex = -1
@@ -144,7 +149,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Handle input mode (add/edit)
 		if m.currentMode == modeAdd || m.currentMode == modeEdit {
 			switch msg.String() {
-			case "ctrl+c", "esc":
+			case ctrlCKey:
 				// Cancel input
 				m.currentMode = modeView
 				m.editingTask = nil
@@ -172,7 +177,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.currentMode = modeView
 					m.editingTask = nil
 					m.textarea.SetValue("")
-					return m, m.saveAndRefresh()
+					m.saveAndRefresh()
+					return m, nil
 				}
 				// If text is empty, just cancel the edit
 				m.currentMode = modeView
@@ -188,7 +194,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Handle normal mode keys
 		switch msg.String() {
-		case "q", "ctrl+c":
+		case "q", ctrlCKey:
 			return m, tea.Quit
 		case "a":
 			// Add new task
@@ -240,26 +246,26 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Move to right pane (task)
 				m.activePane = paneTask
 				return m, nil
-			} else {
-				// Complete task
-				if m.taskList.selected < len(m.filteredTasks) {
-					taskToComplete := m.filteredTasks[m.taskList.selected]
-					// Find the task in main tasks list and mark as completed
-					for i := 0; i < len(m.tasks); i++ {
-						if m.tasks[i].String() == taskToComplete.String() {
-							m.tasks[i].Complete()
-							break
-						}
+			}
+			// Complete task
+			if m.taskList.selected < len(m.filteredTasks) {
+				taskToComplete := m.filteredTasks[m.taskList.selected]
+				// Find the task in main tasks list and mark as completed
+				for i := 0; i < len(m.tasks); i++ {
+					if m.tasks[i].String() == taskToComplete.String() {
+						m.tasks[i].Complete()
+						break
 					}
-					return m, m.saveAndRefresh()
 				}
+				m.saveAndRefresh()
+				return m, nil
 			}
 		case "d":
 			if m.activePane == paneTask {
 				// Delete task (only for non-deleted tasks)
 				if m.taskList.selected < len(m.filteredTasks) {
 					// Check if current filter is "Deleted Tasks"
-					if m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name != "Deleted Tasks" {
+					if m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name != deletedTasksFilter {
 						m.currentMode = modeDeleteConfirm
 						m.deleteIndex = m.taskList.selected
 						return m, nil
@@ -278,7 +284,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							break
 						}
 					}
-					return m, m.saveAndRefresh()
+					m.saveAndRefresh()
+					return m, nil
 				}
 			}
 		case "r":
@@ -293,7 +300,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					taskToRestore := m.filteredTasks[m.taskList.selected]
 
 					// Handle deleted tasks restoration
-					if currentFilter == "Deleted Tasks" {
+					if currentFilter == deletedTasksFilter {
 						// Find the task in main tasks list and remove deleted_at field
 						for i := 0; i < len(m.tasks); i++ {
 							if m.tasks[i].String() == taskToRestore.String() {
@@ -320,7 +327,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 								break
 							}
 						}
-						return m, m.saveAndRefresh()
+						m.saveAndRefresh()
+						return m, nil
 					}
 
 					// Handle completed tasks restoration
@@ -333,7 +341,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 								break
 							}
 						}
-						return m, m.saveAndRefresh()
+						m.saveAndRefresh()
+						return m, nil
 					}
 				}
 			}

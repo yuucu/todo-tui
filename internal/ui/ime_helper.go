@@ -24,7 +24,7 @@ func NewIMEHelper() *IMEHelper {
 }
 
 // ProcessKeyMsg processes key messages with IME support
-func (ime *IMEHelper) ProcessKeyMsg(msg tea.KeyMsg) (bool, string) {
+func (ime *IMEHelper) ProcessKeyMsg(msg tea.KeyMsg) (isIME bool, text string) {
 	// Check if this is likely an IME input
 	if ime.isLikelyIMEInput(msg) {
 		ime.handleIMEInput(msg)
@@ -78,7 +78,7 @@ func (ime *IMEHelper) handleIMEInput(msg tea.KeyMsg) {
 // isCommitKey checks if the key commits the current composition
 func (ime *IMEHelper) isCommitKey(msg tea.KeyMsg) bool {
 	key := msg.String()
-	return key == "enter" || key == " " || key == "tab"
+	return key == enterKeyStr || key == " " || key == "tab"
 }
 
 // SetupIMEEnvironment sets up environment variables for better IME support
@@ -122,17 +122,17 @@ func isInputMethodAvailable(method string) bool {
 	// you might want to check for running processes or installed packages
 	switch method {
 	case "fcitx5", "fcitx":
-		return checkEnvOrProcess("FCITX", "fcitx")
+		return checkEnvOrProcess("FCITX", "")
 	case "ibus":
-		return checkEnvOrProcess("IBUS", "ibus")
+		return checkEnvOrProcess("IBUS", "")
 	case "uim":
-		return checkEnvOrProcess("UIM", "uim")
+		return checkEnvOrProcess("UIM", "")
 	}
 	return false
 }
 
 // checkEnvOrProcess checks for environment variables or running processes
-func checkEnvOrProcess(envVar, processName string) bool {
+func checkEnvOrProcess(envVar, _ string) bool {
 	// Check environment variable
 	if os.Getenv(envVar+"_SOCKET") != "" || os.Getenv(envVar+"_DAEMON") != "" {
 		return true

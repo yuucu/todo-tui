@@ -42,8 +42,8 @@ func TestLoadAndSave(t *testing.T) {
 	list.AddTask(task2)
 
 	// Test saving
-	if err := Save(list, todoPath); err != nil {
-		t.Fatalf("Save failed: %v", err)
+	if saveErr := Save(list, todoPath); saveErr != nil {
+		t.Fatalf("Save failed: %v", saveErr)
 	}
 
 	// Test loading again

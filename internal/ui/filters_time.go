@@ -6,6 +6,11 @@ import (
 	todotxt "github.com/1set/todotxt"
 )
 
+// 時間関連の定数
+const (
+	daysInWeek = 7
+)
+
 // getTimeBasedFilters returns all time-based filters
 func (m *Model) getTimeBasedFilters() []FilterData {
 	var filters []FilterData
@@ -45,7 +50,7 @@ func (m *Model) getThisWeekFilterFn() func(todotxt.TaskList) todotxt.TaskList {
 	return func(tasks todotxt.TaskList) todotxt.TaskList {
 		now := time.Now()
 		weekStart := now.AddDate(0, 0, -int(now.Weekday()))
-		weekEnd := weekStart.AddDate(0, 0, 7)
+		weekEnd := weekStart.AddDate(0, 0, daysInWeek)
 		var result todotxt.TaskList
 		for _, task := range tasks {
 			if !task.Completed && !isTaskDeleted(task) && task.HasDueDate() &&
