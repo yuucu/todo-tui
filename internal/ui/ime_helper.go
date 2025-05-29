@@ -4,20 +4,21 @@ import (
 	"os"
 	"strings"
 	"unicode/utf8"
+
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 // IMEHelper provides enhanced support for Japanese input
 type IMEHelper struct {
 	// Track composition state for IME input
-	isComposing    bool
+	isComposing     bool
 	compositionText string
 }
 
 // NewIMEHelper creates a new IME helper instance
 func NewIMEHelper() *IMEHelper {
 	return &IMEHelper{
-		isComposing:    false,
+		isComposing:     false,
 		compositionText: "",
 	}
 }
@@ -29,7 +30,7 @@ func (ime *IMEHelper) ProcessKeyMsg(msg tea.KeyMsg) (bool, string) {
 		ime.handleIMEInput(msg)
 		return true, ime.compositionText
 	}
-	
+
 	// Handle final character commit
 	if ime.isComposing && ime.isCommitKey(msg) {
 		ime.isComposing = false
@@ -37,7 +38,7 @@ func (ime *IMEHelper) ProcessKeyMsg(msg tea.KeyMsg) (bool, string) {
 		ime.compositionText = ""
 		return false, result
 	}
-	
+
 	return false, ""
 }
 
@@ -45,26 +46,26 @@ func (ime *IMEHelper) ProcessKeyMsg(msg tea.KeyMsg) (bool, string) {
 func (ime *IMEHelper) isLikelyIMEInput(msg tea.KeyMsg) bool {
 	// Check for multi-byte characters or IME composition
 	str := msg.String()
-	
+
 	// If it's a single ASCII character, it's not IME input
 	if len(str) == 1 && str[0] <= 127 {
 		return false
 	}
-	
+
 	// If it contains multi-byte characters, it's likely IME input
 	if !utf8.ValidString(str) || utf8.RuneCountInString(str) != len(str) {
 		return true
 	}
-	
+
 	// Check for Japanese characters (Hiragana, Katakana, Kanji)
 	for _, r := range str {
 		if (r >= 0x3040 && r <= 0x309F) || // Hiragana
-		   (r >= 0x30A0 && r <= 0x30FF) || // Katakana
-		   (r >= 0x4E00 && r <= 0x9FAF) {  // CJK Unified Ideographs
+			(r >= 0x30A0 && r <= 0x30FF) || // Katakana
+			(r >= 0x4E00 && r <= 0x9FAF) { // CJK Unified Ideographs
 			return true
 		}
 	}
-	
+
 	return false
 }
 
@@ -86,12 +87,12 @@ func SetupIMEEnvironment() {
 	if os.Getenv("LANG") == "" {
 		os.Setenv("LANG", "ja_JP.UTF-8")
 	}
-	
+
 	// Ensure proper locale for IME
 	if os.Getenv("LC_CTYPE") == "" {
 		os.Setenv("LC_CTYPE", "ja_JP.UTF-8")
 	}
-	
+
 	// Enable XIM for better compatibility
 	if os.Getenv("XMODIFIERS") == "" {
 		// Try to detect and set appropriate input method
@@ -105,13 +106,13 @@ func SetupIMEEnvironment() {
 func detectInputMethod() string {
 	// Common Japanese input methods on macOS and Linux
 	methods := []string{"fcitx5", "fcitx", "ibus", "uim"}
-	
+
 	for _, method := range methods {
 		if isInputMethodAvailable(method) {
 			return method
 		}
 	}
-	
+
 	return ""
 }
 
@@ -136,7 +137,7 @@ func checkEnvOrProcess(envVar, processName string) bool {
 	if os.Getenv(envVar+"_SOCKET") != "" || os.Getenv(envVar+"_DAEMON") != "" {
 		return true
 	}
-	
+
 	// This is a simplified check - in production, you might want to
 	// actually check for running processes
 	return false
@@ -149,4 +150,4 @@ func ValidateUTF8Input(input string) string {
 		return strings.ToValidUTF8(input, "")
 	}
 	return input
-} 
+}

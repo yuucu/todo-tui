@@ -76,4 +76,4 @@ func (l *SimpleList) View() string {
 	}
 
 	return strings.Join(lines, "\n")
-} 
+}
