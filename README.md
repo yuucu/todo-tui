@@ -71,7 +71,7 @@ ui:
   vertical_padding: 2
 ```
 
-Place your config file in `~/.config/todo-tui/` or specify with `--config` flag.
+Place your config file in `~/.config/todotui/` or specify with `--config` flag.
 
 ## 🏗️ Build from Source
 
