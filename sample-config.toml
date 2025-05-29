@@ -1,0 +1,9 @@
+theme = "catppuccin"
+priority_levels = ["", "A", "B", "C", "D"]
+default_todo_file = "~/todo.txt"
+
+[ui]
+left_pane_ratio = 0.33
+min_left_pane_width = 18
+min_right_pane_width = 28
+vertical_padding = 2 

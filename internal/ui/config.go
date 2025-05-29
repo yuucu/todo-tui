@@ -1,39 +1,40 @@
 package ui
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 // AppConfig represents the complete application configuration
 type AppConfig struct {
 	// Theme settings
-	Theme string `json:"theme,omitempty"`
+	Theme string `mapstructure:"theme"`
 
 	// Priority levels configuration
-	PriorityLevels []string `json:"priority_levels,omitempty"`
+	PriorityLevels []string `mapstructure:"priority_levels"`
 
 	// Default todo file path
-	DefaultTodoFile string `json:"default_todo_file,omitempty"`
+	DefaultTodoFile string `mapstructure:"default_todo_file"`
 
 	// UI settings
-	UI UIConfig `json:"ui,omitempty"`
+	UI UIConfig `mapstructure:"ui"`
 }
 
 // UIConfig represents UI-specific configuration
 type UIConfig struct {
 	// Pane width ratio (left pane width / total width)
-	LeftPaneRatio float64 `json:"left_pane_ratio,omitempty"`
+	LeftPaneRatio float64 `mapstructure:"left_pane_ratio"`
 
 	// Minimum pane widths
-	MinLeftPaneWidth  int `json:"min_left_pane_width,omitempty"`
-	MinRightPaneWidth int `json:"min_right_pane_width,omitempty"`
+	MinLeftPaneWidth  int `mapstructure:"min_left_pane_width"`
+	MinRightPaneWidth int `mapstructure:"min_right_pane_width"`
 
 	// Vertical padding/spacing settings
-	VerticalPadding int `json:"vertical_padding,omitempty"`
+	VerticalPadding int `mapstructure:"vertical_padding"`
 }
 
 // DefaultAppConfig returns the default application configuration
@@ -49,12 +50,13 @@ func DefaultAppConfig() AppConfig {
 			LeftPaneRatio:     0.33,
 			MinLeftPaneWidth:  18,
 			MinRightPaneWidth: 28,
-			VerticalPadding:   2, // Default vertical padding for spacing optimization
+			VerticalPadding:   2,
 		},
 	}
 }
 
-// LoadConfigFromFile loads configuration from a JSON file
+// LoadConfigFromFile loads configuration from a file using Viper
+// Supports YAML, JSON, TOML, HCL, envfile and Java properties config files
 func LoadConfigFromFile(configPath string) (AppConfig, error) {
 	config := DefaultAppConfig()
 
@@ -63,15 +65,20 @@ func LoadConfigFromFile(configPath string) (AppConfig, error) {
 		return config, fmt.Errorf("config file not found: %s", configPath)
 	}
 
-	// Read file
-	data, err := os.ReadFile(configPath)
-	if err != nil {
+	// Setup Viper
+	v := viper.New()
+
+	// Set config file path
+	v.SetConfigFile(configPath)
+
+	// Read the configuration file
+	if err := v.ReadInConfig(); err != nil {
 		return config, fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	// Parse JSON
-	if err := json.Unmarshal(data, &config); err != nil {
-		return config, fmt.Errorf("failed to parse config file: %w", err)
+	// Unmarshal into our struct
+	if err := v.Unmarshal(&config); err != nil {
+		return config, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
 	// Validate and set defaults for missing fields
@@ -177,7 +184,8 @@ func validateAndFixConfig(config AppConfig) AppConfig {
 	return config
 }
 
-// SaveConfigToFile saves configuration to a JSON file
+// SaveConfigToFile saves configuration to a file using Viper
+// Format is determined by file extension (yaml, json, toml, etc.)
 func SaveConfigToFile(config AppConfig, configPath string) error {
 	// Create directory if it doesn't exist
 	dir := filepath.Dir(configPath)
@@ -185,31 +193,37 @@ func SaveConfigToFile(config AppConfig, configPath string) error {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
-	// Marshal to JSON with indentation
-	data, err := json.MarshalIndent(config, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
-	}
+	// Setup Viper
+	v := viper.New()
 
-	// Write to file
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	// Set the config data
+	v.Set("theme", config.Theme)
+	v.Set("priority_levels", config.PriorityLevels)
+	v.Set("default_todo_file", config.DefaultTodoFile)
+	v.Set("ui.left_pane_ratio", config.UI.LeftPaneRatio)
+	v.Set("ui.min_left_pane_width", config.UI.MinLeftPaneWidth)
+	v.Set("ui.min_right_pane_width", config.UI.MinRightPaneWidth)
+	v.Set("ui.vertical_padding", config.UI.VerticalPadding)
+
+	// Set config file path (Viper will determine format by extension)
+	v.SetConfigFile(configPath)
+
+	// Write the configuration file
+	if err := v.WriteConfig(); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
 	return nil
 }
 
-// CreateSampleConfig creates a sample configuration file with comments
+// CreateSampleConfig creates a sample configuration file
 func CreateSampleConfig(configPath string) error {
 	config := DefaultAppConfig()
 
-	// Create the configuration file with sample values
 	if err := SaveConfigToFile(config, configPath); err != nil {
-		return err
+		return fmt.Errorf("failed to create sample config: %w", err)
 	}
 
-	fmt.Printf("Sample configuration file created at: %s\n", configPath)
-	fmt.Println("You can edit this file to customize your settings.")
-
+	fmt.Printf("Sample configuration created at: %s\n", configPath)
 	return nil
 }

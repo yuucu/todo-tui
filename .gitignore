@@ -11,6 +11,10 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# Coverage reports
+coverage.out
+coverage.html
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
@@ -41,3 +45,5 @@ Thumbs.db
 # Local configuration
 config.local.*
 *.todo.txt 
+
+./bin/*
