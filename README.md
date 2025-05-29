@@ -8,10 +8,6 @@ A clean, efficient terminal-based todo manager that respects the [todo.txt](http
 - **Todo.txt Compatible** - Works with your existing todo.txt files
 - **Smart Filtering** - Filter by projects (`+project`), contexts (`@context`), due dates, and more
 - **Japanese Input Support** - Full IME support for international users
-- **Beautiful Themes** - Catppuccin and Nord themes included
-- **Task Management** - Complete, delete, restore, and prioritize tasks
-- **Real-time File Watching** - Automatic updates when your todo file changes
-- **Flexible Configuration** - Supports YAML, JSON, TOML configuration files
 
 ## 🚀 Quick Start
 
@@ -71,34 +67,6 @@ ui:
   min_left_pane_width: 18
   min_right_pane_width: 28
   vertical_padding: 2
-```
-
-### JSON Configuration (`config.json`)
-```json
-{
-  "theme": "catppuccin",
-  "priority_levels": ["", "A", "B", "C", "D"],
-  "default_todo_file": "~/todo.txt",
-  "ui": {
-    "left_pane_ratio": 0.33,
-    "min_left_pane_width": 18,
-    "min_right_pane_width": 28,
-    "vertical_padding": 2
-  }
-}
-```
-
-### TOML Configuration (`config.toml`)
-```toml
-theme = "catppuccin"
-priority_levels = ["", "A", "B", "C", "D"]
-default_todo_file = "~/todo.txt"
-
-[ui]
-left_pane_ratio = 0.33
-min_left_pane_width = 18
-min_right_pane_width = 28
-vertical_padding = 2
 ```
 
 Place your config file in `~/.config/todo-tui/` or specify with `--config` flag.
