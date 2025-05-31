@@ -4,72 +4,72 @@ package ui
 // ターミナル・UI関連定数
 // ===============================
 
-// デフォルトターミナルサイズ
+// Default terminal size
 const (
 	DefaultTerminalWidth  = 80
 	DefaultTerminalHeight = 24
 )
 
-// UI レイアウト定数
+// UI layout constants
 const (
-	// パネル間のボーダー幅
+	// Border width between panes
 	PaneBorderWidth = 4
 
-	// ヘルプ・ステータスバーの高さ
+	// Height of help/status bar
 	HelpStatusBarHeight = 1
 
-	// 最小幅/高さ制約
+	// Minimum width/height constraints
 	MinimumAvailableWidth = 20
 	MinimumContentHeight  = 3
 	MinimumListHeight     = 1
 	MinimumHelpTextWidth  = 10
 	MinimumTerminalWidth  = 20
 
-	// テキストエリア関連
+	// Text area related
 	TextAreaPadding   = 10
 	TextAreaHeight    = 3
-	TextAreaCharLimit = 0 // 無制限
+	TextAreaCharLimit = 0 // Unlimited
 
-	// パディング・マージン
+	// Padding & margin
 	DefaultVerticalPadding = 2
-	ListContentReserved    = 3 // ボーダー2行 + タイトル1行
+	ListContentReserved    = 3 // 2 border lines + 1 title line
 
-	// 文字列切り詰め用
+	// Text truncation
 	EllipsisLength          = 3
 	StatusTextSpacing       = 2
 	WidthEstimateMultiplier = 2
 )
 
 // ===============================
-// todo.txt フィールド定数
+// todo.txt Field Constants
 // ===============================
 
-// タスクフィールド名
+// Task field names
 const (
 	TaskFieldDeleted = "deleted_at"
 	TaskFieldDue     = "due"
 )
 
-// タスクフィールドプレフィックス（コロン付き）
+// Task field prefixes (with colon)
 const (
 	TaskFieldDeletedPrefix = TaskFieldDeleted + ":"
 	TaskFieldDuePrefix     = TaskFieldDue + ":"
 )
 
 // ===============================
-// 日付・時刻フォーマット定数
+// Date & Time Format Constants
 // ===============================
 
 const (
-	// Go標準の日付フォーマット（ISO 8601）
+	// Go standard date format (ISO 8601)
 	DateFormat = "2006-01-02"
 
-	// 時刻表示フォーマット
+	// Time display format
 	TimeFormat = "15:04"
 )
 
 // ===============================
-// フィルター名定数
+// Filter Name Constants
 // ===============================
 
 const (
@@ -77,70 +77,70 @@ const (
 	FilterCompletedTasks = "Completed Tasks"
 	FilterDeletedTasks   = "Deleted Tasks"
 
-	// セクションヘッダー
+	// Section headers
 	FilterHeaderProjects = "── Projects ──"
 	FilterHeaderContexts = "── Contexts ──"
 )
 
 // ===============================
-// UI メッセージ・プレースホルダー定数
+// UI Message & Placeholder Constants
 // ===============================
 
 const (
-	// テキストエリアプレースホルダー
-	TaskInputPlaceholder = "タスクの説明を入力してください (例: '電話 @母 +home due:2025-01-15')"
+	// Text area placeholder
+	TaskInputPlaceholder = "Enter task description (e.g., 'call @mom +home due:2025-01-15')"
 
-	// 削除確認ダイアログ
+	// Delete confirmation dialog
 	DeleteConfirmTitle = "Delete Task?"
 	DeleteConfirmHelp  = "y: Yes, delete | n: No, cancel | Esc: Cancel"
 
-	// 編集モードタイトル
+	// Edit mode titles
 	AddTaskTitle  = "Add New Task"
 	EditTaskTitle = "Edit Task"
 
-	// 編集モードヘルプ
-	EditModeHelp = "Enter/Ctrl+S: 保存 | Esc/Ctrl+C: キャンセル"
+	// Edit mode help
+	EditModeHelp = "Enter/Ctrl+S: save | Esc/Ctrl+C: cancel"
 
-	// ヘルプテキスト
+	// Help text
 	HelpFilterPane      = "?: help | j/k: navigate | Enter: select filter & move to tasks | Tab/h/l: switch panes | a: add | q: quit"
 	HelpTaskPane        = "?: help | j/k: navigate | Enter: complete task | e: edit | p: priority toggle | t: toggle due today | d: delete | Tab/h/l: switch panes | a: add | q: quit"
 	HelpDeletedTaskPane = "?: help | j/k: navigate | r: restore task | Tab/h/l: switch panes | a: add | q: quit"
 
-	// パネルタイトル
+	// Panel titles
 	FilterPaneTitle = "Workspaces"
 	TaskPaneTitle   = "Todos"
 
-	// 省略記号
+	// Ellipsis symbol
 	Ellipsis = "..."
 )
 
 // ===============================
-// 設定デフォルト値定数
+// Configuration Default Value Constants
 // ===============================
 
 const (
-	// UI設定のデフォルト値
+	// UI configuration default values
 	DefaultLeftPaneRatio     = 0.33
 	DefaultMinLeftPaneWidth  = 18
 	DefaultMinRightPaneWidth = 28
 
-	// ファイルパーミッション
+	// File permissions
 	DefaultConfigDirMode = 0755
 	DefaultFileDirMode   = 0755
 )
 
 // ===============================
-// その他の定数
+// Other Constants
 // ===============================
 
 const (
-	// 無効なインデックス
+	// Invalid index
 	InvalidIndex = -1
 
-	// 開始インデックス
+	// Start index
 	StartIndex = 0
 
-	// リストセレクター記号
+	// List selector symbols
 	ListSelectorSymbol = "▶ "
 	ListPaddingSymbol  = "  "
 )
