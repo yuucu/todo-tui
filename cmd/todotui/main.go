@@ -45,6 +45,7 @@ Keybindings:
   d            Delete task (with confirmation)
   r            Restore deleted/completed task
   p            Toggle task priority
+  y            Copy task text to clipboard (right pane)
   q            Quit
 
 Priority Configuration:
