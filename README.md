@@ -77,7 +77,6 @@ The todo file path is determined by the following priority order:
 
 1. **CLI argument** (highest priority): `todotui ~/my-todo.txt`
 2. **Config file**: `default_todo_file` setting in config.yaml
-3. **Default fallback**: `~/todo.txt`
 
 **Usage examples:**
 ```bash
