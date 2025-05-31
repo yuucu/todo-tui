@@ -2,6 +2,7 @@ package ui
 
 import (
 	"strings"
+	"time"
 
 	"github.com/charmbracelet/lipgloss"
 )
@@ -212,7 +213,7 @@ func (l *SimpleList) renderTaskItem(item string, index int) string {
 			Bold(true).
 			Render(selectionIndicator)
 
-		// For selected items, we need to handle text styling differently
+		// For selected items, apply uniform background highlighting to entire content
 		var content string
 		if isCompleted {
 			// For completed selected tasks: keep strikethrough but override colors
@@ -223,7 +224,7 @@ func (l *SimpleList) renderTaskItem(item string, index int) string {
 				Bold(true)
 			content = contentStyle.Render(item)
 		} else {
-			// For incomplete selected tasks: apply selection highlighting
+			// For incomplete selected tasks: apply selection highlighting to entire content
 			contentStyle := lipgloss.NewStyle().
 				Background(l.theme.SelectionBg).
 				Foreground(l.theme.SelectionFg).
@@ -235,21 +236,84 @@ func (l *SimpleList) renderTaskItem(item string, index int) string {
 		return indicator + checkbox + content
 	}
 
-	// Non-selected item
+	// Non-selected item - parse and style components individually
 	var content string
 	if isCompleted {
-		// For completed tasks, apply both strikethrough and muted color
+		// For completed tasks, apply both strikethrough and muted color to entire content
 		contentStyle := lipgloss.NewStyle().
 			Foreground(l.theme.TextMuted).
 			Strikethrough(true)
 		content = contentStyle.Render(item)
 	} else {
-		// Normal task content
-		content = item
+		// For active tasks, parse and style individual components
+		content = l.styleActiveTaskContent(item)
 	}
 
 	// Add spacing for non-selected items
 	return spacing + checkbox + content
+}
+
+// styleActiveTaskContent parses and styles components of an active task
+func (l *SimpleList) styleActiveTaskContent(item string) string {
+	// Split the content to parse priority, todo text, and tags
+	parts := strings.Fields(item)
+	if len(parts) == 0 {
+		return item
+	}
+
+	var styledParts []string
+
+	for i, part := range parts {
+		if i == 0 && strings.HasPrefix(part, "(") && strings.HasSuffix(part, ")") && len(part) == 3 {
+			// This is a priority like "(A)"
+			priority := strings.Trim(part, "()")
+			priorityStyle := lipgloss.NewStyle().Bold(true)
+			switch priority {
+			case "A":
+				priorityStyle = priorityStyle.Foreground(l.theme.PriorityHigh)
+			case "B":
+				priorityStyle = priorityStyle.Foreground(l.theme.PriorityMedium)
+			case "C":
+				priorityStyle = priorityStyle.Foreground(l.theme.PriorityLow)
+			case "D":
+				priorityStyle = priorityStyle.Foreground(l.theme.PriorityLowest)
+			default:
+				priorityStyle = priorityStyle.Foreground(l.theme.PriorityDefault)
+			}
+			styledParts = append(styledParts, priorityStyle.Render(part))
+		} else if strings.HasPrefix(part, "+") {
+			// Project tag
+			projectStyle := lipgloss.NewStyle().Foreground(l.theme.Secondary)
+			styledParts = append(styledParts, projectStyle.Render(part))
+		} else if strings.HasPrefix(part, "@") {
+			// Context tag
+			contextStyle := lipgloss.NewStyle().Foreground(l.theme.Primary)
+			styledParts = append(styledParts, contextStyle.Render(part))
+		} else if strings.HasPrefix(part, "due:") {
+			// Due date tag
+			dueStyle := lipgloss.NewStyle()
+			dueDate := strings.TrimPrefix(part, "due:")
+
+			// Parse and color based on date
+			now := time.Now()
+			today := now.Format("2006-01-02")
+
+			if dueDate < today {
+				dueStyle = dueStyle.Foreground(l.theme.Danger) // Overdue
+			} else if dueDate == today {
+				dueStyle = dueStyle.Foreground(l.theme.Warning) // Due today
+			} else {
+				dueStyle = dueStyle.Foreground(l.theme.Success) // Future
+			}
+
+			styledParts = append(styledParts, dueStyle.Render(part))
+		} else {
+			// Regular text (todo content)
+			styledParts = append(styledParts, part)
+		}
+	}
+
+	return strings.Join(styledParts, " ")
 }
 
 // renderFilterItem renders a filter item with highlighting

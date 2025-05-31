@@ -247,78 +247,25 @@ func (m *Model) refreshTaskList() {
 		// Build task display string - only plain text, styling will be done in renderTaskItem
 		display := task.Todo
 
-		// For completed tasks, keep plain text and let renderTaskItem handle all styling
-		if isTaskCompleted {
-			// Add priority, projects, contexts, and due date as plain text
-			if task.HasPriority() {
-				display = fmt.Sprintf("(%s) ", task.Priority) + display
-			}
+		// For both completed and active tasks, keep plain text and let renderTaskItem handle all styling
+		if task.HasPriority() {
+			display = fmt.Sprintf("(%s) ", task.Priority) + display
+		}
 
-			var tags []string
-			for _, project := range task.Projects {
-				tags = append(tags, "+"+project)
-			}
-			for _, context := range task.Contexts {
-				tags = append(tags, "@"+context)
-			}
-			if task.HasDueDate() {
-				dueDate := task.DueDate.Format(DateFormat)
-				tags = append(tags, TaskFieldDuePrefix+dueDate)
-			}
+		var tags []string
+		for _, project := range task.Projects {
+			tags = append(tags, "+"+project)
+		}
+		for _, context := range task.Contexts {
+			tags = append(tags, "@"+context)
+		}
+		if task.HasDueDate() {
+			dueDate := task.DueDate.Format(DateFormat)
+			tags = append(tags, TaskFieldDuePrefix+dueDate)
+		}
 
-			if len(tags) > 0 {
-				display += " " + strings.Join(tags, " ")
-			}
-		} else {
-			// For active tasks, apply styling here as before
-			if task.HasPriority() {
-				priorityStyle := lipgloss.NewStyle().Bold(true)
-				switch task.Priority {
-				case "A":
-					priorityStyle = priorityStyle.Foreground(m.currentTheme.PriorityHigh)
-				case "B":
-					priorityStyle = priorityStyle.Foreground(m.currentTheme.PriorityMedium)
-				case "C":
-					priorityStyle = priorityStyle.Foreground(m.currentTheme.PriorityLow)
-				case "D":
-					priorityStyle = priorityStyle.Foreground(m.currentTheme.PriorityLowest)
-				default:
-					priorityStyle = priorityStyle.Foreground(m.currentTheme.PriorityDefault)
-				}
-				display = priorityStyle.Render(fmt.Sprintf("(%s) ", task.Priority)) + display
-			}
-
-			var tags []string
-			for _, project := range task.Projects {
-				projectStyle := lipgloss.NewStyle().Foreground(m.currentTheme.Secondary)
-				tags = append(tags, projectStyle.Render("+"+project))
-			}
-
-			for _, context := range task.Contexts {
-				contextStyle := lipgloss.NewStyle().Foreground(m.currentTheme.Primary)
-				tags = append(tags, contextStyle.Render("@"+context))
-			}
-
-			if task.HasDueDate() {
-				dueStyle := lipgloss.NewStyle()
-				dueDate := task.DueDate.Format(DateFormat)
-				now := time.Now()
-				today := now.Format(DateFormat)
-
-				if dueDate < today {
-					dueStyle = dueStyle.Foreground(m.currentTheme.Danger) // Overdue
-				} else if dueDate == today {
-					dueStyle = dueStyle.Foreground(m.currentTheme.Warning) // Due today
-				} else {
-					dueStyle = dueStyle.Foreground(m.currentTheme.Success) // Future
-				}
-
-				tags = append(tags, dueStyle.Render(TaskFieldDuePrefix+dueDate))
-			}
-
-			if len(tags) > 0 {
-				display += " " + strings.Join(tags, " ")
-			}
+		if len(tags) > 0 {
+			display += " " + strings.Join(tags, " ")
 		}
 
 		items = append(items, display)
