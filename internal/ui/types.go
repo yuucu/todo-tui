@@ -18,7 +18,7 @@ const (
 	modeView mode = iota
 	modeAdd
 	modeEdit
-	modeDeleteConfirm
+	modeHelp
 )
 
 // FileChangedMsg is sent when the todo file is modified
@@ -29,6 +29,18 @@ type FilterData struct {
 	name     string
 	filterFn func(todotxt.TaskList) todotxt.TaskList
 	count    int
+}
+
+// HelpContent represents help information for key bindings
+type HelpContent struct {
+	Category string
+	Items    []HelpItem
+}
+
+// HelpItem represents a single help item
+type HelpItem struct {
+	Key         string
+	Description string
 }
 
 // TaskCache はタスクデータのキャッシュを管理
@@ -51,8 +63,9 @@ type Model struct {
 	height        int
 	filters       []FilterData
 	filteredTasks todotxt.TaskList
-	deleteIndex   int // Index of task to delete in filteredTasks
 	currentTheme  Theme
-	appConfig     AppConfig  // Application configuration
-	imeHelper     *IMEHelper // Add IME helper for Japanese input
+	appConfig     AppConfig     // Application configuration
+	imeHelper     *IMEHelper    // Add IME helper for Japanese input
+	helpContent   []HelpContent // Help content for key bindings
+	helpScroll    int           // Current scroll position in help view
 }
