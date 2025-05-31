@@ -115,10 +115,40 @@ func (m *Model) Init() tea.Cmd {
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
-		// Handle help mode - any key exits help
+		// Handle help mode with scrolling support
 		if m.currentMode == modeHelp {
-			m.currentMode = modeView
-			return m, nil
+			switch msg.String() {
+			case "j", "down":
+				// Scroll down
+				// Estimate total lines (rough calculation for responsive scrolling)
+				estimatedLines := len(m.helpContent)*8 + 20 // Approximate lines per category + header/footer
+				maxScroll := max(0, estimatedLines-(m.height-8))
+				if m.helpScroll < maxScroll {
+					m.helpScroll++
+				}
+				return m, nil
+			case "k", "up":
+				// Scroll up
+				if m.helpScroll > 0 {
+					m.helpScroll--
+				}
+				return m, nil
+			case "g":
+				// Go to top
+				m.helpScroll = 0
+				return m, nil
+			case "G":
+				// Go to bottom
+				estimatedLines := len(m.helpContent)*8 + 20
+				maxScroll := max(0, estimatedLines-(m.height-8))
+				m.helpScroll = maxScroll
+				return m, nil
+			default:
+				// Any other key exits help
+				m.currentMode = modeView
+				m.helpScroll = 0 // Reset scroll position
+				return m, nil
+			}
 		}
 
 		// Handle input mode (add/edit)
@@ -172,6 +202,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "?":
 			// Show help
 			m.currentMode = modeHelp
+			m.helpScroll = 0 // Reset scroll position
 			return m, nil
 		case "q", ctrlCKey:
 			return m, tea.Quit

@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -27,9 +28,19 @@ func (m *Model) initializeHelpContent() {
 				{"Tab", "Switch between panes"},
 				{"h", "Move to left pane (Workspaces)"},
 				{"l", "Move to right pane (Todos)"},
-				{"j / ↓", "Move down"},
-				{"k / ↑", "Move up"},
+				{"j / ↓", "Move down / Scroll down (in help)"},
+				{"k / ↑", "Move up / Scroll up (in help)"},
 				{"Enter", "Apply filter / Complete task"},
+			},
+		},
+		{
+			Category: "Help Navigation",
+			Items: []HelpItem{
+				{"j / ↓", "Scroll down"},
+				{"k / ↑", "Scroll up"},
+				{"g", "Go to top"},
+				{"G", "Go to bottom"},
+				{"Any other key", "Close help"},
 			},
 		},
 		{
@@ -56,34 +67,37 @@ func (m *Model) initializeHelpContent() {
 	}
 }
 
-// renderHelpView renders the help screen
+// renderHelpView renders the help screen with scrolling support
 func (m *Model) renderHelpView() string {
 	if len(m.helpContent) == 0 {
 		m.initializeHelpContent()
 	}
 
+	// Calculate visible area for scrolling
+	maxWidth := min(80, m.width-4) // Maximum 80 characters wide, leave 4 for margins
+	visibleHeight := m.height - 6  // Leave space for borders and padding
+
 	var content strings.Builder
 
-	// Define styles
+	// Define styles (restored from original design)
 	headerStyle := lipgloss.NewStyle().
 		Foreground(m.currentTheme.Primary).
 		Bold(true).
-		Padding(1, 2).
+		Padding(0, 2).
 		Border(lipgloss.DoubleBorder()).
-		BorderForeground(m.currentTheme.Primary)
+		BorderForeground(m.currentTheme.Primary).
+		Align(lipgloss.Center)
 
 	categoryStyle := lipgloss.NewStyle().
 		Foreground(m.currentTheme.Secondary).
 		Bold(true).
-		Underline(true).
-		MarginTop(1).
-		MarginBottom(1)
+		Underline(true)
 
 	keyStyle := lipgloss.NewStyle().
 		Foreground(m.currentTheme.Warning).
 		Bold(true).
-		Width(16).
-		Align(lipgloss.Right).
+		Width(18).
+		Align(lipgloss.Left).
 		Background(m.currentTheme.Surface).
 		Padding(0, 1).
 		MarginRight(1)
@@ -91,71 +105,121 @@ func (m *Model) renderHelpView() string {
 	descStyle := lipgloss.NewStyle().
 		Foreground(m.currentTheme.Text)
 
+	// Prepare content sections as simple strings for easier scrolling
+	var allSections []string
+
 	// Header
-	header := headerStyle.Render("📚 TodoTUI - Keyboard Shortcuts Help")
-	content.WriteString(header)
-	content.WriteString("\n\n")
+	allSections = append(allSections, headerStyle.Render("📚 TodoTUI - Keyboard Shortcuts Help"))
+	allSections = append(allSections, "") // Empty line
 
 	// Content sections
 	for i, category := range m.helpContent {
 		if i > 0 {
-			content.WriteString("\n")
+			allSections = append(allSections, "") // Empty line between categories
 		}
 
 		// Category header
-		categoryHeader := categoryStyle.Render("▶ " + category.Category)
-		content.WriteString(categoryHeader)
-		content.WriteString("\n")
+		allSections = append(allSections, categoryStyle.Render("▶ "+category.Category))
 
 		// Category items in a box
 		var itemsContent strings.Builder
 		for _, item := range category.Items {
 			keyPart := keyStyle.Render(item.Key)
 			descPart := descStyle.Render(item.Description)
-			itemsContent.WriteString(keyPart + " : " + descPart + "\n")
+			itemsContent.WriteString(keyPart + " │ " + descPart + "\n")
 		}
 
 		// Box style for items
 		itemBoxStyle := lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder(), false, false, false, true).
+			Border(lipgloss.RoundedBorder()).
 			BorderForeground(m.currentTheme.BorderInactive).
-			PaddingLeft(2).
-			MarginLeft(1).
-			MarginBottom(1)
+			Padding(0, 2).
+			MarginLeft(2).
+			Background(m.currentTheme.Surface)
 
 		boxedItems := itemBoxStyle.Render(strings.TrimSuffix(itemsContent.String(), "\n"))
-		content.WriteString(boxedItems)
-		content.WriteString("\n")
+		boxLines := strings.Split(boxedItems, "\n")
+		allSections = append(allSections, boxLines...)
 	}
 
-	// Footer with additional info
-	footerContent := strings.Builder{}
-	footerContent.WriteString("Todo.txt Format Examples:\n")
-	footerContent.WriteString("  (A) Call Mom                   - High priority task\n")
-	footerContent.WriteString("  Buy milk @store +groceries     - Task with context and project\n")
-	footerContent.WriteString("  Meeting prep due:2025-05-31    - Task with due date\n")
-	footerContent.WriteString("  x 2025-05-30 Completed task    - Completed task\n\n")
-	footerContent.WriteString("Press any key to close this help...")
+	// Footer
+	allSections = append(allSections, "") // Empty line
 
-	footerStyle := lipgloss.NewStyle().
-		Foreground(m.currentTheme.TextMuted).
-		Border(lipgloss.NormalBorder()).
-		BorderForeground(m.currentTheme.BorderInactive).
-		Padding(1).
-		MarginTop(1)
+	// Apply scrolling
+	totalLines := len(allSections)
+	maxScroll := max(0, totalLines-visibleHeight+2) // Leave space for scroll indicator
+	if m.helpScroll > maxScroll {
+		m.helpScroll = maxScroll
+	}
+	if m.helpScroll < 0 {
+		m.helpScroll = 0
+	}
 
-	footer := footerStyle.Render(footerContent.String())
-	content.WriteString(footer)
+	// Get visible lines
+	startLine := m.helpScroll
+	endLine := min(startLine+visibleHeight-2, totalLines) // Reserve 2 lines for scroll indicator
+	if endLine > totalLines {
+		endLine = totalLines
+	}
 
-	// Center the entire help content
-	helpContent := content.String()
+	visibleSections := allSections[startLine:endLine]
+
+	// Build final content
+	for _, section := range visibleSections {
+		content.WriteString(section + "\n")
+	}
+
+	// Add scroll indicator if needed
+	if totalLines > visibleHeight-2 {
+		content.WriteString("\n")
+		scrollInfo := fmt.Sprintf("↑ %d-%d/%d ↓", startLine+1, endLine, totalLines)
+		if m.helpScroll == 0 {
+			scrollInfo = fmt.Sprintf("  %d-%d/%d ↓", startLine+1, endLine, totalLines)
+		} else if m.helpScroll >= maxScroll {
+			scrollInfo = fmt.Sprintf("↑ %d-%d/%d  ", startLine+1, endLine, totalLines)
+		}
+
+		scrollIndicator := lipgloss.NewStyle().
+			Foreground(m.currentTheme.TextMuted).
+			Align(lipgloss.Center).
+			Width(maxWidth).
+			Render(scrollInfo)
+		content.WriteString(scrollIndicator)
+	}
+
+	// Style for the help content container
+	helpContentStyle := lipgloss.NewStyle().
+		Width(maxWidth).
+		Align(lipgloss.Left).
+		Padding(2).
+		Background(m.currentTheme.Background)
+
+	styledContent := helpContentStyle.Render(content.String())
+
+	// Center the container on the screen
 	centeredStyle := lipgloss.NewStyle().
 		Width(m.width).
 		Height(m.height).
 		Align(lipgloss.Center, lipgloss.Center).
 		Background(m.currentTheme.Background)
 
-	return centeredStyle.Render(helpContent)
+	return centeredStyle.Render(styledContent)
+}
+
+// Helper function for minimum value
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+// Helper function for maximum value
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }
 
 // KeyBinding represents a key binding configuration
@@ -165,106 +229,4 @@ type KeyBinding struct {
 	Mode        mode
 	Pane        *pane // nil means any pane
 	Handler     func(m *Model) (tea.Model, tea.Cmd)
-}
-
-// getKeyBindings returns all key bindings for the application
-func (m *Model) getKeyBindings() []KeyBinding {
-	return []KeyBinding{
-		// Global keys
-		{
-			Key:         "?",
-			Description: "Show help",
-			Mode:        modeView,
-			Handler: func(m *Model) (tea.Model, tea.Cmd) {
-				m.currentMode = modeHelp
-				return m, nil
-			},
-		},
-		{
-			Key:         "q",
-			Description: "Quit application",
-			Mode:        modeView,
-			Handler: func(m *Model) (tea.Model, tea.Cmd) {
-				return m, tea.Quit
-			},
-		},
-		{
-			Key:         ctrlCKey,
-			Description: "Quit application",
-			Mode:        modeView,
-			Handler: func(m *Model) (tea.Model, tea.Cmd) {
-				return m, tea.Quit
-			},
-		},
-
-		// Task management keys
-		{
-			Key:         "a",
-			Description: "Add new task",
-			Mode:        modeView,
-			Handler: func(m *Model) (tea.Model, tea.Cmd) {
-				m.currentMode = modeAdd
-				m.textarea.SetValue("")
-				m.textarea.Focus()
-				return m, nil
-			},
-		},
-		{
-			Key:         "e",
-			Description: "Edit selected task",
-			Mode:        modeView,
-			Pane:        &[]pane{paneTask}[0],
-			Handler: func(m *Model) (tea.Model, tea.Cmd) {
-				if m.taskList.selected < len(m.filteredTasks) {
-					m.currentMode = modeEdit
-					selectedTask := m.filteredTasks[m.taskList.selected]
-					for i := 0; i < len(m.tasks); i++ {
-						if m.tasks[i].String() == selectedTask.String() {
-							m.editingTask = &m.tasks[i]
-							break
-						}
-					}
-					if m.editingTask != nil {
-						m.textarea.SetValue(m.editingTask.String())
-						m.textarea.Focus()
-					}
-					return m, nil
-				}
-				return m, nil
-			},
-		},
-
-		// Navigation keys
-		{
-			Key:         "tab",
-			Description: "Switch between panes",
-			Mode:        modeView,
-			Handler: func(m *Model) (tea.Model, tea.Cmd) {
-				if m.activePane == paneFilter {
-					m.activePane = paneTask
-				} else {
-					m.activePane = paneFilter
-				}
-				return m, nil
-			},
-		},
-		{
-			Key:         "h",
-			Description: "Move to left pane (Workspaces)",
-			Mode:        modeView,
-			Handler: func(m *Model) (tea.Model, tea.Cmd) {
-				m.activePane = paneFilter
-				return m, nil
-			},
-		},
-		{
-			Key:         "l",
-			Description: "Move to right pane (Todos)",
-			Mode:        modeView,
-			Handler: func(m *Model) (tea.Model, tea.Cmd) {
-				m.activePane = paneTask
-				return m, nil
-			},
-		},
-	}
 }

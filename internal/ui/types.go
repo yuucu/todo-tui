@@ -67,4 +67,6 @@ type Model struct {
 	appConfig     AppConfig     // Application configuration
 	imeHelper     *IMEHelper    // Add IME helper for Japanese input
 	helpContent   []HelpContent // Help content for key bindings
+	helpScroll    int           // Current scroll position in help view
+	helpLines     []string      // Pre-rendered help lines for scrolling
 }
