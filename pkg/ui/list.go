@@ -251,6 +251,16 @@ func (l *SimpleList) renderTaskItem(item string, index int) string {
 
 // styleActiveTaskContent parses and styles components of an active task
 func (l *SimpleList) styleActiveTaskContent(item string) string {
+	return l.styleTaskContentInternal(item, nil)
+}
+
+// styleActiveTaskContentWithBackground parses and styles components of an active task with a background color
+func (l *SimpleList) styleActiveTaskContentWithBackground(item string, backgroundColor lipgloss.Color) string {
+	return l.styleTaskContentInternal(item, &backgroundColor)
+}
+
+// styleTaskContentInternal is the common implementation for styling task content
+func (l *SimpleList) styleTaskContentInternal(item string, backgroundColor *lipgloss.Color) string {
 	// Split the content to parse priority, todo text, and tags
 	parts := strings.Fields(item)
 	if len(parts) == 0 {
@@ -264,6 +274,9 @@ func (l *SimpleList) styleActiveTaskContent(item string) string {
 			// This is a priority like "(A)"
 			priority := strings.Trim(part, "()")
 			priorityStyle := lipgloss.NewStyle().Bold(true)
+			if backgroundColor != nil {
+				priorityStyle = priorityStyle.Background(*backgroundColor)
+			}
 			switch priority {
 			case "A":
 				priorityStyle = priorityStyle.Foreground(l.theme.PriorityHigh)
@@ -280,14 +293,23 @@ func (l *SimpleList) styleActiveTaskContent(item string) string {
 		} else if strings.HasPrefix(part, "+") {
 			// Project tag
 			projectStyle := lipgloss.NewStyle().Foreground(l.theme.Secondary)
+			if backgroundColor != nil {
+				projectStyle = projectStyle.Background(*backgroundColor).Bold(true)
+			}
 			styledParts = append(styledParts, projectStyle.Render(part))
 		} else if strings.HasPrefix(part, "@") {
 			// Context tag
 			contextStyle := lipgloss.NewStyle().Foreground(l.theme.Primary)
+			if backgroundColor != nil {
+				contextStyle = contextStyle.Background(*backgroundColor).Bold(true)
+			}
 			styledParts = append(styledParts, contextStyle.Render(part))
 		} else if strings.HasPrefix(part, "due:") {
 			// Due date tag
 			dueStyle := lipgloss.NewStyle()
+			if backgroundColor != nil {
+				dueStyle = dueStyle.Background(*backgroundColor).Bold(true)
+			}
 			dueDate := strings.TrimPrefix(part, "due:")
 
 			// Parse and color based on date
@@ -305,89 +327,24 @@ func (l *SimpleList) styleActiveTaskContent(item string) string {
 			styledParts = append(styledParts, dueStyle.Render(part))
 		} else {
 			// Regular text (todo content)
-			styledParts = append(styledParts, part)
-		}
-	}
-
-	return strings.Join(styledParts, " ")
-}
-
-// styleActiveTaskContentWithBackground parses and styles components of an active task with a background color
-func (l *SimpleList) styleActiveTaskContentWithBackground(item string, backgroundColor lipgloss.Color) string {
-	// Split the content to parse priority, todo text, and tags
-	parts := strings.Fields(item)
-	if len(parts) == 0 {
-		return item
-	}
-
-	var styledParts []string
-
-	for i, part := range parts {
-		if i == 0 && strings.HasPrefix(part, "(") && strings.HasSuffix(part, ")") && len(part) == 3 {
-			// This is a priority like "(A)" - keep original color with background
-			priority := strings.Trim(part, "()")
-			priorityStyle := lipgloss.NewStyle().Bold(true).Background(backgroundColor)
-			switch priority {
-			case "A":
-				priorityStyle = priorityStyle.Foreground(l.theme.PriorityHigh)
-			case "B":
-				priorityStyle = priorityStyle.Foreground(l.theme.PriorityMedium)
-			case "C":
-				priorityStyle = priorityStyle.Foreground(l.theme.PriorityLow)
-			case "D":
-				priorityStyle = priorityStyle.Foreground(l.theme.PriorityLowest)
-			default:
-				priorityStyle = priorityStyle.Foreground(l.theme.PriorityDefault)
+			textStyle := lipgloss.NewStyle()
+			if backgroundColor != nil {
+				textStyle = textStyle.Background(*backgroundColor).Foreground(l.theme.SelectionFg).Bold(true)
 			}
-			styledParts = append(styledParts, priorityStyle.Render(part))
-		} else if strings.HasPrefix(part, "+") {
-			// Project tag - keep original color with background
-			projectStyle := lipgloss.NewStyle().
-				Foreground(l.theme.Secondary).
-				Background(backgroundColor).
-				Bold(true)
-			styledParts = append(styledParts, projectStyle.Render(part))
-		} else if strings.HasPrefix(part, "@") {
-			// Context tag - keep original color with background
-			contextStyle := lipgloss.NewStyle().
-				Foreground(l.theme.Primary).
-				Background(backgroundColor).
-				Bold(true)
-			styledParts = append(styledParts, contextStyle.Render(part))
-		} else if strings.HasPrefix(part, "due:") {
-			// Due date tag - keep original color with background
-			dueStyle := lipgloss.NewStyle().Background(backgroundColor).Bold(true)
-			dueDate := strings.TrimPrefix(part, "due:")
-
-			// Parse and color based on date
-			now := time.Now()
-			today := now.Format("2006-01-02")
-
-			if dueDate < today {
-				dueStyle = dueStyle.Foreground(l.theme.Danger) // Overdue
-			} else if dueDate == today {
-				dueStyle = dueStyle.Foreground(l.theme.Warning) // Due today
-			} else {
-				dueStyle = dueStyle.Foreground(l.theme.Success) // Future
-			}
-
-			styledParts = append(styledParts, dueStyle.Render(part))
-		} else {
-			// Regular text (todo content) - with background and selection foreground
-			textStyle := lipgloss.NewStyle().
-				Background(backgroundColor).
-				Foreground(l.theme.SelectionFg).
-				Bold(true)
 			styledParts = append(styledParts, textStyle.Render(part))
 		}
 	}
 
-	// Create space style with background color for consistent spacing
-	spaceStyle := lipgloss.NewStyle().Background(backgroundColor)
-	space := spaceStyle.Render(" ")
-
-	// Join parts with styled spaces for continuous background
-	return strings.Join(styledParts, space)
+	// Handle spacing based on whether background color is needed
+	if backgroundColor != nil {
+		// Create space style with background color for consistent spacing
+		spaceStyle := lipgloss.NewStyle().Background(*backgroundColor)
+		space := spaceStyle.Render(" ")
+		return strings.Join(styledParts, space)
+	} else {
+		// Regular spaces for non-selected items
+		return strings.Join(styledParts, " ")
+	}
 }
 
 // renderFilterItem renders a filter item with highlighting
