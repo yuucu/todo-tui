@@ -292,6 +292,22 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 			}
+		case "t":
+			if m.activePane == paneTask {
+				// Toggle due date to today
+				if m.taskList.selected < len(m.filteredTasks) {
+					taskToUpdate := m.filteredTasks[m.taskList.selected]
+					// Find the task in main tasks list and toggle due date
+					for i := 0; i < len(m.tasks); i++ {
+						if m.tasks[i].String() == taskToUpdate.String() {
+							m.toggleDueToday(&m.tasks[i])
+							break
+						}
+					}
+					m.saveAndRefresh()
+					return m, nil
+				}
+			}
 		case "r":
 			if m.activePane == paneTask {
 				// Restore deleted or completed task
@@ -416,6 +432,34 @@ func (m *Model) cyclePriority(task *todotxt.Task) {
 		task.Priority = ""
 	} else {
 		task.Priority = nextPriority
+	}
+}
+
+// toggleDueToday toggles the due date of a task to today or removes it if already set to today
+func (m *Model) toggleDueToday(task *todotxt.Task) {
+	today := time.Now().Format("2006-01-02")
+
+	// Check if task has a due date
+	currentDue := ""
+	for key, value := range task.AdditionalTags {
+		if key == "due" {
+			currentDue = value
+			break
+		}
+	}
+
+	// If due date is already today, remove it; otherwise set it to today
+	if currentDue == today {
+		// Remove due date
+		if task.AdditionalTags != nil {
+			delete(task.AdditionalTags, "due")
+		}
+	} else {
+		// Set due date to today
+		if task.AdditionalTags == nil {
+			task.AdditionalTags = make(map[string]string)
+		}
+		task.AdditionalTags["due"] = today
 	}
 }
 

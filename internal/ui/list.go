@@ -52,7 +52,8 @@ func (l *SimpleList) adjustOffset() {
 }
 
 func (l *SimpleList) View() string {
-	if len(l.items) == 0 {
+	// Safety check for height
+	if l.height <= 0 {
 		return ""
 	}
 
@@ -60,19 +61,27 @@ func (l *SimpleList) View() string {
 	start := l.offset
 	end := l.offset + l.height
 
-	if end > len(l.items) {
-		end = len(l.items)
+	// Add items within the visible range
+	if len(l.items) > 0 {
+		if end > len(l.items) {
+			end = len(l.items)
+		}
+
+		for i := start; i < end; i++ {
+			line := l.items[i]
+			if i == l.selected {
+				// Note: Theme will be applied by the parent component
+				line = "▶ " + line
+			} else {
+				line = "  " + line
+			}
+			lines = append(lines, line)
+		}
 	}
 
-	for i := start; i < end; i++ {
-		line := l.items[i]
-		if i == l.selected {
-			// Note: Theme will be applied by the parent component
-			line = "▶ " + line
-		} else {
-			line = "  " + line
-		}
-		lines = append(lines, line)
+	// Fill remaining lines with empty content to match the set height
+	for len(lines) < l.height {
+		lines = append(lines, "")
 	}
 
 	return strings.Join(lines, "\n")
