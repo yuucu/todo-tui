@@ -24,6 +24,9 @@ go install github.com/yuucu/todotui/cmd/todotui@latest
 # Basic usage
 todotui ~/todo.txt
 
+# If default_todo_file is set in config file, no argument needed
+todotui
+
 # With custom configuration
 todotui --config config.yaml ~/todo.txt
 ```
@@ -71,10 +74,10 @@ ui:
 
 **Usage:**
 ```bash
-# Use CLI argument (takes priority over config)
+# Automatic config detection (loads ~/.config/todotui/config.yaml)
 todotui ~/my-todo.txt
 
-# Use config file setting
+# If default_todo_file is set in config, no CLI argument needed
 todotui
 
 # Custom config file

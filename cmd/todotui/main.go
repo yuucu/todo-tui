@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/yuucu/todotui/internal/ui"
@@ -28,7 +27,7 @@ func printUsage() {
 A terminal todo.txt manager with vim-like keybindings.
 
 Arguments:
-  TODO_FILE    Path to todo.txt file (CLI arg > config > default)
+  TODO_FILE    Path to todo.txt file (required unless set in config)
 
 Options:
   -c, --config CONFIG  Path to configuration file
@@ -95,7 +94,7 @@ func main() {
 		appConfig.Theme = themeName
 	}
 
-	// Determine todo file path with priority: CLI argument > config file > default
+	// Determine todo file path with priority: CLI argument > config file > error
 	var finalTodoFile string
 	if todoFile != "" {
 		// Priority 1: CLI argument specified
@@ -104,9 +103,10 @@ func main() {
 		// Priority 2: Config file specified (already expanded in LoadConfig)
 		finalTodoFile = appConfig.DefaultTodoFile
 	} else {
-		// Priority 3: Default fallback
-		homeDir, _ := os.UserHomeDir()
-		finalTodoFile = filepath.Join(homeDir, "todo.txt")
+		// No todo file specified
+		fmt.Printf("Error: No todo file specified. Use CLI argument or set default_todo_file in config.\n")
+		fmt.Printf("Example: %s ~/todo.txt\n", os.Args[0])
+		os.Exit(1)
 	}
 
 	// Expand ~ in path if present (for CLI arguments)
