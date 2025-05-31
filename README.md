@@ -44,6 +44,7 @@ todotui --list-themes
 | `p` | Cycle priority (A→B→C→D→none) |
 | `r` | Restore deleted/completed task |
 | `y` | Copy task text to clipboard |
+| `?` | Show help |
 | `q` | Quit |
 
 ## 📝 Task Format
