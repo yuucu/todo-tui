@@ -47,15 +47,19 @@ func (m *Model) updatePaneSizes() {
 		availableHeight = 2
 	}
 
-	// Set the calculated height for both lists
-	m.filterList.SetHeight(availableHeight)
-	m.taskList.SetHeight(availableHeight)
+	// Set the calculated height for both lists with proper validation
+	if availableHeight > 0 {
+		m.filterList.SetHeight(availableHeight)
+		m.taskList.SetHeight(availableHeight)
+	}
 }
 
 // View renders the UI
 func (m *Model) View() string {
-	// Ensure pane sizes are set
-	m.updatePaneSizes()
+	// Ensure pane sizes are set only if not initialized
+	if m.width <= 0 || m.height <= 0 {
+		m.updatePaneSizes()
+	}
 
 	// If in add/edit mode, show textarea (keeping existing behavior as full screen)
 	if m.currentMode == modeAdd || m.currentMode == modeEdit {

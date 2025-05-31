@@ -62,6 +62,8 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 		currentTheme: GetTheme(),
 		appConfig:    appConfig,
 		imeHelper:    NewIMEHelper(),
+		width:        80, // Default terminal width
+		height:       24, // Default terminal height
 	}
 
 	// Initialize textarea
@@ -98,6 +100,8 @@ func (m *Model) saveAndRefresh() {
 
 // Init initializes the model
 func (m *Model) Init() tea.Cmd {
+	// Initialize pane sizes first
+	m.updatePaneSizes()
 	m.refreshLists()
 	return m.watchFile()
 }
@@ -371,6 +375,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		if m.width > 10 {
 			m.textarea.SetWidth(m.width - 10)
 		}
+		// Force refresh of lists to apply new sizes
+		m.refreshLists()
+		return m, nil
 	case FileChangedMsg:
 		// Reload tasks from file
 		if taskList, err := todo.Load(m.todoFile); err == nil {
