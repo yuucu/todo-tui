@@ -31,12 +31,6 @@ todotui ~/todo.txt
 
 # Run with custom config
 todotui --config config.yaml ~/todo.txt
-
-# Create sample configuration file
-todotui --init-config
-
-# Or use the sample file
-todotui sample.todo.txt
 ```
 
 ## ⌨️ Key Bindings
