@@ -6,7 +6,40 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
-// updatePaneSizes calculates and applies proper sizes to both panes
+// calculatePaneWidths calculates left and right pane widths based on configuration
+func (m *Model) calculatePaneWidths(availableWidth int) (int, int) {
+	leftWidth := int(float64(availableWidth) * m.appConfig.UI.LeftPaneRatio)
+	rightWidth := availableWidth - leftWidth
+
+	// Ensure minimum widths from configuration
+	minLeftWidth := m.appConfig.UI.MinLeftPaneWidth
+	minRightWidth := m.appConfig.UI.MinRightPaneWidth
+
+	// If minimum widths exceed available space, scale them down proportionally
+	totalMinWidth := minLeftWidth + minRightWidth
+	if totalMinWidth > availableWidth {
+		leftWidth = int(float64(availableWidth) * float64(minLeftWidth) / float64(totalMinWidth))
+		rightWidth = availableWidth - leftWidth
+	} else {
+		// Adjust widths to meet minimum requirements
+		if leftWidth < minLeftWidth {
+			leftWidth = minLeftWidth
+		}
+		if rightWidth < minRightWidth {
+			rightWidth = minRightWidth
+		}
+		// Recalculate to ensure total doesn't exceed available width
+		if leftWidth+rightWidth > availableWidth {
+			// If both minimums can't fit, scale proportionally
+			leftWidth = int(float64(availableWidth) * float64(minLeftWidth) / float64(totalMinWidth))
+			rightWidth = availableWidth - leftWidth
+		}
+	}
+
+	return leftWidth, rightWidth
+}
+
+// updatePaneSizes calculates and sets the sizes for UI panes
 func (m *Model) updatePaneSizes() {
 	// Set minimum dimensions if not yet initialized
 	if m.width <= 0 {
@@ -32,28 +65,12 @@ func (m *Model) updatePaneSizes() {
 		}
 	}
 
-	leftWidth := int(float64(availableWidth) * m.appConfig.UI.LeftPaneRatio)
-	rightWidth := availableWidth - leftWidth
+	// Calculate pane widths using the common function
+	leftWidth, rightWidth := m.calculatePaneWidths(availableWidth)
 
-	// Ensure minimum widths from configuration but respect actual terminal size
-	minLeftWidth := m.appConfig.UI.MinLeftPaneWidth
-	minRightWidth := m.appConfig.UI.MinRightPaneWidth
-
-	// If minimum widths exceed available space, scale them down proportionally
-	totalMinWidth := minLeftWidth + minRightWidth
-	if totalMinWidth > availableWidth {
-		leftWidth = int(float64(availableWidth) * float64(minLeftWidth) / float64(totalMinWidth))
-		rightWidth = availableWidth - leftWidth
-	} else {
-		if leftWidth < minLeftWidth {
-			leftWidth = minLeftWidth
-			rightWidth = availableWidth - leftWidth
-		}
-		if rightWidth < minRightWidth {
-			rightWidth = minRightWidth
-			leftWidth = availableWidth - rightWidth
-		}
-	}
+	// Store calculated widths for potential future use
+	_ = leftWidth
+	_ = rightWidth
 
 	// Calculate available height for list content using actual terminal size
 	// Reserve space for:
@@ -151,28 +168,8 @@ func (m *Model) renderMainView() string {
 		}
 	}
 
-	leftWidth := int(float64(availableWidth) * m.appConfig.UI.LeftPaneRatio)
-	rightWidth := availableWidth - leftWidth
-
-	// Ensure minimum widths from configuration but respect actual terminal size
-	minLeftWidth := m.appConfig.UI.MinLeftPaneWidth
-	minRightWidth := m.appConfig.UI.MinRightPaneWidth
-
-	// If minimum widths exceed available space, scale them down proportionally
-	totalMinWidth := minLeftWidth + minRightWidth
-	if totalMinWidth > availableWidth {
-		leftWidth = int(float64(availableWidth) * float64(minLeftWidth) / float64(totalMinWidth))
-		rightWidth = availableWidth - leftWidth
-	} else {
-		if leftWidth < minLeftWidth {
-			leftWidth = minLeftWidth
-			rightWidth = availableWidth - leftWidth
-		}
-		if rightWidth < minRightWidth {
-			rightWidth = minRightWidth
-			leftWidth = availableWidth - rightWidth
-		}
-	}
+	// Calculate pane widths using the common function
+	leftWidth, rightWidth := m.calculatePaneWidths(availableWidth)
 
 	// Calculate content height using actual terminal size
 	helpBarHeight := HelpStatusBarHeight
@@ -311,7 +308,6 @@ func (m *Model) renderCombinedHelpStatusBar() string {
 				statusText = Ellipsis
 			}
 		}
-		statusWidth = lipgloss.Width(statusText)
 	}
 
 	// Create styles for left and right parts

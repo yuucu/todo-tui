@@ -7,8 +7,8 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/yuucu/todotui/internal/ui"
 	"github.com/yuucu/todotui/pkg/logger"
+	"github.com/yuucu/todotui/pkg/ui"
 )
 
 // Build information variables (set by goreleaser)

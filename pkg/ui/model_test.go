@@ -36,6 +36,7 @@ func TestFindTaskInList(t *testing.T) {
 
 	if foundTask == nil {
 		t.Error("findTaskInList should find existing task")
+		return
 	}
 
 	if index < 0 || index >= len(model.tasks) {

@@ -10,8 +10,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fsnotify/fsnotify"
 	"github.com/samber/lo"
-	"github.com/yuucu/todotui/internal/todo"
 	"github.com/yuucu/todotui/pkg/logger"
+	"github.com/yuucu/todotui/pkg/todo"
 )
 
 // watchFile returns a command that watches for file changes
