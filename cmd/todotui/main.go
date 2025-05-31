@@ -36,7 +36,7 @@ Options:
   -c, --config CONFIG       Path to configuration file
   -t, --theme THEME         Set color theme (catppuccin, nord)
   -d, --debug               Enable debug logging
-  -l, --log-file PATH       Enable logging to file (optional path)
+  -l, --log-file PATH       Custom log file path (default: OS-specific location)
   -v, --version             Show version information
   -h, --help               Show this help message
 
@@ -53,7 +53,7 @@ func main() {
 		configFile  = flag.String("config", "", "Path to configuration file")
 		themeName   = flag.String("theme", "", "Set color theme (catppuccin, nord)")
 		enableDebug = flag.Bool("debug", false, "Enable debug logging")
-		logFile     = flag.String("log-file", "", "Enable logging to file (optional path)")
+		logFile     = flag.String("log-file", "", "Custom log file path (default: OS-specific location)")
 		showVersion = flag.Bool("version", false, "Show version information")
 		showHelp    = flag.Bool("help", false, "Show this help message")
 	)
@@ -62,7 +62,7 @@ func main() {
 	flag.StringVar(configFile, "c", "", "Path to configuration file")
 	flag.StringVar(themeName, "t", "", "Set color theme (catppuccin, nord)")
 	flag.BoolVar(enableDebug, "d", false, "Enable debug logging")
-	flag.StringVar(logFile, "l", "", "Enable logging to file (optional path)")
+	flag.StringVar(logFile, "l", "", "Custom log file path (default: OS-specific location)")
 	flag.BoolVar(showVersion, "v", false, "Show version information")
 	flag.BoolVar(showHelp, "h", false, "Show this help message")
 
@@ -110,19 +110,16 @@ func main() {
 		appConfig.Logging.EnableDebug = true
 	}
 
-	// Override log file output if specified via command line
+	// Override log file path if specified via command line
 	if *logFile != "" {
-		appConfig.Logging.OutputToFile = true
-		if *logFile != "true" {
-			appConfig.Logging.LogFilePath = *logFile
-		}
+		appConfig.Logging.LogFilePath = *logFile
 	}
 
-	// Initialize logging system
+	// Initialize logging system (ファイル出力は常に有効)
 	logConfig := logger.Config{
 		Level:        slog.LevelInfo,
 		EnableDebug:  appConfig.Logging.EnableDebug,
-		OutputToFile: appConfig.Logging.OutputToFile,
+		OutputToFile: true, // 常にファイル出力を有効
 		LogFilePath:  appConfig.Logging.LogFilePath,
 		AppName:      "todotui",
 	}
@@ -136,10 +133,8 @@ func main() {
 	logger.Info("todotui started", "version", version, "commit", commit)
 
 	// 古いログファイルのクリーンアップ（エラーは無視）
-	if appConfig.Logging.OutputToFile {
-		if err := logger.CleanupOldLogs("todotui", appConfig.Logging.MaxLogDays); err != nil {
-			logger.Debug("古いログファイルのクリーンアップに失敗", "error", err)
-		}
+	if err := logger.CleanupOldLogs("todotui", appConfig.Logging.MaxLogDays); err != nil {
+		logger.Debug("古いログファイルのクリーンアップに失敗", "error", err)
 	}
 
 	// Determine todo file path with priority: CLI argument > config file > error

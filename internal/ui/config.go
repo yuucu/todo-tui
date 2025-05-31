@@ -71,10 +71,7 @@ type LoggingConfig struct {
 	// Enable debug logging
 	EnableDebug bool `mapstructure:"enable_debug"`
 
-	// Enable file output
-	OutputToFile bool `mapstructure:"output_to_file"`
-
-	// Custom log file path (optional)
+	// Custom log file path (optional, ファイル出力は常に有効)
 	LogFilePath string `mapstructure:"log_file_path"`
 
 	// Maximum days to keep log files
@@ -94,10 +91,9 @@ func DefaultAppConfig() AppConfig {
 			VerticalPadding:   2,
 		},
 		Logging: LoggingConfig{
-			EnableDebug:  false,
-			OutputToFile: true,
-			LogFilePath:  "", // 空の場合はデフォルトパスを使用
-			MaxLogDays:   30, // 30日間ログを保持
+			EnableDebug: false,
+			LogFilePath: "", // 空の場合はデフォルトパスを使用
+			MaxLogDays:  30, // 30日間ログを保持
 		},
 	}
 }
@@ -279,7 +275,6 @@ func SaveConfigToFile(config AppConfig, configPath string) error {
 
 	// Set logging configuration
 	v.Set("logging.enable_debug", config.Logging.EnableDebug)
-	v.Set("logging.output_to_file", config.Logging.OutputToFile)
 	v.Set("logging.log_file_path", config.Logging.LogFilePath)
 	v.Set("logging.max_log_days", config.Logging.MaxLogDays)
 
