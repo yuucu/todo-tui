@@ -91,8 +91,10 @@ Supported formats: YAML, JSON, TOML
 ```bash
 git clone https://github.com/yuucu/todotui.git
 cd todotui
-make build
+make build  # or make help for available commands
 ```
 
 **Requirements:** Go 1.24+, color-capable terminal
+
+**Pre-commit hooks:** Automatically run `make fmt`, `make lint`, and `make test` before each commit.
 
