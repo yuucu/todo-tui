@@ -35,14 +35,13 @@ Options:
   -v, --version        Show version information
   -h, --help          Show this help message
 
-Environment Variables:
-  TODO_TUI_THEME         Set default theme (same as --theme)
-  TODO_TUI_PRIORITY_LEVELS  Set priority levels (example: "A,B,C")
+Configuration:
+  If no --config is specified, todotui will automatically load ~/.config/todotui/config.yaml if it exists.
 
 Examples:
-  %s                           # Use default ~/todo.txt with catppuccin theme
-  %s my-tasks.txt              # Use custom file
-  %s -c ~/.config/todotui/config.yaml  # Use configuration file
+  %s                           # Use default ~/todo.txt with automatic config detection
+  %s my-tasks.txt              # Use custom file with automatic config detection
+  %s -c ~/.config/todotui/config.yaml  # Use specific configuration file
   %s -t nord                   # Use nord theme
   %s --theme catppuccin ~/todo.txt  # Use catppuccin theme with custom file
 
@@ -57,11 +56,6 @@ Keybindings:
   p            Toggle task priority
   y            Copy task text to clipboard (right pane)
   q            Quit
-
-Priority Configuration:
-  Set TODO_TUI_PRIORITY_LEVELS environment variable to customize priority levels.
-  Example: TODO_TUI_PRIORITY_LEVELS="A,B,C" for A→B→C cycle
-  Default: A,B,C,D
 `, os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
 }
 

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/spf13/viper"
 )
@@ -90,7 +89,7 @@ func LoadConfigFromFile(configPath string) (AppConfig, error) {
 	return config, nil
 }
 
-// LoadConfig loads configuration from file if specified, otherwise from environment variables
+// LoadConfig loads configuration from file if specified, otherwise uses default configuration
 func LoadConfig(configPath string) AppConfig {
 	var config AppConfig
 
@@ -104,36 +103,39 @@ func LoadConfig(configPath string) AppConfig {
 			config = DefaultAppConfig()
 		}
 	} else {
-		config = DefaultAppConfig()
+		// Try to load from default locations if no config path is specified
+		configPath = findDefaultConfigFile()
+		if configPath != "" {
+			var err error
+			config, err = LoadConfigFromFile(configPath)
+			if err != nil {
+				// If config file loading fails, print warning and use defaults
+				fmt.Fprintf(os.Stderr, "Warning: Failed to load config from %s: %v\nUsing default configuration.\n", configPath, err)
+				config = DefaultAppConfig()
+			}
+		} else {
+			config = DefaultAppConfig()
+		}
 	}
-
-	// Override with environment variables if set
-	config = applyEnvironmentOverrides(config)
 
 	return config
 }
 
-// applyEnvironmentOverrides applies environment variable overrides
-func applyEnvironmentOverrides(config AppConfig) AppConfig {
-	// Theme override
-	if theme := os.Getenv("TODO_TUI_THEME"); theme != "" {
-		config.Theme = theme
+// findDefaultConfigFile searches for config files in common locations
+// Returns the path to the first config file found, or empty string if none found
+func findDefaultConfigFile() string {
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return ""
 	}
 
-	// Priority levels override
-	if envPriorities := os.Getenv("TODO_TUI_PRIORITY_LEVELS"); envPriorities != "" {
-		levels := strings.Split(envPriorities, ",")
-		for i, level := range levels {
-			levels[i] = strings.TrimSpace(level)
-		}
-		// Ensure empty string is first (no priority)
-		if len(levels) > 0 && levels[0] != "" {
-			levels = append([]string{""}, levels...)
-		}
-		config.PriorityLevels = levels
+	// Check for config.yaml in ~/.config/todotui/ directory
+	configPath := filepath.Join(homeDir, ".config", "todotui", "config.yaml")
+	if _, err := os.Stat(configPath); err == nil {
+		return configPath
 	}
 
-	return config
+	return ""
 }
 
 // validateAndFixConfig validates the configuration and sets defaults for invalid values

@@ -55,10 +55,12 @@ x 2025-01-14 Clean garage @home +chores
 
 ## ⚙️ Configuration
 
-Create a YAML configuration file and specify it with `--config`:
+Create a YAML configuration file at `~/.config/todotui/config.yaml`. todotui will automatically load this file if it exists.
+
+You can also specify a custom config file with `--config`:
 
 ```yaml
-# config.yaml
+# ~/.config/todotui/config.yaml
 theme: catppuccin                # Available: catppuccin, nord, default
 priority_levels: ["", A, B, C, D]
 default_todo_file: ~/todo.txt
@@ -67,6 +69,15 @@ ui:
   min_left_pane_width: 18
   min_right_pane_width: 28
   vertical_padding: 2
+```
+
+**Usage examples:**
+```bash
+# Automatic config detection (loads ~/.config/todotui/config.yaml)
+todotui ~/todo.txt
+
+# Use specific config file
+todotui --config /path/to/config.yaml ~/todo.txt
 ```
 
 Supported formats: YAML (recommended), JSON, TOML
