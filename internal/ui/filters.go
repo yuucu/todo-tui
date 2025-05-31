@@ -52,6 +52,17 @@ func (m *Model) refreshFilterList() {
 	}
 	filters = append(filters, allTasksFilter)
 
+	// Add "No Project" filter for tasks without any project tags
+	noProjectFilter := FilterData{
+		name: FilterNoProject,
+		filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
+			return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
+				return !task.Completed && !isTaskDeleted(task) && len(task.Projects) == 0
+			})
+		},
+	}
+	filters = append(filters, noProjectFilter)
+
 	// Add project filters if any exist
 	projects := m.getUniqueProjects()
 	if len(projects) > 0 {
