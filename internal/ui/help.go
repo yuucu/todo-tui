@@ -11,46 +11,46 @@ import (
 func (m *Model) initializeHelpContent() {
 	m.helpContent = []HelpContent{
 		{
-			Category: "基本操作",
+			Category: "Global Commands",
 			Items: []HelpItem{
-				{"?", "このヘルプを表示"},
-				{"q, Ctrl+C", "アプリケーションを終了"},
-				{"a", "新しいタスクを追加"},
-				{"e", "選択中のタスクを編集"},
-				{"d", "選択中のタスクを削除"},
-				{"r", "削除済み/完了済みタスクを復元"},
+				{"?", "Show/hide this help screen"},
+				{"q / Ctrl+C", "Quit application"},
+				{"a", "Add new task"},
+				{"e", "Edit selected task"},
+				{"d", "Delete selected task"},
+				{"r", "Restore deleted/completed task"},
 			},
 		},
 		{
-			Category: "ナビゲーション",
+			Category: "Navigation",
 			Items: []HelpItem{
-				{"Tab", "ペイン間を切り替え"},
-				{"h", "左ペイン（フィルタ）に移動"},
-				{"l", "右ペイン（タスク）に移動"},
-				{"j, ↓", "下に移動"},
-				{"k, ↑", "上に移動"},
-				{"Enter", "フィルタを適用/タスクを完了"},
+				{"Tab", "Switch between panes"},
+				{"h", "Move to left pane (Workspaces)"},
+				{"l", "Move to right pane (Todos)"},
+				{"j / ↓", "Move down"},
+				{"k / ↑", "Move up"},
+				{"Enter", "Apply filter / Complete task"},
 			},
 		},
 		{
-			Category: "タスク操作",
+			Category: "Task Operations",
 			Items: []HelpItem{
-				{"p", "優先度を切り替え"},
-				{"t", "期限を今日に設定/解除"},
+				{"p", "Cycle task priority"},
+				{"t", "Toggle due date to today"},
 			},
 		},
 		{
-			Category: "入力モード",
+			Category: "Edit Mode",
 			Items: []HelpItem{
-				{"Ctrl+C", "入力をキャンセル"},
-				{"Enter, Ctrl+S", "タスクを保存"},
+				{"Ctrl+C", "Cancel editing"},
+				{"Enter / Ctrl+S", "Save task"},
 			},
 		},
 		{
-			Category: "削除確認モード",
+			Category: "Delete Confirmation",
 			Items: []HelpItem{
-				{"y, Y", "削除を実行"},
-				{"n, N, Esc, Ctrl+C", "削除をキャンセル"},
+				{"y / Y", "Confirm deletion"},
+				{"n / N / Esc", "Cancel deletion"},
 			},
 		},
 	}
@@ -62,56 +62,100 @@ func (m *Model) renderHelpView() string {
 		m.initializeHelpContent()
 	}
 
-	var b strings.Builder
+	var content strings.Builder
 
 	// Define styles
 	headerStyle := lipgloss.NewStyle().
 		Foreground(m.currentTheme.Primary).
 		Bold(true).
-		Padding(0, 1)
+		Padding(1, 2).
+		Border(lipgloss.DoubleBorder()).
+		BorderForeground(m.currentTheme.Primary)
 
 	categoryStyle := lipgloss.NewStyle().
 		Foreground(m.currentTheme.Secondary).
-		Bold(true)
+		Bold(true).
+		Underline(true).
+		MarginTop(1).
+		MarginBottom(1)
 
 	keyStyle := lipgloss.NewStyle().
 		Foreground(m.currentTheme.Warning).
-		Bold(true)
+		Bold(true).
+		Width(16).
+		Align(lipgloss.Right).
+		Background(m.currentTheme.Surface).
+		Padding(0, 1).
+		MarginRight(1)
 
 	descStyle := lipgloss.NewStyle().
 		Foreground(m.currentTheme.Text)
 
-	mutedStyle := lipgloss.NewStyle().
-		Foreground(m.currentTheme.TextMuted).
-		Italic(true)
-
 	// Header
-	b.WriteString(headerStyle.Render("📚 キーバインディング ヘルプ"))
-	b.WriteString("\n\n")
+	header := headerStyle.Render("📚 TodoTUI - Keyboard Shortcuts Help")
+	content.WriteString(header)
+	content.WriteString("\n\n")
 
-	// Content
+	// Content sections
 	for i, category := range m.helpContent {
 		if i > 0 {
-			b.WriteString("\n")
+			content.WriteString("\n")
 		}
 
 		// Category header
-		b.WriteString(categoryStyle.Render("▶ " + category.Category))
-		b.WriteString("\n")
+		categoryHeader := categoryStyle.Render("▶ " + category.Category)
+		content.WriteString(categoryHeader)
+		content.WriteString("\n")
 
-		// Category items
+		// Category items in a box
+		var itemsContent strings.Builder
 		for _, item := range category.Items {
 			keyPart := keyStyle.Render(item.Key)
 			descPart := descStyle.Render(item.Description)
-			b.WriteString("  " + keyPart + " : " + descPart + "\n")
+			itemsContent.WriteString(keyPart + " : " + descPart + "\n")
 		}
+
+		// Box style for items
+		itemBoxStyle := lipgloss.NewStyle().
+			Border(lipgloss.NormalBorder(), false, false, false, true).
+			BorderForeground(m.currentTheme.BorderInactive).
+			PaddingLeft(2).
+			MarginLeft(1).
+			MarginBottom(1)
+
+		boxedItems := itemBoxStyle.Render(strings.TrimSuffix(itemsContent.String(), "\n"))
+		content.WriteString(boxedItems)
+		content.WriteString("\n")
 	}
 
-	// Footer
-	b.WriteString("\n")
-	b.WriteString(mutedStyle.Render("Press any key to close this help..."))
+	// Footer with additional info
+	footerContent := strings.Builder{}
+	footerContent.WriteString("Todo.txt Format Examples:\n")
+	footerContent.WriteString("  (A) Call Mom                   - High priority task\n")
+	footerContent.WriteString("  Buy milk @store +groceries     - Task with context and project\n")
+	footerContent.WriteString("  Meeting prep due:2025-05-31    - Task with due date\n")
+	footerContent.WriteString("  x 2025-05-30 Completed task    - Completed task\n\n")
+	footerContent.WriteString("Press any key to close this help...")
 
-	return b.String()
+	footerStyle := lipgloss.NewStyle().
+		Foreground(m.currentTheme.TextMuted).
+		Border(lipgloss.NormalBorder()).
+		BorderForeground(m.currentTheme.BorderInactive).
+		Padding(1).
+		MarginTop(1)
+
+	footer := footerStyle.Render(footerContent.String())
+	content.WriteString(footer)
+
+	// Center the entire help content
+	helpContent := content.String()
+	centeredStyle := lipgloss.NewStyle().
+		Width(m.width).
+		Height(m.height).
+		Align(lipgloss.Center, lipgloss.Center).
+		Background(m.currentTheme.Background)
+
+	return centeredStyle.Render(helpContent)
 }
 
 // KeyBinding represents a key binding configuration
@@ -129,7 +173,7 @@ func (m *Model) getKeyBindings() []KeyBinding {
 		// Global keys
 		{
 			Key:         "?",
-			Description: "ヘルプを表示",
+			Description: "Show help",
 			Mode:        modeView,
 			Handler: func(m *Model) (tea.Model, tea.Cmd) {
 				m.currentMode = modeHelp
@@ -138,7 +182,7 @@ func (m *Model) getKeyBindings() []KeyBinding {
 		},
 		{
 			Key:         "q",
-			Description: "アプリケーションを終了",
+			Description: "Quit application",
 			Mode:        modeView,
 			Handler: func(m *Model) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
@@ -146,7 +190,7 @@ func (m *Model) getKeyBindings() []KeyBinding {
 		},
 		{
 			Key:         ctrlCKey,
-			Description: "アプリケーションを終了",
+			Description: "Quit application",
 			Mode:        modeView,
 			Handler: func(m *Model) (tea.Model, tea.Cmd) {
 				return m, tea.Quit
@@ -156,7 +200,7 @@ func (m *Model) getKeyBindings() []KeyBinding {
 		// Task management keys
 		{
 			Key:         "a",
-			Description: "新しいタスクを追加",
+			Description: "Add new task",
 			Mode:        modeView,
 			Handler: func(m *Model) (tea.Model, tea.Cmd) {
 				m.currentMode = modeAdd
@@ -167,7 +211,7 @@ func (m *Model) getKeyBindings() []KeyBinding {
 		},
 		{
 			Key:         "e",
-			Description: "選択中のタスクを編集",
+			Description: "Edit selected task",
 			Mode:        modeView,
 			Pane:        &[]pane{paneTask}[0],
 			Handler: func(m *Model) (tea.Model, tea.Cmd) {
@@ -193,7 +237,7 @@ func (m *Model) getKeyBindings() []KeyBinding {
 		// Navigation keys
 		{
 			Key:         "tab",
-			Description: "ペイン間を切り替え",
+			Description: "Switch between panes",
 			Mode:        modeView,
 			Handler: func(m *Model) (tea.Model, tea.Cmd) {
 				if m.activePane == paneFilter {
@@ -206,7 +250,7 @@ func (m *Model) getKeyBindings() []KeyBinding {
 		},
 		{
 			Key:         "h",
-			Description: "左ペイン（フィルタ）に移動",
+			Description: "Move to left pane (Workspaces)",
 			Mode:        modeView,
 			Handler: func(m *Model) (tea.Model, tea.Cmd) {
 				m.activePane = paneFilter
@@ -215,7 +259,7 @@ func (m *Model) getKeyBindings() []KeyBinding {
 		},
 		{
 			Key:         "l",
-			Description: "右ペイン（タスク）に移動",
+			Description: "Move to right pane (Todos)",
 			Mode:        modeView,
 			Handler: func(m *Model) (tea.Model, tea.Cmd) {
 				m.activePane = paneTask

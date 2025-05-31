@@ -49,19 +49,25 @@ func (m *Model) updatePaneSizes() {
 		rightWidth = m.appConfig.UI.MinRightPaneWidth
 	}
 
-	// Calculate available height for list content (consistent with renderMainView)
+	// Calculate available height for list content using actual terminal size
 	// Reserve space for:
 	// - Combined help/status bar (1 line)
 	// - Configurable vertical padding
 	helpBarHeight := 1
 	verticalPadding := m.appConfig.UI.VerticalPadding
 
-	// Available height for the entire content area (including borders and titles)
-	contentHeight := calcHeight - helpBarHeight - verticalPadding
+	// Available height for the entire content area using actual terminal size
+	contentHeight := actualHeight - helpBarHeight - verticalPadding
 
-	// Ensure minimum content height
-	if contentHeight < 5 { // Minimum 5 lines to show border + some content
-		contentHeight = 5
+	// Apply minimum constraint if needed
+	minContentHeight := calcHeight - helpBarHeight - verticalPadding
+	if minContentHeight < 5 {
+		minContentHeight = 5
+	}
+
+	// Use the larger of actual calculated height or minimum required height
+	if contentHeight < minContentHeight {
+		contentHeight = minContentHeight
 	}
 
 	// Reserve space for border (2 lines) and title (1 line) within content area
@@ -194,14 +200,20 @@ func (m *Model) renderMainView() string {
 		rightWidth = m.appConfig.UI.MinRightPaneWidth
 	}
 
-	// Calculate content height (consistent with updatePaneSizes)
+	// Calculate content height using actual terminal size
 	helpBarHeight := 1
 	verticalPadding := m.appConfig.UI.VerticalPadding
-	contentHeight := calcHeight - helpBarHeight - verticalPadding
+	contentHeight := actualHeight - helpBarHeight - verticalPadding
 
-	// Ensure minimum content height
-	if contentHeight < 5 { // Minimum 5 lines to show border + some content
-		contentHeight = 5
+	// Apply minimum constraint if needed
+	minContentHeight := calcHeight - helpBarHeight - verticalPadding
+	if minContentHeight < 5 {
+		minContentHeight = 5
+	}
+
+	// Use the larger of actual calculated height or minimum required height
+	if contentHeight < minContentHeight {
+		contentHeight = minContentHeight
 	}
 
 	// Define styles for the panels (add height back to use full terminal height)
