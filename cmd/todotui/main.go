@@ -119,8 +119,8 @@ func main() {
 	logConfig := logger.Config{
 		Level:          slog.LevelInfo,
 		EnableDebug:    appConfig.Logging.EnableDebug,
-		OutputToFile:   true,  // 常にファイル出力を有効
-		OutputToStderr: false, // stderrには出力しない（UIのステータスメッセージで代替）
+		OutputToFile:   true, // 常にファイル出力を有効
+		OutputToStderr: true, // stderrにも出力する
 		LogFilePath:    appConfig.Logging.LogFilePath,
 		AppName:        "todotui",
 	}
