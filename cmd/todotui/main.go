@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/yuucu/todotui/internal/ui"
@@ -27,7 +28,8 @@ func printUsage() {
 A terminal todo.txt manager with vim-like keybindings.
 
 Arguments:
-  TODO_FILE    Path to todo.txt file (default: ~/todo.txt)
+  TODO_FILE    Path to todo.txt file
+               Priority: CLI argument > config file > default (~/todo.txt)
 
 Options:
   -c, --config CONFIG  Path to configuration file
@@ -94,14 +96,25 @@ func main() {
 		appConfig.Theme = themeName
 	}
 
-	// Determine todo file path
-	if todoFile == "" {
-		// Use from config if not specified
-		todoFile = appConfig.DefaultTodoFile
+	// Determine todo file path with priority: CLI argument > config file > default
+	var finalTodoFile string
+	if todoFile != "" {
+		// Priority 1: CLI argument specified
+		finalTodoFile = todoFile
+	} else if appConfig.DefaultTodoFile != "" {
+		// Priority 2: Config file specified (already expanded in LoadConfig)
+		finalTodoFile = appConfig.DefaultTodoFile
+	} else {
+		// Priority 3: Default fallback
+		homeDir, _ := os.UserHomeDir()
+		finalTodoFile = filepath.Join(homeDir, "todo.txt")
 	}
 
+	// Expand ~ in path if present (for CLI arguments)
+	finalTodoFile = ui.ExpandHomePath(finalTodoFile)
+
 	// Create model with configuration
-	model, err := ui.NewModel(todoFile, appConfig)
+	model, err := ui.NewModel(finalTodoFile, appConfig)
 	if err != nil {
 		fmt.Printf("Error initializing: %v\n", err)
 		os.Exit(1)

@@ -63,7 +63,7 @@ You can also specify a custom config file with `--config`:
 # ~/.config/todotui/config.yaml
 theme: catppuccin                # Available: catppuccin, nord, default
 priority_levels: ["", A, B, C, D]
-default_todo_file: ~/todo.txt
+default_todo_file: ~/todo.txt    # Default todo file path
 ui:
   left_pane_ratio: 0.33
   min_left_pane_width: 18
@@ -71,14 +71,30 @@ ui:
   vertical_padding: 2
 ```
 
+### Todo File Path Priority
+
+The todo file path is determined by the following priority order:
+
+1. **CLI argument** (highest priority): `todotui ~/my-todo.txt`
+2. **Config file**: `default_todo_file` setting in config.yaml
+3. **Default fallback**: `~/todo.txt`
+
 **Usage examples:**
 ```bash
-# Automatic config detection (loads ~/.config/todotui/config.yaml)
-todotui ~/todo.txt
+# Priority 1: CLI argument overrides config
+todotui ~/work/todo.txt
 
-# Use specific config file
-todotui --config /path/to/config.yaml ~/todo.txt
+# Priority 2: Uses config file setting
+todotui
+
+# With custom config file
+todotui --config /path/to/config.yaml
+
+# CLI argument still takes precedence over config
+todotui --config /path/to/config.yaml ~/override.txt
 ```
+
+**Path expansion:** All paths support `~` expansion to home directory.
 
 Supported formats: YAML (recommended), JSON, TOML
 
