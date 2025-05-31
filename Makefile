@@ -66,26 +66,14 @@ lint-install: ## golangci-lint をインストール
 	@echo "$(BLUE)Installing golangci-lint...$(NC)"
 	$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
 
-lint: lint-fast ## 高速リンター（CI用）を実行
-
-lint-fast: ## 高速リンター（CI用）を実行
-	@echo "$(BLUE)Running fast linter (CI config)...$(NC)"
+lint: ## リンターを実行
+	@echo "$(BLUE)Running linter...$(NC)"
 	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run --config=.golangci.yml --timeout=5m --fast; \
+		golangci-lint run --config=.golangci.yml --timeout=5m; \
 	else \
 		echo "$(YELLOW)golangci-lint not found. Installing...$(NC)"; \
 		make lint-install; \
-		golangci-lint run --config=.golangci.yml --timeout=5m --fast; \
-	fi
-
-lint-full: ## 詳細リンター（開発用）を実行
-	@echo "$(BLUE)Running full linter (development config)...$(NC)"
-	@if command -v golangci-lint >/dev/null 2>&1; then \
-		golangci-lint run --config=.golangci-dev.yml --timeout=10m; \
-	else \
-		echo "$(YELLOW)golangci-lint not found. Installing...$(NC)"; \
-		make lint-install; \
-		golangci-lint run --config=.golangci-dev.yml --timeout=10m; \
+		golangci-lint run --config=.golangci.yml --timeout=5m; \
 	fi
 
 install: ## バイナリをシステムにインストール
