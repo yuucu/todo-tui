@@ -90,10 +90,6 @@ const (
 	// Text area placeholder
 	TaskInputPlaceholder = "Enter task description (e.g., 'call @mom +home due:2025-01-15')"
 
-	// Delete confirmation dialog
-	DeleteConfirmTitle = "Delete Task?"
-	DeleteConfirmHelp  = "y: Yes, delete | n: No, cancel | Esc: Cancel"
-
 	// Edit mode titles
 	AddTaskTitle  = "Add New Task"
 	EditTaskTitle = "Edit Task"

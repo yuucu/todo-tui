@@ -53,17 +53,19 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 	}
 
 	model := &Model{
+		filterList:   SimpleList{},
+		taskList:     SimpleList{},
+		textarea:     textarea.New(),
 		todoFile:     todoFile,
 		tasks:        taskList,
 		activePane:   paneFilter,
 		currentMode:  modeView,
-		textarea:     textarea.New(),
-		deleteIndex:  InvalidIndex,
+		watcher:      nil,
+		width:        DefaultTerminalWidth,
+		height:       DefaultTerminalHeight,
 		currentTheme: GetTheme(),
 		appConfig:    appConfig,
 		imeHelper:    NewIMEHelper(),
-		width:        DefaultTerminalWidth,  // Default terminal width
-		height:       DefaultTerminalHeight, // Default terminal height
 	}
 
 	// Initialize help content
@@ -116,46 +118,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Handle help mode - any key exits help
 		if m.currentMode == modeHelp {
 			m.currentMode = modeView
-			return m, nil
-		}
-
-		// Handle delete confirmation mode
-		if m.currentMode == modeDeleteConfirm {
-			switch msg.String() {
-			case "y", "Y":
-				// Confirm deletion - use soft delete with deleted_at field
-				if m.deleteIndex >= StartIndex && m.deleteIndex < len(m.filteredTasks) {
-					taskToDelete := m.filteredTasks[m.deleteIndex]
-					// Find the task in main tasks list and add deleted_at field
-					for i := StartIndex; i < len(m.tasks); i++ {
-						if m.tasks[i].String() == taskToDelete.String() {
-							// Add deleted_at field to mark as soft deleted
-							currentDate := time.Now().Format(DateFormat)
-							taskString := m.tasks[i].String()
-
-							// Add deleted_at field to the task string
-							if !strings.Contains(taskString, TaskFieldDeletedPrefix) {
-								taskString += " " + TaskFieldDeletedPrefix + currentDate
-
-								// Parse the modified task string back to update the task
-								if newTask, err := todotxt.ParseTask(taskString); err == nil {
-									m.tasks[i] = *newTask
-								}
-							}
-							break
-						}
-					}
-				}
-				m.currentMode = modeView
-				m.deleteIndex = InvalidIndex
-				m.saveAndRefresh()
-				return m, nil
-			case "n", "N", "esc", ctrlCKey:
-				// Cancel deletion
-				m.currentMode = modeView
-				m.deleteIndex = InvalidIndex
-				return m, nil
-			}
 			return m, nil
 		}
 
@@ -279,12 +241,32 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "d":
 			if m.activePane == paneTask {
-				// Delete task (only for non-deleted tasks)
+				// Delete task directly (only for non-deleted tasks)
 				if m.taskList.selected < len(m.filteredTasks) {
 					// Check if current filter is "Deleted Tasks"
 					if m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name != FilterDeletedTasks {
-						m.currentMode = modeDeleteConfirm
-						m.deleteIndex = m.taskList.selected
+						// Soft delete with deleted_at field
+						taskToDelete := m.filteredTasks[m.taskList.selected]
+						// Find the task in main tasks list and add deleted_at field
+						for i := StartIndex; i < len(m.tasks); i++ {
+							if m.tasks[i].String() == taskToDelete.String() {
+								// Add deleted_at field to mark as soft deleted
+								currentDate := time.Now().Format(DateFormat)
+								taskString := m.tasks[i].String()
+
+								// Add deleted_at field to the task string
+								if !strings.Contains(taskString, TaskFieldDeletedPrefix) {
+									taskString += " " + TaskFieldDeletedPrefix + currentDate
+
+									// Parse the modified task string back to update the task
+									if newTask, err := todotxt.ParseTask(taskString); err == nil {
+										m.tasks[i] = *newTask
+									}
+								}
+								break
+							}
+						}
+						m.saveAndRefresh()
 						return m, nil
 					}
 				}

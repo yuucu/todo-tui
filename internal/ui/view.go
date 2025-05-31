@@ -130,46 +130,6 @@ func (m *Model) View() string {
 	// Always render the main view (panes, help bar, etc.)
 	mainView := m.renderMainView()
 
-	// If in delete confirmation mode, overlay the dialog on top of the main view
-	if m.currentMode == modeDeleteConfirm {
-		if m.deleteIndex < len(m.filteredTasks) {
-			task := &m.filteredTasks[m.deleteIndex]
-
-			// Create dialog content
-			dialogTitleStyle := lipgloss.NewStyle().
-				Foreground(m.currentTheme.Danger).
-				Bold(true)
-
-			taskStyle := lipgloss.NewStyle().
-				Foreground(m.currentTheme.TextMuted).
-				Italic(true)
-
-			dialogHelpStyle := lipgloss.NewStyle().
-				Foreground(m.currentTheme.TextSubtle)
-
-			dialogContent := lipgloss.JoinVertical(lipgloss.Left,
-				dialogTitleStyle.Render(DeleteConfirmTitle),
-				"",
-				taskStyle.Render(task.Todo),
-				"",
-				dialogHelpStyle.Render(DeleteConfirmHelp),
-			)
-
-			// Style the dialog with background to make it opaque
-			dialogStyle := lipgloss.NewStyle().
-				Border(lipgloss.RoundedBorder()).
-				BorderForeground(m.currentTheme.Danger).
-				Padding(1, 2).
-				Background(m.currentTheme.Surface).
-				Foreground(m.currentTheme.Text)
-
-			dialogBox := dialogStyle.Render(dialogContent)
-
-			// Overlay the dialog on the main view
-			return m.overlayDialog(mainView, dialogBox)
-		}
-	}
-
 	return mainView
 }
 
