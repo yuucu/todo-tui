@@ -68,7 +68,7 @@ jobs:
       if: steps.go-changes.outputs.changed == 'true'
       uses: golangci/golangci-lint-action@v6
       with:
-        version: v1.61.0  # 固定バージョンでキャッシュ効果向上
+        version: latest  # 最新バージョンでGo 1.24に対応
         args: --timeout=5m --config=.golangci.yml --fast
         skip-cache: false
 

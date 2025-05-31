@@ -3,12 +3,6 @@ run:
   issues-exit-code: 1
   tests: true
   modules-download-mode: readonly
-  skip-dirs:
-    - vendor
-    - .git
-  skip-files:
-    - ".*\\.pb\\.go$"
-    - ".*_generated\\.go$"
 
 output:
   formats:
@@ -120,6 +114,12 @@ linters:
     # - funlen      # 重い
 
 issues:
+  exclude-dirs:
+    - vendor
+    - .git
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*_generated\\.go$"
   uniq-by-line: true
   exclude-rules:
     # テストファイルでの一部のlinterを無効化
