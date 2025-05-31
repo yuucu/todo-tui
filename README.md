@@ -14,38 +14,6 @@ A clean, efficient terminal-based todo manager that respects the [todo.txt](http
 
 ## 🚀 Installation
 
-### 📦 Download Binary (Recommended)
-
-Download the latest release for your platform from [GitHub Releases](https://github.com/yuucu/todotui/releases):
-
-```bash
-# Download and extract for your platform
-# Linux x86_64
-wget https://github.com/yuucu/todotui/releases/latest/download/todotui_Linux_x86_64.tar.gz
-tar -xzf todotui_Linux_x86_64.tar.gz
-sudo mv todotui /usr/local/bin/
-
-# macOS (Intel)
-wget https://github.com/yuucu/todotui/releases/latest/download/todotui_Darwin_x86_64.tar.gz
-tar -xzf todotui_Darwin_x86_64.tar.gz
-sudo mv todotui /usr/local/bin/
-
-# macOS (Apple Silicon)
-wget https://github.com/yuucu/todotui/releases/latest/download/todotui_Darwin_arm64.tar.gz
-tar -xzf todotui_Darwin_arm64.tar.gz
-sudo mv todotui /usr/local/bin/
-```
-
-### 🍺 Homebrew (Coming Soon)
-
-```bash
-# Add our tap
-brew tap yuucu/tap
-
-# Install
-brew install todotui
-```
-
 ### 🔧 Go Install
 
 ```bash
@@ -113,7 +81,7 @@ ui:
   vertical_padding: 2
 ```
 
-Place your config file in `~/.config/todotui/` or specify with `--config` flag.
+Place your config file in `~/.config/todotui/config.yaml` or specify with `--config` flag.
 
 ## 🏗️ Build from Source
 
