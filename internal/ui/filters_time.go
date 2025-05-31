@@ -11,6 +11,48 @@ const (
 	daysInWeek = 7
 )
 
+// isOverdue checks if a task is overdue based on the current date
+func isOverdue(task todotxt.Task, now time.Time) bool {
+	if !task.HasDueDate() || task.Completed || isTaskDeleted(task) {
+		return false
+	}
+
+	today := now.Format("2006-01-02")
+	taskDateStr := task.DueDate.Format("2006-01-02")
+	return taskDateStr < today
+}
+
+// isDueToday checks if a task is due today
+func isDueToday(task todotxt.Task, now time.Time) bool {
+	if !task.HasDueDate() || task.Completed || isTaskDeleted(task) {
+		return false
+	}
+
+	today := now.Format("2006-01-02")
+	taskDateStr := task.DueDate.Format("2006-01-02")
+	return taskDateStr == today
+}
+
+// isThisWeek checks if a task is due this week
+func isThisWeek(task todotxt.Task, now time.Time) bool {
+	if !task.HasDueDate() || task.Completed || isTaskDeleted(task) {
+		return false
+	}
+
+	// 週の開始を日曜日として計算（Goでは日曜日が0）
+	weekStart := now.AddDate(0, 0, -int(now.Weekday()))
+	// 週の終了を土曜日の翌日（日曜日）として計算
+	weekEnd := weekStart.AddDate(0, 0, daysInWeek)
+
+	// 日付レベルでの比較
+	taskDate := task.DueDate.Format("2006-01-02")
+	weekStartStr := weekStart.Format("2006-01-02")
+	weekEndStr := weekEnd.Format("2006-01-02")
+
+	// タスクの期限日が週の範囲内かチェック（開始日含む、終了日除く）
+	return taskDate >= weekStartStr && taskDate < weekEndStr
+}
+
 // getTimeBasedFilters returns all time-based filters
 func (m *Model) getTimeBasedFilters() []FilterData {
 	var filters []FilterData
@@ -34,10 +76,10 @@ func (m *Model) getTimeBasedFilters() []FilterData {
 // getDueTodayFilterFn returns the filter function for due today tasks
 func (m *Model) getDueTodayFilterFn() func(todotxt.TaskList) todotxt.TaskList {
 	return func(tasks todotxt.TaskList) todotxt.TaskList {
-		today := time.Now().Format("2006-01-02")
+		now := time.Now()
 		var result todotxt.TaskList
 		for _, task := range tasks {
-			if !task.Completed && !isTaskDeleted(task) && task.HasDueDate() && task.DueDate.Format("2006-01-02") == today {
+			if isDueToday(task, now) {
 				result = append(result, task)
 			}
 		}
@@ -49,12 +91,9 @@ func (m *Model) getDueTodayFilterFn() func(todotxt.TaskList) todotxt.TaskList {
 func (m *Model) getThisWeekFilterFn() func(todotxt.TaskList) todotxt.TaskList {
 	return func(tasks todotxt.TaskList) todotxt.TaskList {
 		now := time.Now()
-		weekStart := now.AddDate(0, 0, -int(now.Weekday()))
-		weekEnd := weekStart.AddDate(0, 0, daysInWeek)
 		var result todotxt.TaskList
 		for _, task := range tasks {
-			if !task.Completed && !isTaskDeleted(task) && task.HasDueDate() &&
-				!task.DueDate.Before(weekStart) && task.DueDate.Before(weekEnd) {
+			if isThisWeek(task, now) {
 				result = append(result, task)
 			}
 		}
@@ -68,7 +107,7 @@ func (m *Model) getOverdueFilterFn() func(todotxt.TaskList) todotxt.TaskList {
 		now := time.Now()
 		var result todotxt.TaskList
 		for _, task := range tasks {
-			if !task.Completed && !isTaskDeleted(task) && task.HasDueDate() && task.DueDate.Before(now) {
+			if isOverdue(task, now) {
 				result = append(result, task)
 			}
 		}
