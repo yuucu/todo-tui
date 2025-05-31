@@ -81,37 +81,3 @@ make build
 
 **Requirements:** Go 1.24+, color-capable terminal
 
-### 🔄 Release Management
-
-このプロジェクトはSemantic Versioningを採用し、Release Drafterで自動的にリリースノートを生成します。
-
-#### コミットメッセージの規約
-
-適切なリリースノート生成とバージョン決定のため、以下の形式でコミットしてください：
-
-- `feat:` または `feature:` - 新機能 (minor version up)
-- `fix:` または `bug:` - バグ修正 (patch version up)
-- `BREAKING CHANGE:` または `!:` - 破壊的変更 (major version up)
-- `docs:` - ドキュメント更新
-- `chore:` - メンテナンス作業
-- `deps:` - 依存関係の更新
-
-#### プルリクエストラベル
-
-PRには以下のラベルを適切に付けてください：
-
-- **Semantic Versioning**: `breaking`, `feature`, `bug`, `patch`
-- **Categories**: `docs`, `chore`, `dependencies`
-
-#### リリースプロセス
-
-1. **開発**: featureブランチで開発
-2. **PR作成**: mainブランチへのPRを作成
-3. **自動ラベリング**: Release Drafterが自動的にラベルを付与
-4. **ドラフト更新**: PRマージ時にリリースドラフトが自動更新
-5. **リリース**: GitHubでリリースドラフトを公開
-6. **自動配布**: GoReleaserが自動的にバイナリをビルド・配布
-
----
-
-*Simple. Fast. Distraction-free task management.*
