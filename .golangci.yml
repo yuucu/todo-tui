@@ -1,3 +1,8 @@
+# golangci-lint configuration
+# このファイルはローカル開発とCI環境の両方で使用されます
+# ローカル: make lint
+# CI: GitHub Actions (.github/workflows/ci.yml)
+
 run:
   timeout: 5m
   issues-exit-code: 1
@@ -27,10 +32,19 @@ linters-settings:
   goimports:
     local-prefixes: github.com/todotui
   mnd:  # gomndの代わりにmndを使用
-    settings:
-      checks: argument,case,condition,operation,return,assign
-      ignored-numbers: 0,1,2
-      ignored-functions: strings.SplitN
+    checks: 
+      - argument
+      - case
+      - condition
+      - operation
+      - return
+      - assign
+    ignored-numbers: 
+      - "0"
+      - "1" 
+      - "2"
+    ignored-functions:
+      - "strings.SplitN"
   gocritic:
     enabled-tags:
       - diagnostic
@@ -56,22 +70,6 @@ linters-settings:
     check-exported: false
   nakedret:
     max-func-lines: 30
-  prealloc:
-    simple: true
-    range-loops: true
-    for-loops: false
-  whitespace:
-    multi-if: false
-    multi-func: false
-  wsl:
-    # WSLルールを大幅に緩和
-    strict-append: false
-    allow-assign-and-call: true
-    allow-multiline-assign: true
-    allow-case-trailing-whitespace: true
-    allow-cuddle-declarations: true
-    allow-trailing-comment: true
-    force-case-trailing-whitespace: 0
 
 linters:
   disable-all: true

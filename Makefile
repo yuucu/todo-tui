@@ -64,7 +64,7 @@ fmt: ## コードをフォーマット
 # golangci-lint インストール
 lint-install: ## golangci-lint をインストール
 	@echo "$(BLUE)Installing golangci-lint...$(NC)"
-	$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	$(GO) install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.64.8
 
 lint: lint-fast ## 高速リンター（CI用）を実行
 
