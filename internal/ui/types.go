@@ -68,7 +68,6 @@ type Model struct {
 	height           int
 	filters          []FilterData
 	filteredTasks    todotxt.TaskList
-	deleteIndex      int // Index of task to delete in filteredTasks
 	currentTheme     Theme
 	appConfig        AppConfig     // Application configuration
 	imeHelper        *IMEHelper    // Add IME helper for Japanese input

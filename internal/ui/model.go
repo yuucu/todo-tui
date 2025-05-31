@@ -404,10 +404,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if err := clipboard.WriteAll(taskText); err == nil {
 						// Show success message for 2 seconds
 						return m, m.setStatusMessage("📋 Task copied to clipboard", 2*time.Second)
-					} else {
-						// Show error message for 3 seconds if copy failed
-						return m, m.setStatusMessage("❌ Failed to copy task", 3*time.Second)
 					}
+					// Show error message for 3 seconds if copy failed
+					return m, m.setStatusMessage("❌ Failed to copy task", 3*time.Second)
 				}
 			}
 		case "j", "down":
