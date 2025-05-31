@@ -64,6 +64,9 @@ type UIConfig struct {
 
 	// Vertical padding/spacing settings
 	VerticalPadding int `mapstructure:"vertical_padding"`
+
+	// Checkbox style for task display
+	CheckboxStyle string `mapstructure:"checkbox_style"`
 }
 
 // LoggingConfig represents logging configuration
@@ -89,6 +92,7 @@ func DefaultAppConfig() AppConfig {
 			MinLeftPaneWidth:  18,
 			MinRightPaneWidth: 28,
 			VerticalPadding:   2,
+			CheckboxStyle:     DefaultCheckboxStyle,
 		},
 		Logging: LoggingConfig{
 			EnableDebug: false,
@@ -234,6 +238,19 @@ func validateAndFixConfig(config AppConfig) AppConfig {
 		config.UI.VerticalPadding = 2
 	}
 
+	// Validate checkbox style
+	validCheckboxStyles := []string{CheckboxStyleCircle, CheckboxStyleSquare, CheckboxStyleCheck, CheckboxStyleDiamond, CheckboxStyleStar}
+	isValidCheckboxStyle := false
+	for _, style := range validCheckboxStyles {
+		if config.UI.CheckboxStyle == style {
+			isValidCheckboxStyle = true
+			break
+		}
+	}
+	if !isValidCheckboxStyle {
+		config.UI.CheckboxStyle = DefaultCheckboxStyle
+	}
+
 	// Validate logging settings
 	if config.Logging.MaxLogDays <= 0 {
 		config.Logging.MaxLogDays = 30
@@ -272,6 +289,7 @@ func SaveConfigToFile(config AppConfig, configPath string) error {
 	v.Set("ui.min_left_pane_width", config.UI.MinLeftPaneWidth)
 	v.Set("ui.min_right_pane_width", config.UI.MinRightPaneWidth)
 	v.Set("ui.vertical_padding", config.UI.VerticalPadding)
+	v.Set("ui.checkbox_style", config.UI.CheckboxStyle)
 
 	// Set logging configuration
 	v.Set("logging.enable_debug", config.Logging.EnableDebug)

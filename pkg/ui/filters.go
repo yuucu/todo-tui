@@ -176,9 +176,10 @@ func (m *Model) refreshFilterList() {
 	m.filters = filters
 	m.filterList.SetItems(items)
 
-	// Restore or update the selected filter position
+	// Restore or update the selected filter position after SetItems
+	// Use preserve scroll method to avoid unwanted scrolling
 	if newSelectedIndex < len(items) {
-		m.filterList.selected = newSelectedIndex
+		m.filterList.SetSelectedIndexPreserveScroll(newSelectedIndex)
 	}
 }
 
@@ -210,61 +211,57 @@ func (m *Model) refreshTaskList() {
 		}
 	}
 
-	// Convert tasks to display strings
+	// Convert tasks to display strings and track completion status
 	var items []string
+	var completedItems []bool
+	var checkboxColors []lipgloss.Color
+
 	for i := range filteredTasks {
 		task := &filteredTasks[i]
 
-		// Build task display string
-		display := task.Todo
+		// Track completion status for the enhanced list display
+		// Consider both completed tasks and deleted tasks as "completed" for UI purposes
+		isTaskCompleted := task.Completed || isTaskDeleted(*task)
+		completedItems = append(completedItems, isTaskCompleted)
 
-		// Add priority with color
-		if task.HasPriority() {
-			priorityStyle := lipgloss.NewStyle().Bold(true)
-			switch task.Priority {
-			case "A":
-				priorityStyle = priorityStyle.Foreground(m.currentTheme.PriorityHigh)
-			case "B":
-				priorityStyle = priorityStyle.Foreground(m.currentTheme.PriorityMedium)
-			case "C":
-				priorityStyle = priorityStyle.Foreground(m.currentTheme.PriorityLow)
-			case "D":
-				priorityStyle = priorityStyle.Foreground(m.currentTheme.PriorityLowest)
-			default:
-				priorityStyle = priorityStyle.Foreground(m.currentTheme.PriorityDefault)
-			}
-			display = priorityStyle.Render(fmt.Sprintf("(%s) ", task.Priority)) + display
-		}
-
-		// Add contexts and projects
-		var tags []string
-		for _, project := range task.Projects {
-			tags = append(tags, lipgloss.NewStyle().
-				Foreground(m.currentTheme.Secondary).
-				Render("+"+project))
-		}
-		for _, context := range task.Contexts {
-			tags = append(tags, lipgloss.NewStyle().
-				Foreground(m.currentTheme.Primary).
-				Render("@"+context))
-		}
-
-		// Add due date
-		if task.HasDueDate() {
-			dueStyle := lipgloss.NewStyle()
+		// Calculate checkbox color based on due date for incomplete tasks
+		var checkboxColor lipgloss.Color
+		if !isTaskCompleted && task.HasDueDate() {
 			dueDate := task.DueDate.Format(DateFormat)
 			now := time.Now()
 			today := now.Format(DateFormat)
 
 			if dueDate < today {
-				dueStyle = dueStyle.Foreground(m.currentTheme.Danger) // Overdue
+				checkboxColor = m.currentTheme.Danger // Overdue - red
 			} else if dueDate == today {
-				dueStyle = dueStyle.Foreground(m.currentTheme.Warning) // Due today
+				checkboxColor = m.currentTheme.Warning // Due today - yellow
 			} else {
-				dueStyle = dueStyle.Foreground(m.currentTheme.Success) // Future
+				checkboxColor = m.currentTheme.Success // Future - green
 			}
+		} else {
+			// For completed tasks or tasks without due date, use default muted color
+			checkboxColor = m.currentTheme.TextMuted
+		}
+		checkboxColors = append(checkboxColors, checkboxColor)
 
-			tags = append(tags, dueStyle.Render(TaskFieldDuePrefix+dueDate))
+		// Build task display string - only plain text, styling will be done in renderTaskItem
+		display := task.Todo
+
+		// For both completed and active tasks, keep plain text and let renderTaskItem handle all styling
+		if task.HasPriority() {
+			display = fmt.Sprintf("(%s) ", task.Priority) + display
+		}
+
+		var tags []string
+		for _, project := range task.Projects {
+			tags = append(tags, "+"+project)
+		}
+		for _, context := range task.Contexts {
+			tags = append(tags, "@"+context)
+		}
+		if task.HasDueDate() {
+			dueDate := task.DueDate.Format(DateFormat)
+			tags = append(tags, TaskFieldDuePrefix+dueDate)
 		}
 
 		if len(tags) > 0 {
@@ -276,6 +273,10 @@ func (m *Model) refreshTaskList() {
 
 	m.filteredTasks = filteredTasks
 	m.taskList.SetItems(items)
+	// Set completion status for enhanced display
+	m.taskList.SetCompletedItems(completedItems)
+	// Set checkbox colors to match due date colors
+	m.taskList.SetCheckboxColors(checkboxColors)
 }
 
 // getUniqueProjects returns sorted unique project names
