@@ -324,9 +324,9 @@ func (l *SimpleList) styleActiveTaskContentWithBackground(item string, backgroun
 
 	for i, part := range parts {
 		if i == 0 && strings.HasPrefix(part, "(") && strings.HasSuffix(part, ")") && len(part) == 3 {
-			// This is a priority like "(A)" - keep original color with background
+			// This is a priority like "(A)" - keep original color without background (will be applied later)
 			priority := strings.Trim(part, "()")
-			priorityStyle := lipgloss.NewStyle().Bold(true).Background(backgroundColor)
+			priorityStyle := lipgloss.NewStyle().Bold(true)
 			switch priority {
 			case "A":
 				priorityStyle = priorityStyle.Foreground(l.theme.PriorityHigh)
@@ -341,22 +341,20 @@ func (l *SimpleList) styleActiveTaskContentWithBackground(item string, backgroun
 			}
 			styledParts = append(styledParts, priorityStyle.Render(part))
 		} else if strings.HasPrefix(part, "+") {
-			// Project tag - keep original color with background
+			// Project tag - keep original color without background (will be applied later)
 			projectStyle := lipgloss.NewStyle().
 				Foreground(l.theme.Secondary).
-				Background(backgroundColor).
 				Bold(true)
 			styledParts = append(styledParts, projectStyle.Render(part))
 		} else if strings.HasPrefix(part, "@") {
-			// Context tag - keep original color with background
+			// Context tag - keep original color without background (will be applied later)
 			contextStyle := lipgloss.NewStyle().
 				Foreground(l.theme.Primary).
-				Background(backgroundColor).
 				Bold(true)
 			styledParts = append(styledParts, contextStyle.Render(part))
 		} else if strings.HasPrefix(part, "due:") {
-			// Due date tag - keep original color with background
-			dueStyle := lipgloss.NewStyle().Background(backgroundColor).Bold(true)
+			// Due date tag - keep original color without background (will be applied later)
+			dueStyle := lipgloss.NewStyle().Bold(true)
 			dueDate := strings.TrimPrefix(part, "due:")
 
 			// Parse and color based on date
@@ -373,16 +371,21 @@ func (l *SimpleList) styleActiveTaskContentWithBackground(item string, backgroun
 
 			styledParts = append(styledParts, dueStyle.Render(part))
 		} else {
-			// Regular text (todo content) - with background and default selection foreground
+			// Regular text (todo content) - with selection foreground
 			textStyle := lipgloss.NewStyle().
-				Background(backgroundColor).
 				Foreground(l.theme.SelectionFg).
 				Bold(true)
 			styledParts = append(styledParts, textStyle.Render(part))
 		}
 	}
 
-	return strings.Join(styledParts, " ")
+	// Join all styled parts and apply background to the entire content for continuous highlighting
+	content := strings.Join(styledParts, " ")
+	backgroundStyle := lipgloss.NewStyle().
+		Background(backgroundColor).
+		Bold(true)
+
+	return backgroundStyle.Render(content)
 }
 
 // renderFilterItem renders a filter item with highlighting
