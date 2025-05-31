@@ -24,39 +24,19 @@ func printVersion() {
 func printUsage() {
 	fmt.Printf(`Usage: %s [OPTIONS] [TODO_FILE]
 
-A beautiful terminal todo.txt manager with vim-like keybindings.
+A terminal todo.txt manager with vim-like keybindings.
 
 Arguments:
-  TODO_FILE    Path to todo.txt file (default: ~/todo.txt or from config file)
+  TODO_FILE    Path to todo.txt file (default: ~/todo.txt)
 
 Options:
-  -c, --config CONFIG  Path to configuration file (YAML format)
+  -c, --config CONFIG  Path to configuration file
   -t, --theme THEME    Set color theme (catppuccin, nord)
   -v, --version        Show version information
   -h, --help          Show this help message
 
-Configuration:
-  If no --config is specified, todotui will automatically load ~/.config/todotui/config.yaml if it exists.
-
-Examples:
-  %s                           # Use default ~/todo.txt with automatic config detection
-  %s my-tasks.txt              # Use custom file with automatic config detection
-  %s -c ~/.config/todotui/config.yaml  # Use specific configuration file
-  %s -t nord                   # Use nord theme
-  %s --theme catppuccin ~/todo.txt  # Use catppuccin theme with custom file
-
-Keybindings:
-  Tab/h/l      Switch between panes
-  j/k          Navigate up/down
-  a            Add new task
-  e            Edit selected task
-  Enter        Select filter & move to tasks (left pane) / Complete task (right pane)
-  d            Delete task (with confirmation)
-  r            Restore deleted/completed task
-  p            Toggle task priority
-  y            Copy task text to clipboard (right pane)
-  q            Quit
-`, os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
+For detailed documentation and keybindings, see: https://github.com/yuucu/todotui
+`, os.Args[0])
 }
 
 func main() {
