@@ -12,11 +12,12 @@ import (
 
 // Config はログの設定を定義
 type Config struct {
-	Level        slog.Level
-	EnableDebug  bool
-	OutputToFile bool
-	LogFilePath  string
-	AppName      string // アプリケーション名（ログディレクトリの決定に使用）
+	Level          slog.Level
+	EnableDebug    bool
+	OutputToFile   bool
+	OutputToStderr bool // 新規追加: stderrへの出力を制御
+	LogFilePath    string
+	AppName        string // アプリケーション名（ログディレクトリの決定に使用）
 }
 
 // Logger はアプリケーション全体で使用するロガー
@@ -73,8 +74,10 @@ func getLogDirectory(appName string) (string, error) {
 func Init(config Config) error {
 	var writers []io.Writer
 
-	// 常にstderrに出力（CLIアプリケーションのベストプラクティス）
-	writers = append(writers, os.Stderr)
+	// OutputToStderrが有効な場合のみstderrに出力
+	if config.OutputToStderr {
+		writers = append(writers, os.Stderr)
+	}
 
 	// ファイル出力が有効な場合
 	if config.OutputToFile {
@@ -106,6 +109,11 @@ func Init(config Config) error {
 		}
 
 		writers = append(writers, logFile)
+	}
+
+	// 出力先が設定されていない場合はエラー
+	if len(writers) == 0 {
+		return fmt.Errorf("ログの出力先が設定されていません（OutputToFile または OutputToStderr のいずれかを有効にしてください）")
 	}
 
 	// マルチライターを作成

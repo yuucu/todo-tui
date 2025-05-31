@@ -10,8 +10,8 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fsnotify/fsnotify"
 	"github.com/samber/lo"
-	"github.com/yuucu/todotui/internal/todo"
 	"github.com/yuucu/todotui/pkg/logger"
+	"github.com/yuucu/todotui/pkg/todo"
 )
 
 // watchFile returns a command that watches for file changes
@@ -96,14 +96,15 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 }
 
 // saveAndRefresh saves the task list and refreshes the UI
-func (m *Model) saveAndRefresh() {
+func (m *Model) saveAndRefresh() tea.Cmd {
 	logger.Debug("Saving tasks to file", "file", m.todoFile, "task_count", len(m.tasks))
 	if err := todo.Save(m.tasks, m.todoFile); err != nil {
 		logger.Error("Failed to save tasks to file", "file", m.todoFile, "error", err)
-		return
+		return nil
 	}
-	logger.Info("Tasks saved successfully", "file", m.todoFile)
+	logger.Debug("Tasks saved successfully", "file", m.todoFile)
 	m.refreshLists()
+	return nil
 }
 
 // Init initializes the model
@@ -185,8 +186,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.currentMode = modeView
 					m.editingTask = nil
 					m.textarea.SetValue("")
-					m.saveAndRefresh()
-					return m, nil
+					return m, m.saveAndRefresh()
 				}
 				// If text is empty, just cancel the edit
 				m.currentMode = modeView
@@ -264,8 +264,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if task != nil {
 					task.Complete()
 				}
-				m.saveAndRefresh()
-				return m, nil
+				return m, m.saveAndRefresh()
 			}
 		case dKey:
 			if m.activePane == paneTask {
@@ -292,8 +291,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 								}
 							}
 						}
-						m.saveAndRefresh()
-						return m, nil
+						return m, m.saveAndRefresh()
 					}
 				}
 			}
@@ -307,8 +305,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if task != nil {
 						m.cyclePriority(task)
 					}
-					m.saveAndRefresh()
-					return m, nil
+					return m, m.saveAndRefresh()
 				}
 			}
 		case tKey:
@@ -321,8 +318,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if task != nil {
 						m.toggleDueToday(task)
 					}
-					m.saveAndRefresh()
-					return m, nil
+					return m, m.saveAndRefresh()
 				}
 			}
 		case rKey:
@@ -358,8 +354,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 								}
 							}
 						}
-						m.saveAndRefresh()
-						return m, nil
+						return m, m.saveAndRefresh()
 					}
 
 					// Handle completed tasks restoration
@@ -370,8 +365,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							task.Completed = false
 							task.CompletedDate = time.Time{} // Clear completion date
 						}
-						m.saveAndRefresh()
-						return m, nil
+						return m, m.saveAndRefresh()
 					}
 				}
 			}
@@ -537,11 +531,10 @@ func (m *Model) setStatusMessage(message string, duration time.Duration) tea.Cmd
 
 // findTaskInList finds a task in the main task list and returns its index and pointer
 func (m *Model) findTaskInList(targetTask todotxt.Task) (int, *todotxt.Task) {
-	_, index, found := lo.FindIndexOf(m.tasks, func(task todotxt.Task) bool {
-		return task.String() == targetTask.String()
-	})
-	if found {
-		return index, &m.tasks[index]
+	for i := range m.tasks {
+		if m.tasks[i].String() == targetTask.String() {
+			return i, &m.tasks[i]
+		}
 	}
 	return -1, nil
 }

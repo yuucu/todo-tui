@@ -7,8 +7,8 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/yuucu/todotui/internal/ui"
 	"github.com/yuucu/todotui/pkg/logger"
+	"github.com/yuucu/todotui/pkg/ui"
 )
 
 // Build information variables (set by goreleaser)
@@ -115,13 +115,14 @@ func main() {
 		appConfig.Logging.LogFilePath = *logFile
 	}
 
-	// Initialize logging system (ファイル出力は常に有効)
+	// Initialize logging system (first initialization without UI channel)
 	logConfig := logger.Config{
-		Level:        slog.LevelInfo,
-		EnableDebug:  appConfig.Logging.EnableDebug,
-		OutputToFile: true, // 常にファイル出力を有効
-		LogFilePath:  appConfig.Logging.LogFilePath,
-		AppName:      "todotui",
+		Level:          slog.LevelInfo,
+		EnableDebug:    appConfig.Logging.EnableDebug,
+		OutputToFile:   true, // 常にファイル出力を有効
+		OutputToStderr: true, // stderrにも出力する
+		LogFilePath:    appConfig.Logging.LogFilePath,
+		AppName:        "todotui",
 	}
 
 	if err := logger.Init(logConfig); err != nil {

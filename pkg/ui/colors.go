@@ -95,6 +95,60 @@ var themes = map[string]Theme{
 		SelectionBg: lipgloss.Color("#434C5E"), // Nord2
 		SelectionFg: lipgloss.Color("#ECEFF4"), // Nord6
 	},
+	"everforest-dark": {
+		PriorityHigh:    lipgloss.Color("#e67e80"), // Red
+		PriorityMedium:  lipgloss.Color("#dbbc7f"), // Yellow
+		PriorityLow:     lipgloss.Color("#7fbbb3"), // Aqua
+		PriorityLowest:  lipgloss.Color("#d699b6"), // Purple
+		PriorityDefault: lipgloss.Color("#a7c080"), // Green
+
+		Primary:   lipgloss.Color("#a7c080"), // Green
+		Secondary: lipgloss.Color("#7fbbb3"), // Aqua
+		Success:   lipgloss.Color("#a7c080"), // Green
+		Warning:   lipgloss.Color("#dbbc7f"), // Yellow
+		Danger:    lipgloss.Color("#e67e80"), // Red
+
+		Text:       lipgloss.Color("#d3c6aa"), // Foreground
+		TextMuted:  lipgloss.Color("#9da9a0"), // Grey1
+		TextSubtle: lipgloss.Color("#859289"), // Grey0
+
+		Background:   lipgloss.Color("#2d353b"), // Background
+		Surface:      lipgloss.Color("#3d484d"), // Background Dark
+		SurfaceLight: lipgloss.Color("#475258"), // Background Light
+
+		BorderActive:   lipgloss.Color("#a7c080"), // Green
+		BorderInactive: lipgloss.Color("#543a48"), // StatusLine
+
+		SelectionBg: lipgloss.Color("#475258"), // Background Light
+		SelectionFg: lipgloss.Color("#d3c6aa"), // Foreground
+	},
+	"everforest-light": {
+		PriorityHigh:    lipgloss.Color("#f85552"), // Red
+		PriorityMedium:  lipgloss.Color("#dfa000"), // Yellow
+		PriorityLow:     lipgloss.Color("#35a77c"), // Aqua
+		PriorityLowest:  lipgloss.Color("#df69ba"), // Purple
+		PriorityDefault: lipgloss.Color("#8da101"), // Green
+
+		Primary:   lipgloss.Color("#8da101"), // Green
+		Secondary: lipgloss.Color("#35a77c"), // Aqua
+		Success:   lipgloss.Color("#8da101"), // Green
+		Warning:   lipgloss.Color("#dfa000"), // Yellow
+		Danger:    lipgloss.Color("#f85552"), // Red
+
+		Text:       lipgloss.Color("#5c6a72"), // Foreground
+		TextMuted:  lipgloss.Color("#829181"), // Grey1
+		TextSubtle: lipgloss.Color("#a6b0a0"), // Grey0
+
+		Background:   lipgloss.Color("#fdf6e3"), // Background
+		Surface:      lipgloss.Color("#f4f0d9"), // Background Dark
+		SurfaceLight: lipgloss.Color("#efebd4"), // Background Light
+
+		BorderActive:   lipgloss.Color("#8da101"), // Green
+		BorderInactive: lipgloss.Color("#f0f2d4"), // StatusLine
+
+		SelectionBg: lipgloss.Color("#efebd4"), // Background Light
+		SelectionFg: lipgloss.Color("#5c6a72"), // Foreground
+	},
 }
 
 // GetTheme returns the theme based on theme name
