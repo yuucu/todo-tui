@@ -194,7 +194,7 @@ func findDefaultConfigFile() string {
 // validateAndFixConfig validates the configuration and sets defaults for invalid values
 func validateAndFixConfig(config AppConfig) AppConfig {
 	// Validate theme
-	validThemes := []string{"catppuccin", "nord"}
+	validThemes := []string{"catppuccin", "nord", "everforest-dark", "everforest-light"}
 	isValidTheme := false
 	for _, theme := range validThemes {
 		if config.Theme == theme {

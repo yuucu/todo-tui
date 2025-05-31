@@ -34,7 +34,7 @@ Arguments:
 
 Options:
   -c, --config CONFIG       Path to configuration file
-  -t, --theme THEME         Set color theme (catppuccin, nord)
+  -t, --theme THEME         Set color theme (catppuccin, nord, everforest-dark, everforest-light)
   -d, --debug               Enable debug logging
   -l, --log-file PATH       Custom log file path (default: OS-specific location)
   -v, --version             Show version information
@@ -51,7 +51,7 @@ func main() {
 	// Define command line flags
 	var (
 		configFile  = flag.String("config", "", "Path to configuration file")
-		themeName   = flag.String("theme", "", "Set color theme (catppuccin, nord)")
+		themeName   = flag.String("theme", "", "Set color theme (catppuccin, nord, everforest-dark, everforest-light)")
 		enableDebug = flag.Bool("debug", false, "Enable debug logging")
 		logFile     = flag.String("log-file", "", "Custom log file path (default: OS-specific location)")
 		showVersion = flag.Bool("version", false, "Show version information")
@@ -60,7 +60,7 @@ func main() {
 
 	// Define short flag aliases (reuse same help text)
 	flag.StringVar(configFile, "c", "", "Path to configuration file")
-	flag.StringVar(themeName, "t", "", "Set color theme (catppuccin, nord)")
+	flag.StringVar(themeName, "t", "", "Set color theme (catppuccin, nord, everforest-dark, everforest-light)")
 	flag.BoolVar(enableDebug, "d", false, "Enable debug logging")
 	flag.StringVar(logFile, "l", "", "Custom log file path (default: OS-specific location)")
 	flag.BoolVar(showVersion, "v", false, "Show version information")
