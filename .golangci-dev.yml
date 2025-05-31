@@ -1,14 +1,9 @@
+# 開発時用の詳細lint設定（ローカル開発・PR前チェック用）
 run:
-  timeout: 5m
+  timeout: 10m
   issues-exit-code: 1
   tests: true
   modules-download-mode: readonly
-  skip-dirs:
-    - vendor
-    - .git
-  skip-files:
-    - ".*\\.pb\\.go$"
-    - ".*_generated\\.go$"
 
 output:
   formats:
@@ -20,7 +15,6 @@ output:
 
 linters-settings:
   govet:
-    # check-shadowing: true  # Deprecated - use enable: shadow instead
     enable:
       - shadow
     disable:
@@ -82,7 +76,7 @@ linters-settings:
 linters:
   disable-all: true
   enable:
-    # 必須のエラー検出linter（高速）
+    # エラーを検出するlinter
     - errcheck
     - gosimple
     - govet
@@ -91,33 +85,33 @@ linters:
     - typecheck
     - unused
     
-    # 基本的なコードスタイルlinter（高速）
+    # コードスタイルlinter
     - gofmt
     - goimports
     - misspell
+    - revive
+    - whitespace
     
-    # セキュリティlinter（必要最小限）
+    # パフォーマンスlinter
+    - prealloc
+    
+    # セキュリティlinter
     - gosec
     
-    # 軽量なlinter
+    # その他の有用なlinter
     - unconvert
+    - unparam
     - asciicheck
+    - gochecknoinits
+    - gochecknoglobals
+    - goconst
+    - gocritic
+    - gocyclo
+    - mnd  # gomndの代わり
     - goprintffuncname
-    
-    # 重いlinterは無効化（開発時のみ使用）
-    # - revive      # 重い
-    # - whitespace  # 重い
-    # - prealloc    # 重い
-    # - unparam     # 重い
-    # - gochecknoinits  # 重い
-    # - gochecknoglobals # 重い
-    # - goconst     # 重い
-    # - gocritic    # 重い
-    # - gocyclo     # 重い
-    # - mnd         # 重い
-    # - nakedret    # 重い
-    # - nestif      # 重い
-    # - funlen      # 重い
+    - nakedret
+    - nestif
+    - funlen
 
 issues:
   uniq-by-line: true
