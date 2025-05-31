@@ -141,3 +141,44 @@ const (
 	ListSelectorSymbol = "▶ "
 	ListPaddingSymbol  = "  "
 )
+
+// ===============================
+// Key String Constants
+// ===============================
+
+// よく使用されるキー文字列定数
+const (
+	ctrlCKey = "ctrl+c"
+	ctrlSKey = "ctrl+s"
+	escKey   = "esc"
+	enterKey = "enter"
+	tabKey   = "tab"
+	spaceKey = " "
+
+	// Direction keys
+	upKey    = "up"
+	downKey  = "down"
+	leftKey  = "left"
+	rightKey = "right"
+
+	// Letter keys for navigation
+	jKey = "j"
+	kKey = "k"
+	hKey = "h"
+	lKey = "l"
+	gKey = "g"
+	GKey = "G"
+
+	// Action keys
+	qKey = "q"
+	aKey = "a"
+	eKey = "e"
+	dKey = "d"
+	pKey = "p"
+	tKey = "t"
+	rKey = "r"
+	yKey = "y"
+
+	// Help key
+	helpKey = "?"
+)
