@@ -32,4 +32,21 @@ ui:
   left_pane_ratio: 0.33        # Left pane width ratio (0.1-0.9)
   min_left_pane_width: 18      # Minimum left pane width
   min_right_pane_width: 28     # Minimum right pane width
-  vertical_padding: 2          # Vertical padding (1-5) 
+  vertical_padding: 2          # Vertical padding (1-5)
+
+# =====================================
+# Logging Settings
+# =====================================
+# Log files are always created for troubleshooting
+logging:
+  # Debug mode - shows detailed internal operations
+  enable_debug: false
+
+  # Custom log file path (leave empty for OS-specific default)
+  # macOS: ~/Library/Logs/todotui/todotui-YYYY-MM-DD.log
+  # Linux: ~/.local/share/todotui/logs/todotui-YYYY-MM-DD.log
+  # Windows: %APPDATA%/todotui/logs/todotui-YYYY-MM-DD.log
+  log_file_path: ""
+
+  # Number of days to keep log files (automatic cleanup)
+  max_log_days: 30
