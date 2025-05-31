@@ -16,37 +16,43 @@ func (m *Model) updatePaneSizes() {
 		m.height = 24 // Default terminal height
 	}
 
-	// Use actual terminal size for calculations, but ensure minimum for calculations
+	// Use actual terminal size for calculations - NEVER exceed actual size
 	actualWidth := m.width
 	actualHeight := m.height
 
-	// Ensure absolute minimum terminal size for calculations only
-	minTerminalWidth := 40
-	minTerminalHeight := 8
-
-	calcWidth := actualWidth
-	calcHeight := actualHeight
-
-	if calcWidth < minTerminalWidth {
-		calcWidth = minTerminalWidth
-	}
-	if calcHeight < minTerminalHeight {
-		calcHeight = minTerminalHeight
-	}
-
 	// Calculate pane sizes using configuration
 	borderWidth := 4
-	availableWidth := calcWidth - borderWidth
+	availableWidth := actualWidth - borderWidth
+
+	// Ensure minimum viable width but never exceed actual width
+	if availableWidth < 20 {
+		availableWidth = 20
+		if availableWidth > actualWidth-4 {
+			availableWidth = actualWidth - 4
+		}
+	}
+
 	leftWidth := int(float64(availableWidth) * m.appConfig.UI.LeftPaneRatio)
 	rightWidth := availableWidth - leftWidth
 
-	// Ensure minimum widths from configuration
-	if leftWidth < m.appConfig.UI.MinLeftPaneWidth {
-		leftWidth = m.appConfig.UI.MinLeftPaneWidth
+	// Ensure minimum widths from configuration but respect actual terminal size
+	minLeftWidth := m.appConfig.UI.MinLeftPaneWidth
+	minRightWidth := m.appConfig.UI.MinRightPaneWidth
+
+	// If minimum widths exceed available space, scale them down proportionally
+	totalMinWidth := minLeftWidth + minRightWidth
+	if totalMinWidth > availableWidth {
+		leftWidth = int(float64(availableWidth) * float64(minLeftWidth) / float64(totalMinWidth))
 		rightWidth = availableWidth - leftWidth
-	}
-	if rightWidth < m.appConfig.UI.MinRightPaneWidth {
-		rightWidth = m.appConfig.UI.MinRightPaneWidth
+	} else {
+		if leftWidth < minLeftWidth {
+			leftWidth = minLeftWidth
+			rightWidth = availableWidth - leftWidth
+		}
+		if rightWidth < minRightWidth {
+			rightWidth = minRightWidth
+			leftWidth = availableWidth - rightWidth
+		}
 	}
 
 	// Calculate available height for list content using actual terminal size
@@ -56,18 +62,17 @@ func (m *Model) updatePaneSizes() {
 	helpBarHeight := 1
 	verticalPadding := m.appConfig.UI.VerticalPadding
 
+	// Ensure padding doesn't exceed reasonable limits for small terminals
+	if verticalPadding > actualHeight/3 {
+		verticalPadding = actualHeight / 3
+	}
+
 	// Available height for the entire content area using actual terminal size
 	contentHeight := actualHeight - helpBarHeight - verticalPadding
 
-	// Apply minimum constraint if needed
-	minContentHeight := calcHeight - helpBarHeight - verticalPadding
-	if minContentHeight < 5 {
-		minContentHeight = 5
-	}
-
-	// Use the larger of actual calculated height or minimum required height
-	if contentHeight < minContentHeight {
-		contentHeight = minContentHeight
+	// Ensure we have at least minimal content height
+	if contentHeight < 3 {
+		contentHeight = 3
 	}
 
 	// Reserve space for border (2 lines) and title (1 line) within content area
@@ -170,53 +175,62 @@ func (m *Model) View() string {
 
 // renderMainView renders the main application view (panes, help bar, status bar)
 func (m *Model) renderMainView() string {
-	// Use actual terminal size, with minimum constraints for calculations only
+	// Use actual terminal size - NEVER exceed actual dimensions
 	actualWidth := m.width
 	actualHeight := m.height
 
-	// Ensure minimum size for calculations
-	calcWidth := actualWidth
-	calcHeight := actualHeight
-
-	if calcWidth < 40 {
-		calcWidth = 40
-	}
-	if calcHeight < 8 {
-		calcHeight = 8
-	}
-
 	// Calculate dimensions for panels using configuration
 	borderWidth := 4
-	availableWidth := calcWidth - borderWidth
+	availableWidth := actualWidth - borderWidth
+
+	// Ensure minimum viable width but never exceed actual width
+	if availableWidth < 20 {
+		availableWidth = 20
+		if availableWidth > actualWidth-4 {
+			availableWidth = actualWidth - 4
+		}
+	}
+
 	leftWidth := int(float64(availableWidth) * m.appConfig.UI.LeftPaneRatio)
 	rightWidth := availableWidth - leftWidth
 
-	// Ensure minimum widths from configuration
-	if leftWidth < m.appConfig.UI.MinLeftPaneWidth {
-		leftWidth = m.appConfig.UI.MinLeftPaneWidth
+	// Ensure minimum widths from configuration but respect actual terminal size
+	minLeftWidth := m.appConfig.UI.MinLeftPaneWidth
+	minRightWidth := m.appConfig.UI.MinRightPaneWidth
+
+	// If minimum widths exceed available space, scale them down proportionally
+	totalMinWidth := minLeftWidth + minRightWidth
+	if totalMinWidth > availableWidth {
+		leftWidth = int(float64(availableWidth) * float64(minLeftWidth) / float64(totalMinWidth))
 		rightWidth = availableWidth - leftWidth
-	}
-	if rightWidth < m.appConfig.UI.MinRightPaneWidth {
-		rightWidth = m.appConfig.UI.MinRightPaneWidth
+	} else {
+		if leftWidth < minLeftWidth {
+			leftWidth = minLeftWidth
+			rightWidth = availableWidth - leftWidth
+		}
+		if rightWidth < minRightWidth {
+			rightWidth = minRightWidth
+			leftWidth = availableWidth - rightWidth
+		}
 	}
 
 	// Calculate content height using actual terminal size
 	helpBarHeight := 1
 	verticalPadding := m.appConfig.UI.VerticalPadding
+
+	// Ensure padding doesn't exceed reasonable limits for small terminals
+	if verticalPadding > actualHeight/3 {
+		verticalPadding = actualHeight / 3
+	}
+
 	contentHeight := actualHeight - helpBarHeight - verticalPadding
 
-	// Apply minimum constraint if needed
-	minContentHeight := calcHeight - helpBarHeight - verticalPadding
-	if minContentHeight < 5 {
-		minContentHeight = 5
+	// Ensure we have at least minimal content height
+	if contentHeight < 3 {
+		contentHeight = 3
 	}
 
-	// Use the larger of actual calculated height or minimum required height
-	if contentHeight < minContentHeight {
-		contentHeight = minContentHeight
-	}
-
-	// Define styles for the panels (add height back to use full terminal height)
+	// Define styles for the panels (strictly use calculated content height)
 	activeBorderStyle := lipgloss.NewStyle().
 		Border(lipgloss.NormalBorder()).
 		BorderForeground(m.currentTheme.BorderActive).
@@ -273,6 +287,11 @@ func (m *Model) renderMainView() string {
 
 // renderCombinedHelpStatusBar creates a single bar with help text on the left and status on the right
 func (m *Model) renderCombinedHelpStatusBar() string {
+	// Ensure we have a valid width
+	if m.width <= 0 {
+		return ""
+	}
+
 	// Get help text based on active pane and current filter
 	var helpText string
 	if m.activePane == paneFilter {
@@ -290,9 +309,21 @@ func (m *Model) renderCombinedHelpStatusBar() string {
 	// Get status information
 	statusText := m.getStatusInfo()
 
-	// Calculate available width for help text
+	// Calculate available width for help text, ensuring we don't exceed terminal width
 	statusWidth := lipgloss.Width(statusText)
-	helpAvailableWidth := m.width - statusWidth - 2 // Leave some space between them
+
+	// Reserve space for status text and some padding
+	reservedWidth := statusWidth + 2 // 2 spaces for padding
+	helpAvailableWidth := m.width - reservedWidth
+
+	// Ensure we have at least some space for help text
+	if helpAvailableWidth < 10 {
+		// If terminal is too narrow, prioritize status and truncate help heavily
+		helpAvailableWidth = 10
+		if m.width < 20 {
+			helpAvailableWidth = m.width / 2
+		}
+	}
 
 	// Truncate help text if necessary
 	if lipgloss.Width(helpText) > helpAvailableWidth {
@@ -302,7 +333,25 @@ func (m *Model) renderCombinedHelpStatusBar() string {
 			if len(runes) > truncateLen {
 				helpText = string(runes[:truncateLen]) + "..."
 			}
+		} else {
+			helpText = "..." // Minimal text if extremely narrow
 		}
+	}
+
+	// Recalculate status width in case it was too long
+	if statusWidth > m.width/2 {
+		// Truncate status text if it's taking up too much space
+		statusRunes := []rune(statusText)
+		maxStatusWidth := m.width / 2
+		if len(statusRunes)*2 > maxStatusWidth { // Rough estimate for character width
+			truncateLen := maxStatusWidth/2 - 3
+			if truncateLen > 0 {
+				statusText = string(statusRunes[:truncateLen]) + "..."
+			} else {
+				statusText = "..."
+			}
+		}
+		statusWidth = lipgloss.Width(statusText)
 	}
 
 	// Create styles for left and right parts
@@ -318,7 +367,7 @@ func (m *Model) renderCombinedHelpStatusBar() string {
 	leftPart := leftStyle.Render(helpText)
 	rightPart := rightStyle.Render(statusText)
 
-	// Calculate spacing needed
+	// Calculate spacing needed, ensuring total width doesn't exceed terminal width
 	usedWidth := lipgloss.Width(leftPart) + lipgloss.Width(rightPart)
 	spacingNeeded := m.width - usedWidth
 	if spacingNeeded < 0 {
@@ -330,16 +379,31 @@ func (m *Model) renderCombinedHelpStatusBar() string {
 	// Combine with spacing
 	combinedContent := leftPart + spacing + rightPart
 
-	// Apply background style to the entire bar
+	// Ensure the final content doesn't exceed terminal width
+	if lipgloss.Width(combinedContent) > m.width {
+		// Final fallback: truncate the entire content
+		runes := []rune(combinedContent)
+		if len(runes) > m.width {
+			combinedContent = string(runes[:m.width-3]) + "..."
+		}
+	}
+
+	// Apply background style to the entire bar with strict width control
 	barStyle := lipgloss.NewStyle().
 		Background(m.currentTheme.Background).
-		Width(m.width)
+		Width(m.width).
+		MaxWidth(m.width) // Ensure we never exceed the width
 
 	return barStyle.Render(combinedContent)
 }
 
 // overlayDialog overlays a dialog box on top of the main view
 func (m *Model) overlayDialog(mainView, dialog string) string {
+	// Ensure we have valid dimensions
+	if m.width <= 0 || m.height <= 0 {
+		return mainView
+	}
+
 	// First, create a full-screen layout with the dialog centered
 	dialogOverlay := lipgloss.Place(m.width, m.height, lipgloss.Center, lipgloss.Center, dialog)
 
@@ -347,16 +411,20 @@ func (m *Model) overlayDialog(mainView, dialog string) string {
 	mainLines := strings.Split(mainView, "\n")
 	dialogLines := strings.Split(dialogOverlay, "\n")
 
-	// Ensure both have enough lines
+	// Use actual terminal height as the maximum
 	maxLines := m.height
+
+	// Truncate main view lines if they exceed terminal height
 	if len(mainLines) > maxLines {
-		maxLines = len(mainLines)
-	}
-	if len(dialogLines) > maxLines {
-		maxLines = len(dialogLines)
+		mainLines = mainLines[:maxLines]
 	}
 
-	// Pad lines to match screen height
+	// Truncate dialog lines if they exceed terminal height
+	if len(dialogLines) > maxLines {
+		dialogLines = dialogLines[:maxLines]
+	}
+
+	// Pad lines to match screen height (but not exceed it)
 	for len(mainLines) < maxLines {
 		mainLines = append(mainLines, "")
 	}
@@ -370,6 +438,14 @@ func (m *Model) overlayDialog(mainView, dialog string) string {
 	for i := 0; i < maxLines; i++ {
 		mainLine := mainLines[i]
 		dialogLine := dialogLines[i]
+
+		// Ensure lines don't exceed terminal width
+		if len(mainLine) > m.width {
+			mainLine = mainLine[:m.width]
+		}
+		if len(dialogLine) > m.width {
+			dialogLine = dialogLine[:m.width]
+		}
 
 		// If dialog line has any non-space content, use it; otherwise use main line
 		hasDialogContent := false

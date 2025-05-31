@@ -399,13 +399,19 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.width = msg.Width
 		m.height = msg.Height
-		m.updatePaneSizes() // This is in view.go
-		// Also update textarea size
+
+		// Update pane sizes with new terminal dimensions
+		m.updatePaneSizes()
+
+		// Also update textarea size if we're in add/edit mode
 		if m.width > 10 {
 			m.textarea.SetWidth(m.width - 10)
 		}
-		// Force refresh of lists to apply new sizes
+
+		// Force refresh of lists to apply new sizes and ensure content fits
 		m.refreshLists()
+
+		// Return nil to re-render without clearing screen
 		return m, nil
 	case FileChangedMsg:
 		// Reload tasks from file
@@ -452,27 +458,50 @@ func (m *Model) cyclePriority(task *todotxt.Task) {
 func (m *Model) toggleDueToday(task *todotxt.Task) {
 	today := time.Now().Format("2006-01-02")
 
-	// Check if task has a due date
-	currentDue := ""
-	for key, value := range task.AdditionalTags {
-		if key == "due" {
-			currentDue = value
-			break
+	// Get the current task string
+	taskString := task.String()
+
+	// Check if task already has a due date
+	hasDueToday := false
+	if task.HasDueDate() && task.DueDate.Format("2006-01-02") == today {
+		hasDueToday = true
+	}
+
+	var newTaskString string
+
+	if hasDueToday {
+		// Remove due date - remove due:YYYY-MM-DD from task string
+		parts := strings.Fields(taskString)
+		var newParts []string
+		for _, part := range parts {
+			if !strings.HasPrefix(part, "due:") {
+				newParts = append(newParts, part)
+			}
+		}
+		newTaskString = strings.Join(newParts, " ")
+	} else {
+		// Add or update due date
+		if task.HasDueDate() {
+			// Replace existing due date
+			parts := strings.Fields(taskString)
+			var newParts []string
+			for _, part := range parts {
+				if strings.HasPrefix(part, "due:") {
+					newParts = append(newParts, "due:"+today)
+				} else {
+					newParts = append(newParts, part)
+				}
+			}
+			newTaskString = strings.Join(newParts, " ")
+		} else {
+			// Add new due date
+			newTaskString = taskString + " due:" + today
 		}
 	}
 
-	// If due date is already today, remove it; otherwise set it to today
-	if currentDue == today {
-		// Remove due date
-		if task.AdditionalTags != nil {
-			delete(task.AdditionalTags, "due")
-		}
-	} else {
-		// Set due date to today
-		if task.AdditionalTags == nil {
-			task.AdditionalTags = make(map[string]string)
-		}
-		task.AdditionalTags["due"] = today
+	// Parse the new task string and update the task
+	if newTask, err := todotxt.ParseTask(newTaskString); err == nil {
+		*task = *newTask
 	}
 }
 
