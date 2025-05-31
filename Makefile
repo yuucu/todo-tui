@@ -15,7 +15,7 @@ YELLOW=\033[0;33m
 RED=\033[0;31m
 NC=\033[0m # No Color
 
-.PHONY: help build run test fmt lint clean git-hooks-status install setup-hooks
+.PHONY: help build run test fmt lint clean git-hooks-status install
 
 # デフォルトターゲット
 all: fmt test build
