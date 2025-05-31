@@ -10,6 +10,7 @@ import (
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fsnotify/fsnotify"
+	"github.com/samber/lo"
 	"github.com/yuucu/todotui/internal/todo"
 )
 
@@ -220,14 +221,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.currentMode = modeEdit
 					// Store the reference to the original task, not the filtered one
 					selectedTask := m.filteredTasks[m.taskList.selected]
-					// Find the original task in m.tasks
-					for i := 0; i < len(m.tasks); i++ {
-						if m.tasks[i].String() == selectedTask.String() {
-							m.editingTask = &m.tasks[i] // Point to the original task
-							break
-						}
-					}
-					if m.editingTask != nil {
+					// Find the original task in m.tasks using lo
+					_, task := m.findTaskInList(selectedTask)
+					if task != nil {
+						m.editingTask = task // Point to the original task
 						m.textarea.SetValue(m.editingTask.String())
 						m.textarea.Focus()
 					}
@@ -261,12 +258,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			// Complete task
 			if m.taskList.selected < len(m.filteredTasks) {
 				taskToComplete := m.filteredTasks[m.taskList.selected]
-				// Find the task in main tasks list and mark as completed
-				for i := 0; i < len(m.tasks); i++ {
-					if m.tasks[i].String() == taskToComplete.String() {
-						m.tasks[i].Complete()
-						break
-					}
+				// Find the task in main tasks list and mark as completed using lo
+				_, task := m.findTaskInList(taskToComplete)
+				if task != nil {
+					task.Complete()
 				}
 				m.saveAndRefresh()
 				return m, nil
@@ -279,23 +274,21 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name != FilterDeletedTasks {
 						// Soft delete with deleted_at field
 						taskToDelete := m.filteredTasks[m.taskList.selected]
-						// Find the task in main tasks list and add deleted_at field
-						for i := StartIndex; i < len(m.tasks); i++ {
-							if m.tasks[i].String() == taskToDelete.String() {
-								// Add deleted_at field to mark as soft deleted
-								currentDate := time.Now().Format(DateFormat)
-								taskString := m.tasks[i].String()
+						// Find the task in main tasks list and add deleted_at field using lo
+						index, task := m.findTaskInList(taskToDelete)
+						if task != nil {
+							// Add deleted_at field to mark as soft deleted
+							currentDate := time.Now().Format(DateFormat)
+							taskString := task.String()
 
-								// Add deleted_at field to the task string
-								if !strings.Contains(taskString, TaskFieldDeletedPrefix) {
-									taskString += " " + TaskFieldDeletedPrefix + currentDate
+							// Add deleted_at field to the task string
+							if !strings.Contains(taskString, TaskFieldDeletedPrefix) {
+								taskString += " " + TaskFieldDeletedPrefix + currentDate
 
-									// Parse the modified task string back to update the task
-									if newTask, err := todotxt.ParseTask(taskString); err == nil {
-										m.tasks[i] = *newTask
-									}
+								// Parse the modified task string back to update the task
+								if newTask, err := todotxt.ParseTask(taskString); err == nil {
+									m.tasks[index] = *newTask
 								}
-								break
 							}
 						}
 						m.saveAndRefresh()
@@ -308,12 +301,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Toggle priority level
 				if m.taskList.selected < len(m.filteredTasks) {
 					taskToUpdate := m.filteredTasks[m.taskList.selected]
-					// Find the task in main tasks list and cycle priority
-					for i := 0; i < len(m.tasks); i++ {
-						if m.tasks[i].String() == taskToUpdate.String() {
-							m.cyclePriority(&m.tasks[i])
-							break
-						}
+					// Find the task in main tasks list and cycle priority using lo
+					_, task := m.findTaskInList(taskToUpdate)
+					if task != nil {
+						m.cyclePriority(task)
 					}
 					m.saveAndRefresh()
 					return m, nil
@@ -324,12 +315,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Toggle due date to today
 				if m.taskList.selected < len(m.filteredTasks) {
 					taskToUpdate := m.filteredTasks[m.taskList.selected]
-					// Find the task in main tasks list and toggle due date
-					for i := 0; i < len(m.tasks); i++ {
-						if m.tasks[i].String() == taskToUpdate.String() {
-							m.toggleDueToday(&m.tasks[i])
-							break
-						}
+					// Find the task in main tasks list and toggle due date using lo
+					_, task := m.findTaskInList(taskToUpdate)
+					if task != nil {
+						m.toggleDueToday(task)
 					}
 					m.saveAndRefresh()
 					return m, nil
@@ -348,30 +337,24 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					// Handle deleted tasks restoration
 					if currentFilter == FilterDeletedTasks {
-						// Find the task in main tasks list and remove deleted_at field
-						for i := 0; i < len(m.tasks); i++ {
-							if m.tasks[i].String() == taskToRestore.String() {
-								// Remove deleted_at field to restore the task
-								taskString := m.tasks[i].String()
+						// Find the task in main tasks list and remove deleted_at field using lo
+						index, task := m.findTaskInList(taskToRestore)
+						if task != nil {
+							// Remove deleted_at field to restore the task
+							taskString := task.String()
 
-								// Remove deleted_at field from the task string
-								if strings.Contains(taskString, "deleted_at:") {
-									// Simple approach: split and rejoin without deleted_at parts
-									parts := strings.Fields(taskString)
-									var cleanParts []string
-									for _, part := range parts {
-										if !strings.HasPrefix(part, "deleted_at:") {
-											cleanParts = append(cleanParts, part)
-										}
-									}
-									taskString = strings.Join(cleanParts, " ")
+							// Remove deleted_at field from the task string using lo.Filter
+							if strings.Contains(taskString, "deleted_at:") {
+								parts := strings.Fields(taskString)
+								cleanParts := lo.Filter(parts, func(part string, _ int) bool {
+									return !strings.HasPrefix(part, "deleted_at:")
+								})
+								taskString = strings.Join(cleanParts, " ")
 
-									// Parse the modified task string back to update the task
-									if newTask, err := todotxt.ParseTask(taskString); err == nil {
-										m.tasks[i] = *newTask
-									}
+								// Parse the modified task string back to update the task
+								if newTask, err := todotxt.ParseTask(taskString); err == nil {
+									m.tasks[index] = *newTask
 								}
-								break
 							}
 						}
 						m.saveAndRefresh()
@@ -380,13 +363,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					// Handle completed tasks restoration
 					if currentFilter == "Completed Tasks" {
-						// Find the task in main tasks list and mark as incomplete
-						for i := 0; i < len(m.tasks); i++ {
-							if m.tasks[i].String() == taskToRestore.String() {
-								m.tasks[i].Completed = false
-								m.tasks[i].CompletedDate = time.Time{} // Clear completion date
-								break
-							}
+						// Find the task in main tasks list and mark as incomplete using lo
+						_, task := m.findTaskInList(taskToRestore)
+						if task != nil {
+							task.Completed = false
+							task.CompletedDate = time.Time{} // Clear completion date
 						}
 						m.saveAndRefresh()
 						return m, nil
@@ -469,13 +450,12 @@ func (m *Model) cyclePriority(task *todotxt.Task) {
 		currentPriority = task.Priority
 	}
 
-	// Find current priority index in configuration
-	currentIndex := 0
-	for i, priority := range m.appConfig.PriorityLevels {
-		if priority == currentPriority {
-			currentIndex = i
-			break
-		}
+	// Find current priority index in configuration using lo.FindIndexOf
+	_, currentIndex, found := lo.FindIndexOf(m.appConfig.PriorityLevels, func(priority string) bool {
+		return priority == currentPriority
+	})
+	if !found {
+		currentIndex = 0
 	}
 
 	// Move to next priority level (cycle around)
@@ -506,28 +486,23 @@ func (m *Model) toggleDueToday(task *todotxt.Task) {
 	var newTaskString string
 
 	if hasDueToday {
-		// Remove due date - remove due:YYYY-MM-DD from task string
+		// Remove due date - remove due:YYYY-MM-DD from task string using lo.Filter
 		parts := strings.Fields(taskString)
-		var newParts []string
-		for _, part := range parts {
-			if !strings.HasPrefix(part, TaskFieldDuePrefix) {
-				newParts = append(newParts, part)
-			}
-		}
+		newParts := lo.Filter(parts, func(part string, _ int) bool {
+			return !strings.HasPrefix(part, TaskFieldDuePrefix)
+		})
 		newTaskString = strings.Join(newParts, " ")
 	} else {
 		// Add or update due date
 		if task.HasDueDate() {
-			// Replace existing due date
+			// Replace existing due date using lo.Map
 			parts := strings.Fields(taskString)
-			var newParts []string
-			for _, part := range parts {
+			newParts := lo.Map(parts, func(part string, _ int) string {
 				if strings.HasPrefix(part, TaskFieldDuePrefix) {
-					newParts = append(newParts, TaskFieldDuePrefix+today)
-				} else {
-					newParts = append(newParts, part)
+					return TaskFieldDuePrefix + today
 				}
-			}
+				return part
+			})
 			newTaskString = strings.Join(newParts, " ")
 		} else {
 			// Add new due date
@@ -557,4 +532,15 @@ func (m *Model) setStatusMessage(message string, duration time.Duration) tea.Cmd
 	return tea.Tick(duration, func(time.Time) tea.Msg {
 		return StatusMessageClearMsg{}
 	})
+}
+
+// findTaskInList finds a task in the main task list and returns its index and pointer
+func (m *Model) findTaskInList(targetTask todotxt.Task) (int, *todotxt.Task) {
+	_, index, found := lo.FindIndexOf(m.tasks, func(task todotxt.Task) bool {
+		return task.String() == targetTask.String()
+	})
+	if found {
+		return index, &m.tasks[index]
+	}
+	return -1, nil
 }

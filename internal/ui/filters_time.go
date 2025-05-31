@@ -4,6 +4,7 @@ import (
 	"time"
 
 	todotxt "github.com/1set/todotxt"
+	"github.com/samber/lo"
 )
 
 // 時間関連の定数
@@ -77,13 +78,9 @@ func (m *Model) getTimeBasedFilters() []FilterData {
 func (m *Model) getDueTodayFilterFn() func(todotxt.TaskList) todotxt.TaskList {
 	return func(tasks todotxt.TaskList) todotxt.TaskList {
 		now := time.Now()
-		var result todotxt.TaskList
-		for _, task := range tasks {
-			if isDueToday(task, now) {
-				result = append(result, task)
-			}
-		}
-		return result
+		return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
+			return isDueToday(task, now)
+		})
 	}
 }
 
@@ -91,13 +88,9 @@ func (m *Model) getDueTodayFilterFn() func(todotxt.TaskList) todotxt.TaskList {
 func (m *Model) getThisWeekFilterFn() func(todotxt.TaskList) todotxt.TaskList {
 	return func(tasks todotxt.TaskList) todotxt.TaskList {
 		now := time.Now()
-		var result todotxt.TaskList
-		for _, task := range tasks {
-			if isThisWeek(task, now) {
-				result = append(result, task)
-			}
-		}
-		return result
+		return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
+			return isThisWeek(task, now)
+		})
 	}
 }
 
@@ -105,12 +98,8 @@ func (m *Model) getThisWeekFilterFn() func(todotxt.TaskList) todotxt.TaskList {
 func (m *Model) getOverdueFilterFn() func(todotxt.TaskList) todotxt.TaskList {
 	return func(tasks todotxt.TaskList) todotxt.TaskList {
 		now := time.Now()
-		var result todotxt.TaskList
-		for _, task := range tasks {
-			if isOverdue(task, now) {
-				result = append(result, task)
-			}
-		}
-		return result
+		return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
+			return isOverdue(task, now)
+		})
 	}
 }

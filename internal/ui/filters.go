@@ -8,6 +8,7 @@ import (
 
 	todotxt "github.com/1set/todotxt"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/samber/lo"
 )
 
 // よく使用される文字列定数
@@ -44,13 +45,9 @@ func (m *Model) refreshFilterList() {
 	allTasksFilter := FilterData{
 		name: FilterAllTasks,
 		filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
-			var result todotxt.TaskList
-			for _, task := range tasks {
-				if !task.Completed && !isTaskDeleted(task) {
-					result = append(result, task)
-				}
-			}
-			return result
+			return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
+				return !task.Completed && !isTaskDeleted(task)
+			})
 		},
 	}
 	filters = append(filters, allTasksFilter)
@@ -69,18 +66,10 @@ func (m *Model) refreshFilterList() {
 				name: "  +" + project,
 				filterFn: func(p string) func(todotxt.TaskList) todotxt.TaskList {
 					return func(tasks todotxt.TaskList) todotxt.TaskList {
-						var result todotxt.TaskList
-						for _, task := range tasks {
-							if !task.Completed && !isTaskDeleted(task) {
-								for _, taskProject := range task.Projects {
-									if taskProject == p {
-										result = append(result, task)
-										break
-									}
-								}
-							}
-						}
-						return result
+						return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
+							return !task.Completed && !isTaskDeleted(task) &&
+								lo.Contains(task.Projects, p)
+						})
 					}
 				}(project),
 			})
@@ -101,18 +90,10 @@ func (m *Model) refreshFilterList() {
 				name: "  @" + context,
 				filterFn: func(c string) func(todotxt.TaskList) todotxt.TaskList {
 					return func(tasks todotxt.TaskList) todotxt.TaskList {
-						var result todotxt.TaskList
-						for _, task := range tasks {
-							if !task.Completed && !isTaskDeleted(task) {
-								for _, taskContext := range task.Contexts {
-									if taskContext == c {
-										result = append(result, task)
-										break
-									}
-								}
-							}
-						}
-						return result
+						return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
+							return !task.Completed && !isTaskDeleted(task) &&
+								lo.Contains(task.Contexts, c)
+						})
 					}
 				}(context),
 			})
@@ -122,13 +103,9 @@ func (m *Model) refreshFilterList() {
 	filters = append(filters, FilterData{
 		name: FilterCompletedTasks,
 		filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
-			var result todotxt.TaskList
-			for _, task := range tasks {
-				if task.Completed && !isTaskDeleted(task) {
-					result = append(result, task)
-				}
-			}
-			return result
+			return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
+				return task.Completed && !isTaskDeleted(task)
+			})
 		},
 	})
 
@@ -144,35 +121,33 @@ func (m *Model) refreshFilterList() {
 		})
 	}
 
-	// Calculate counts and create display items
-	var items []string
-	for i := range filters {
+	// Calculate counts and create display items using lo.Map
+	items := lo.Map(filters, func(filter FilterData, i int) string {
 		// Count is already calculated for time-based filters, calculate for others
 		if filters[i].count == 0 {
-			filtered := filters[i].filterFn(m.tasks)
+			filtered := filter.filterFn(m.tasks)
 			filters[i].count = len(filtered)
 		}
 
-		if strings.Contains(filters[i].name, "─") {
+		if strings.Contains(filter.name, "─") {
 			// Header
-			items = append(items, filters[i].name)
+			return filter.name
 		} else {
 			// Project/Context and Other filters
-			items = append(items, fmt.Sprintf("%s (%d)", filters[i].name, filters[i].count))
+			return fmt.Sprintf("%s (%d)", filter.name, filters[i].count)
 		}
-	}
+	})
 
-	// Find the new index for the previously selected filter
+	// Find the new index for the previously selected filter using lo.FindIndexOf
 	newSelectedIndex := 0
 	foundPreviousFilter := false
 
-	// First, try to find the exact same filter name
-	for i, filter := range filters {
-		if filter.name == currentFilterName {
-			newSelectedIndex = i
-			foundPreviousFilter = true
-			break
-		}
+	_, index, found := lo.FindIndexOf(filters, func(filter FilterData) bool {
+		return filter.name == currentFilterName
+	})
+	if found {
+		newSelectedIndex = index
+		foundPreviousFilter = true
 	}
 
 	// If the previous filter was not found (e.g., "Due Today" was removed),
@@ -180,21 +155,15 @@ func (m *Model) refreshFilterList() {
 	if !foundPreviousFilter && currentFilterName != "" {
 		// Check if it was a time-based filter that got removed
 		timeBasedFilters := []string{"Due Today", "This Week", "Overdue"}
-		wasTimeBasedFilter := false
-		for _, tbf := range timeBasedFilters {
-			if currentFilterName == tbf {
-				wasTimeBasedFilter = true
-				break
-			}
-		}
+		wasTimeBasedFilter := lo.Contains(timeBasedFilters, currentFilterName)
 
 		if wasTimeBasedFilter {
 			// Find "All Tasks" filter and select it
-			for i, filter := range filters {
-				if filter.name == "All Tasks" {
-					newSelectedIndex = i
-					break
-				}
+			_, allTasksIndex, found := lo.FindIndexOf(filters, func(filter FilterData) bool {
+				return filter.name == "All Tasks"
+			})
+			if found {
+				newSelectedIndex = allTasksIndex
 			}
 		}
 	}
@@ -227,12 +196,10 @@ func (m *Model) refreshTaskList() {
 			m.filters[m.filterList.selected].name == FilterDeletedTasks
 
 		if !isDeletedTasksFilter {
-			// Default to all incomplete tasks (only for non-deleted task filters)
-			for _, task := range m.tasks {
-				if !task.Completed && !isTaskDeleted(task) {
-					filteredTasks = append(filteredTasks, task)
-				}
-			}
+			// Default to all incomplete tasks (only for non-deleted task filters) using lo.Filter
+			filteredTasks = lo.Filter(m.tasks, func(task todotxt.Task, _ int) bool {
+				return !task.Completed && !isTaskDeleted(task)
+			})
 		}
 	}
 
@@ -306,40 +273,38 @@ func (m *Model) refreshTaskList() {
 
 // getUniqueProjects returns sorted unique project names
 func (m *Model) getUniqueProjects() []string {
-	projectMap := make(map[string]bool)
-	for _, task := range m.tasks {
-		if !task.Completed && !isTaskDeleted(task) {
-			for _, project := range task.Projects {
-				projectMap[project] = true
-			}
-		}
-	}
+	// Get all incomplete, non-deleted tasks
+	activeTasks := lo.Filter(m.tasks, func(task todotxt.Task, _ int) bool {
+		return !task.Completed && !isTaskDeleted(task)
+	})
 
-	var projects []string
-	for project := range projectMap {
-		projects = append(projects, project)
-	}
-	sort.Strings(projects)
-	return projects
+	// Extract all projects from active tasks
+	allProjects := lo.FlatMap(activeTasks, func(task todotxt.Task, _ int) []string {
+		return task.Projects
+	})
+
+	// Get unique projects and sort
+	uniqueProjects := lo.Uniq(allProjects)
+	sort.Strings(uniqueProjects)
+	return uniqueProjects
 }
 
 // getUniqueContexts returns sorted unique context names
 func (m *Model) getUniqueContexts() []string {
-	contextMap := make(map[string]bool)
-	for _, task := range m.tasks {
-		if !task.Completed && !isTaskDeleted(task) {
-			for _, context := range task.Contexts {
-				contextMap[context] = true
-			}
-		}
-	}
+	// Get all incomplete, non-deleted tasks
+	activeTasks := lo.Filter(m.tasks, func(task todotxt.Task, _ int) bool {
+		return !task.Completed && !isTaskDeleted(task)
+	})
 
-	var contexts []string
-	for context := range contextMap {
-		contexts = append(contexts, context)
-	}
-	sort.Strings(contexts)
-	return contexts
+	// Extract all contexts from active tasks
+	allContexts := lo.FlatMap(activeTasks, func(task todotxt.Task, _ int) []string {
+		return task.Contexts
+	})
+
+	// Get unique contexts and sort
+	uniqueContexts := lo.Uniq(allContexts)
+	sort.Strings(uniqueContexts)
+	return uniqueContexts
 }
 
 // getStatusInfo returns status information for display
@@ -380,13 +345,10 @@ func (m *Model) getStatusInfo() string {
 		currentFilter = "All"
 	}
 
-	// Task counts
-	totalTasks := 0
-	for _, task := range m.tasks {
-		if !task.Completed {
-			totalTasks++
-		}
-	}
+	// Task counts using lo.CountBy for more functional approach
+	totalTasks := lo.CountBy(m.tasks, func(task todotxt.Task) bool {
+		return !task.Completed
+	})
 
 	filteredCount := len(m.filteredTasks)
 
