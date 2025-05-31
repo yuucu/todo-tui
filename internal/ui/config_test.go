@@ -294,7 +294,7 @@ ui:
 `
 
 	configPath := filepath.Join(tmpDir, "config.yaml")
-	err = os.WriteFile(configPath, []byte(configContent), 0644)
+	err = os.WriteFile(configPath, []byte(configContent), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -346,7 +346,7 @@ ui:
 `
 
 	configPath := filepath.Join(tmpDir, "invalid_config.yaml")
-	err = os.WriteFile(configPath, []byte(invalidContent), 0644)
+	err = os.WriteFile(configPath, []byte(invalidContent), 0600)
 	if err != nil {
 		t.Fatal(err)
 	}
