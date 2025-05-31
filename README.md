@@ -24,6 +24,9 @@ go install github.com/yuucu/todotui/cmd/todotui@latest
 # Basic usage
 todotui ~/todo.txt
 
+# If default_todo_file is set in config file, no argument needed
+todotui
+
 # With custom configuration
 todotui --config config.yaml ~/todo.txt
 ```
@@ -55,13 +58,11 @@ x 2025-01-14 Clean garage @home +chores
 
 ## ⚙️ Configuration
 
-Create a YAML configuration file at `~/.config/todotui/config.yaml`. todotui will automatically load this file if it exists.
-
-You can also specify a custom config file with `--config`:
+Create a YAML configuration file at `~/.config/todotui/config.yaml`:
 
 ```yaml
 # ~/.config/todotui/config.yaml
-theme: catppuccin                # Available: catppuccin, nord, default
+theme: catppuccin                # Available: catppuccin, nord
 priority_levels: ["", A, B, C, D]
 default_todo_file: ~/todo.txt
 ui:
@@ -71,16 +72,19 @@ ui:
   vertical_padding: 2
 ```
 
-**Usage examples:**
+**Usage:**
 ```bash
 # Automatic config detection (loads ~/.config/todotui/config.yaml)
-todotui ~/todo.txt
+todotui ~/my-todo.txt
 
-# Use specific config file
-todotui --config /path/to/config.yaml ~/todo.txt
+# If default_todo_file is set in config, no CLI argument needed
+todotui
+
+# Custom config file
+todotui --config /path/to/config.yaml
 ```
 
-Supported formats: YAML (recommended), JSON, TOML
+Supported formats: YAML, JSON, TOML
 
 ## 🏗️ Development
 

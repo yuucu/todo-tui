@@ -4,12 +4,35 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/viper"
 )
 
 // 設定ファイル用のディレクトリパーミッション
 const defaultConfigDirMode = 0755
+
+// ExpandHomePath expands ~ in file paths to the user's home directory
+func ExpandHomePath(path string) string {
+	if !strings.HasPrefix(path, "~") {
+		return path
+	}
+
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		return path // Return original path if we can't get home directory
+	}
+
+	if path == "~" {
+		return homeDir
+	}
+
+	if strings.HasPrefix(path, "~/") {
+		return filepath.Join(homeDir, path[2:])
+	}
+
+	return path // Return original path if it doesn't match expected patterns
+}
 
 // AppConfig represents the complete application configuration
 type AppConfig struct {
@@ -41,13 +64,10 @@ type UIConfig struct {
 
 // DefaultAppConfig returns the default application configuration
 func DefaultAppConfig() AppConfig {
-	homeDir, _ := os.UserHomeDir()
-	defaultTodoFile := filepath.Join(homeDir, "todo.txt")
-
 	return AppConfig{
 		Theme:           "catppuccin",
 		PriorityLevels:  []string{"", "A", "B", "C", "D"},
-		DefaultTodoFile: defaultTodoFile,
+		DefaultTodoFile: "", // No default file, must be specified explicitly
 		UI: UIConfig{
 			LeftPaneRatio:     0.33,
 			MinLeftPaneWidth:  18,
@@ -83,9 +103,7 @@ func LoadConfigFromFile(configPath string) (AppConfig, error) {
 		return config, fmt.Errorf("failed to unmarshal config: %w", err)
 	}
 
-	// Validate and set defaults for missing fields
-	config = validateAndFixConfig(config)
-
+	// Note: validateAndFixConfig will be called by LoadConfig
 	return config, nil
 }
 
@@ -101,6 +119,9 @@ func LoadConfig(configPath string) AppConfig {
 			// If config file loading fails, print warning and use defaults
 			fmt.Fprintf(os.Stderr, "Warning: %v\nUsing default configuration.\n", err)
 			config = DefaultAppConfig()
+		} else {
+			// Validate and fix config, which includes path expansion
+			config = validateAndFixConfig(config)
 		}
 	} else {
 		// Try to load from default locations if no config path is specified
@@ -112,6 +133,9 @@ func LoadConfig(configPath string) AppConfig {
 				// If config file loading fails, print warning and use defaults
 				fmt.Fprintf(os.Stderr, "Warning: Failed to load config from %s: %v\nUsing default configuration.\n", configPath, err)
 				config = DefaultAppConfig()
+			} else {
+				// Validate and fix config, which includes path expansion
+				config = validateAndFixConfig(config)
 			}
 		} else {
 			config = DefaultAppConfig()
@@ -181,10 +205,9 @@ func validateAndFixConfig(config AppConfig) AppConfig {
 		config.UI.VerticalPadding = 2
 	}
 
-	// Set default todo file if not specified
-	if config.DefaultTodoFile == "" {
-		homeDir, _ := os.UserHomeDir()
-		config.DefaultTodoFile = filepath.Join(homeDir, "todo.txt")
+	// Expand ~ in path if present (only if path is specified)
+	if config.DefaultTodoFile != "" {
+		config.DefaultTodoFile = ExpandHomePath(config.DefaultTodoFile)
 	}
 
 	return config

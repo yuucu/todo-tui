@@ -27,7 +27,7 @@ func printUsage() {
 A terminal todo.txt manager with vim-like keybindings.
 
 Arguments:
-  TODO_FILE    Path to todo.txt file (default: ~/todo.txt)
+  TODO_FILE    Path to todo.txt file (required unless set in config)
 
 Options:
   -c, --config CONFIG  Path to configuration file
@@ -94,14 +94,26 @@ func main() {
 		appConfig.Theme = themeName
 	}
 
-	// Determine todo file path
-	if todoFile == "" {
-		// Use from config if not specified
-		todoFile = appConfig.DefaultTodoFile
+	// Determine todo file path with priority: CLI argument > config file > error
+	var finalTodoFile string
+	if todoFile != "" {
+		// Priority 1: CLI argument specified
+		finalTodoFile = todoFile
+	} else if appConfig.DefaultTodoFile != "" {
+		// Priority 2: Config file specified (already expanded in LoadConfig)
+		finalTodoFile = appConfig.DefaultTodoFile
+	} else {
+		// No todo file specified
+		fmt.Printf("Error: No todo file specified. Use CLI argument or set default_todo_file in config.\n")
+		fmt.Printf("Example: %s ~/todo.txt\n", os.Args[0])
+		os.Exit(1)
 	}
 
+	// Expand ~ in path if present (for CLI arguments)
+	finalTodoFile = ui.ExpandHomePath(finalTodoFile)
+
 	// Create model with configuration
-	model, err := ui.NewModel(todoFile, appConfig)
+	model, err := ui.NewModel(finalTodoFile, appConfig)
 	if err != nil {
 		fmt.Printf("Error initializing: %v\n", err)
 		os.Exit(1)

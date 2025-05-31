@@ -48,7 +48,7 @@ build: check-go-version ## バイナリをビルド
 # 実行
 run: ## アプリケーションを実行
 	@echo "$(BLUE)Running $(BINARY_NAME)...$(NC)"
-	$(GO) run $(MAIN_PATH) sample.todo.txt -c sample-config.yaml
+	$(GO) run $(MAIN_PATH) -c sample-config.yaml
 
 # テスト
 test: ## テストを実行
