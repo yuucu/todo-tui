@@ -132,10 +132,9 @@ func (m *Model) refreshFilterList() {
 		if strings.Contains(filter.name, "─") {
 			// Header
 			return filter.name
-		} else {
-			// Project/Context and Other filters
-			return fmt.Sprintf("%s (%d)", filter.name, filters[i].count)
 		}
+		// Project/Context and Other filters
+		return fmt.Sprintf("%s (%d)", filter.name, filters[i].count)
 	})
 
 	// Find the new index for the previously selected filter using lo.FindIndexOf
