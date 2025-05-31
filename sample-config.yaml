@@ -40,7 +40,7 @@ ui:
 # Log files are always created for troubleshooting
 logging:
   # Debug mode - shows detailed internal operations
-  enable_debug: true
+  enable_debug: false
 
   # Custom log file path (leave empty for OS-specific default)
   # macOS: ~/Library/Logs/todotui/todotui-YYYY-MM-DD.log

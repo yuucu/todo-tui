@@ -102,7 +102,7 @@ func (m *Model) saveAndRefresh() tea.Cmd {
 		logger.Error("Failed to save tasks to file", "file", m.todoFile, "error", err)
 		return nil
 	}
-	logger.Info("Tasks saved successfully", "file", m.todoFile)
+	logger.Debug("Tasks saved successfully", "file", m.todoFile)
 	m.refreshLists()
 	return nil
 }
