@@ -63,7 +63,7 @@ Priority Configuration:
   Set TODO_TUI_PRIORITY_LEVELS environment variable to customize priority levels.
   Example: TODO_TUI_PRIORITY_LEVELS="A,B,C" for A→B→C cycle
   Default: A,B,C,D
-`, os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
+`, os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
 }
 
 func main() {
