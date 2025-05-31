@@ -45,7 +45,7 @@ Thumbs.db
 # Local configuration
 config.local.*
 
-./bin/*
+bin/*
 
 # GoReleaser output
 dist/
