@@ -1,13 +1,35 @@
+# Todo TUI Configuration File
+# Configuration file location: ~/.config/todotui/config.yaml
+
+# =====================================
+# Theme Settings
+# =====================================
+# Available themes: catppuccin, nord, default
 theme: catppuccin
+
+# =====================================
+# Priority Level Settings
+# =====================================
+# First empty string ("") represents no priority (required)
 priority_levels:
-  - ""
-  - A
-  - B
-  - C
-  - D
+  - ""    # No priority
+  - A     # Highest priority
+  - B     # High priority
+  - C     # Medium priority
+  - D     # Low priority
+
+# =====================================
+# File Settings
+# =====================================
+# Default todo.txt file path
 default_todo_file: ~/todo.txt
+
+# =====================================
+# UI Settings
+# =====================================
 ui:
-  left_pane_ratio: 0.33
-  min_left_pane_width: 18
-  min_right_pane_width: 28
-  vertical_padding: 2 
+  # Layout settings
+  left_pane_ratio: 0.33        # Left pane width ratio (0.1-0.9)
+  min_left_pane_width: 18      # Minimum left pane width
+  min_right_pane_width: 28     # Minimum right pane width
+  vertical_padding: 2          # Vertical padding (1-5) 

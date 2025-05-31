@@ -14,8 +14,6 @@ A clean, efficient terminal-based todo manager that respects the [todo.txt](http
 
 ## 🚀 Installation
 
-### 🔧 Go Install
-
 ```bash
 go install github.com/yuucu/todotui/cmd/todotui@latest
 ```
@@ -23,17 +21,14 @@ go install github.com/yuucu/todotui/cmd/todotui@latest
 ## 🚀 Quick Start
 
 ```bash
-# Check version
-todotui --version
-
-# Run with your todo file
+# Basic usage
 todotui ~/todo.txt
 
-# Run with custom config
+# With custom configuration
 todotui --config config.yaml ~/todo.txt
 
-# Or use the sample file
-todotui sample.todo.txt
+# Check available themes
+todotui --list-themes
 ```
 
 ## ⌨️ Key Bindings
@@ -53,26 +48,21 @@ todotui sample.todo.txt
 
 ## 📝 Task Format
 
-Works with standard todo.txt format:
+Supports standard todo.txt format:
 ```
 (A) Call Mom @phone +family due:2025-01-15
 Buy milk @store +groceries
 x 2025-01-14 Clean garage @home +chores
 ```
 
-## 🎨 Configuration
+## ⚙️ Configuration
 
-Supports multiple configuration formats. Choose your preferred format:
+Create a YAML configuration file and specify it with `--config`:
 
-### YAML Configuration (`config.yaml`)
 ```yaml
-theme: catppuccin
-priority_levels:
-  - ""
-  - A
-  - B
-  - C
-  - D
+# config.yaml
+theme: catppuccin                # Available: catppuccin, nord, default
+priority_levels: ["", A, B, C, D]
 default_todo_file: ~/todo.txt
 ui:
   left_pane_ratio: 0.33
@@ -81,9 +71,9 @@ ui:
   vertical_padding: 2
 ```
 
-Place your config file in `~/.config/todotui/config.yaml` or specify with `--config` flag.
+Supported formats: YAML (recommended), JSON, TOML
 
-## 🏗️ Build from Source
+## 🏗️ Development
 
 ```bash
 git clone https://github.com/yuucu/todotui.git
@@ -91,18 +81,14 @@ cd todotui
 make build
 ```
 
-## 📋 Requirements
-
-- Go 1.24+
-- Terminal with color support
+**Requirements:** Go 1.24+, color-capable terminal
 
 ---
 
-*Simple. Fast. Distraction-free task management.* 
+*Simple. Fast. Distraction-free task management.*
 
 ## Development
 
 ```bash
 git clone https://github.com/yuucu/todotui.git
 cd todotui
-```
