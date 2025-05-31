@@ -32,6 +32,9 @@ todotui ~/todo.txt
 # Run with custom config
 todotui --config config.yaml ~/todo.txt
 
+# Create sample configuration file
+todotui --init-config
+
 # Or use the sample file
 todotui sample.todo.txt
 ```
@@ -62,26 +65,58 @@ x 2025-01-14 Clean garage @home +chores
 
 ## 🎨 Configuration
 
-Supports multiple configuration formats. Choose your preferred format:
+Todo TUI uses YAML format for configuration. The recommended approach is to create a configuration file at `~/.config/todotui/config.yaml`.
 
-### YAML Configuration (`config.yaml`)
-```yaml
-theme: catppuccin
-priority_levels:
-  - ""
-  - A
-  - B
-  - C
-  - D
-default_todo_file: ~/todo.txt
-ui:
-  left_pane_ratio: 0.33
-  min_left_pane_width: 18
-  min_right_pane_width: 28
-  vertical_padding: 2
+### Quick Setup
+
+```bash
+# Create sample configuration file (recommended)
+todotui --init-config
+
+# This creates ~/.config/todotui/config.yaml with default settings
 ```
 
-Place your config file in `~/.config/todotui/config.yaml` or specify with `--config` flag.
+### Configuration File Location
+
+Todo TUI looks for configuration files in the following order:
+1. Path specified with `--config` flag
+2. `~/.config/todotui/config.yaml` (recommended)
+3. `./config.yaml` (current directory)
+
+### Sample Configuration
+
+```yaml
+# Todo TUI Configuration File
+# ~/.config/todotui/config.yaml
+
+# Theme settings (catppuccin, nord, default)
+theme: catppuccin
+
+# Priority levels (empty string for no priority)
+priority_levels:
+  - ""    # 優先度なし
+  - A     # 最高優先度
+  - B     # 高優先度
+  - C     # 中優先度
+  - D     # 低優先度
+
+# Default todo.txt file path
+default_todo_file: ~/todo.txt
+
+# UI settings
+ui:
+  left_pane_ratio: 0.33        # Left pane width ratio (0.1-0.9)
+  min_left_pane_width: 18      # Minimum left pane width
+  min_right_pane_width: 28     # Minimum right pane width
+  vertical_padding: 2          # Vertical padding (1-5)
+```
+
+### Supported Formats
+
+While YAML is recommended, Todo TUI also supports:
+- **YAML**: `.yaml`, `.yml` (recommended)
+- **JSON**: `.json`
+- **TOML**: `.toml`
 
 ## 🏗️ Build from Source
 
@@ -105,4 +140,3 @@ make build
 ```bash
 git clone https://github.com/yuucu/todotui.git
 cd todotui
-```

@@ -31,7 +31,7 @@ Arguments:
   TODO_FILE    Path to todo.txt file (default: ~/todo.txt or from config file)
 
 Options:
-  -c, --config CONFIG  Path to configuration file (JSON format)
+  -c, --config CONFIG  Path to configuration file (YAML format)
   -t, --theme THEME    Set color theme (catppuccin, nord)
   --list-themes        List available themes
   --init-config        Create a sample configuration file
@@ -45,7 +45,7 @@ Environment Variables:
 Examples:
   %s                           # Use default ~/todo.txt with catppuccin theme
   %s my-tasks.txt              # Use custom file
-  %s -c ~/.config/todotui/config.json  # Use configuration file
+  %s -c ~/.config/todotui/config.yaml  # Use configuration file
   %s -t nord                   # Use nord theme
   %s --theme catppuccin ~/todo.txt  # Use catppuccin theme with custom file
   %s --init-config             # Create sample configuration file
@@ -134,7 +134,7 @@ func main() {
 			os.Exit(1)
 		}
 
-		defaultConfigPath := filepath.Join(homeDir, ".config", "todotui", "config.json")
+		defaultConfigPath := filepath.Join(homeDir, ".config", "todotui", "config.yaml")
 		if configFile != "" {
 			defaultConfigPath = configFile
 		}
