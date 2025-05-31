@@ -28,8 +28,7 @@ func printUsage() {
 A terminal todo.txt manager with vim-like keybindings.
 
 Arguments:
-  TODO_FILE    Path to todo.txt file
-               Priority: CLI argument > config file > default (~/todo.txt)
+  TODO_FILE    Path to todo.txt file (CLI arg > config > default)
 
 Options:
   -c, --config CONFIG  Path to configuration file

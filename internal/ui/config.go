@@ -64,13 +64,10 @@ type UIConfig struct {
 
 // DefaultAppConfig returns the default application configuration
 func DefaultAppConfig() AppConfig {
-	homeDir, _ := os.UserHomeDir()
-	defaultTodoFile := filepath.Join(homeDir, "todo.txt")
-
 	return AppConfig{
 		Theme:           "catppuccin",
 		PriorityLevels:  []string{"", "A", "B", "C", "D"},
-		DefaultTodoFile: defaultTodoFile,
+		DefaultTodoFile: "", // No default file, must be specified explicitly
 		UI: UIConfig{
 			LeftPaneRatio:     0.33,
 			MinLeftPaneWidth:  18,
@@ -208,9 +205,8 @@ func validateAndFixConfig(config AppConfig) AppConfig {
 		config.UI.VerticalPadding = 2
 	}
 
-	// Set default todo file if not specified
-	if config.DefaultTodoFile == "" {
-		// Expand ~ in the path if present
+	// Expand ~ in path if present (only if path is specified)
+	if config.DefaultTodoFile != "" {
 		config.DefaultTodoFile = ExpandHomePath(config.DefaultTodoFile)
 	}
 
