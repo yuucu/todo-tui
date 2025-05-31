@@ -66,6 +66,9 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 		height:       24, // Default terminal height
 	}
 
+	// Initialize help content
+	model.initializeHelpContent()
+
 	// Initialize textarea
 	model.textarea.Placeholder = "タスクの説明を入力してください (例: '電話 @母 +home due:2025-01-15')"
 	model.textarea.CharLimit = 0
@@ -110,6 +113,12 @@ func (m *Model) Init() tea.Cmd {
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
+		// Handle help mode - any key exits help
+		if m.currentMode == modeHelp {
+			m.currentMode = modeView
+			return m, nil
+		}
+
 		// Handle delete confirmation mode
 		if m.currentMode == modeDeleteConfirm {
 			switch msg.String() {
@@ -198,6 +207,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Handle normal mode keys
 		switch msg.String() {
+		case "?":
+			// Show help
+			m.currentMode = modeHelp
+			return m, nil
 		case "q", ctrlCKey:
 			return m, tea.Quit
 		case "a":

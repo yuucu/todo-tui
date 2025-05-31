@@ -16,20 +16,27 @@ func (m *Model) updatePaneSizes() {
 		m.height = 24 // Default terminal height
 	}
 
-	// Ensure absolute minimum terminal size
+	// Use actual terminal size for calculations, but ensure minimum for calculations
+	actualWidth := m.width
+	actualHeight := m.height
+
+	// Ensure absolute minimum terminal size for calculations only
 	minTerminalWidth := 40
 	minTerminalHeight := 8
 
-	if m.width < minTerminalWidth {
-		m.width = minTerminalWidth
+	calcWidth := actualWidth
+	calcHeight := actualHeight
+
+	if calcWidth < minTerminalWidth {
+		calcWidth = minTerminalWidth
 	}
-	if m.height < minTerminalHeight {
-		m.height = minTerminalHeight
+	if calcHeight < minTerminalHeight {
+		calcHeight = minTerminalHeight
 	}
 
 	// Calculate pane sizes using configuration
 	borderWidth := 4
-	availableWidth := m.width - borderWidth
+	availableWidth := calcWidth - borderWidth
 	leftWidth := int(float64(availableWidth) * m.appConfig.UI.LeftPaneRatio)
 	rightWidth := availableWidth - leftWidth
 
@@ -50,7 +57,7 @@ func (m *Model) updatePaneSizes() {
 	verticalPadding := m.appConfig.UI.VerticalPadding
 
 	// Available height for the entire content area (including borders and titles)
-	contentHeight := m.height - helpBarHeight - verticalPadding
+	contentHeight := calcHeight - helpBarHeight - verticalPadding
 
 	// Ensure minimum content height
 	if contentHeight < 5 { // Minimum 5 lines to show border + some content
@@ -74,6 +81,11 @@ func (m *Model) View() string {
 	// Ensure pane sizes are set only if not initialized
 	if m.width <= 0 || m.height <= 0 {
 		m.updatePaneSizes()
+	}
+
+	// If in help mode, show help screen
+	if m.currentMode == modeHelp {
+		return m.renderHelpView()
 	}
 
 	// If in add/edit mode, show textarea (keeping existing behavior as full screen)
@@ -152,9 +164,24 @@ func (m *Model) View() string {
 
 // renderMainView renders the main application view (panes, help bar, status bar)
 func (m *Model) renderMainView() string {
+	// Use actual terminal size, with minimum constraints for calculations only
+	actualWidth := m.width
+	actualHeight := m.height
+
+	// Ensure minimum size for calculations
+	calcWidth := actualWidth
+	calcHeight := actualHeight
+
+	if calcWidth < 40 {
+		calcWidth = 40
+	}
+	if calcHeight < 8 {
+		calcHeight = 8
+	}
+
 	// Calculate dimensions for panels using configuration
 	borderWidth := 4
-	availableWidth := m.width - borderWidth
+	availableWidth := calcWidth - borderWidth
 	leftWidth := int(float64(availableWidth) * m.appConfig.UI.LeftPaneRatio)
 	rightWidth := availableWidth - leftWidth
 
@@ -170,7 +197,7 @@ func (m *Model) renderMainView() string {
 	// Calculate content height (consistent with updatePaneSizes)
 	helpBarHeight := 1
 	verticalPadding := m.appConfig.UI.VerticalPadding
-	contentHeight := m.height - helpBarHeight - verticalPadding
+	contentHeight := calcHeight - helpBarHeight - verticalPadding
 
 	// Ensure minimum content height
 	if contentHeight < 5 { // Minimum 5 lines to show border + some content
@@ -237,14 +264,14 @@ func (m *Model) renderCombinedHelpStatusBar() string {
 	// Get help text based on active pane and current filter
 	var helpText string
 	if m.activePane == paneFilter {
-		helpText = "j/k: navigate | Enter: select filter & move to tasks | Tab/h/l: switch panes | a: add | q: quit"
+		helpText = "?: help | j/k: navigate | Enter: select filter & move to tasks | Tab/h/l: switch panes | a: add | q: quit"
 	} else {
 		// Check if we're viewing deleted tasks
 		isViewingDeleted := m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name == deletedTasksFilter
 		if isViewingDeleted {
-			helpText = "j/k: navigate | r: restore task | Tab/h/l: switch panes | a: add | q: quit"
+			helpText = "?: help | j/k: navigate | r: restore task | Tab/h/l: switch panes | a: add | q: quit"
 		} else {
-			helpText = "j/k: navigate | Enter: complete task | e: edit | p: priority toggle | d: delete | Tab/h/l: switch panes | a: add | q: quit"
+			helpText = "?: help | j/k: navigate | Enter: complete task | e: edit | p: priority toggle | t: toggle due today | d: delete | Tab/h/l: switch panes | a: add | q: quit"
 		}
 	}
 
