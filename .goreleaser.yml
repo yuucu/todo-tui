@@ -1,0 +1,132 @@
+version: 2
+
+project_name: todotui
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - main: ./cmd/todotui
+    binary: todotui
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w
+      - -X main.version={{.Version}}
+      - -X main.commit={{.Commit}}
+      - -X main.date={{.Date}}
+    mod_timestamp: '{{ .CommitTimestamp }}'
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+    - goos: windows
+      format: zip
+    files:
+      - README.md
+      - LICENSE
+      - sample-config.yaml
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^chore:'
+      - '^ci:'
+  groups:
+    - title: 'New Features'
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: 'Bug Fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: 'Performance Improvements'
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: 'Others'
+      order: 999
+
+release:
+  github:
+    owner: yuucu
+    name: todotui
+  draft: false
+  prerelease: auto
+  mode: replace
+  name_template: "{{.ProjectName}} v{{.Version}}"
+  header: |
+    ## 🚀 What's Changed in v{{.Version}}
+    
+    Download the latest release for your platform below.
+  footer: |
+    **Full Changelog**: https://github.com/yuucu/todotui/compare/{{ .PreviousTag }}...{{ .Tag }}
+    
+    ## 📥 Installation
+    
+    ### Quick Install
+    ```bash
+    # macOS/Linux (via go install)
+    go install github.com/yuucu/todotui/cmd/todotui@latest
+    
+    # Or download binary directly
+    # Extract and move to your PATH
+    ```
+    
+    ### Package Managers (Coming Soon)
+    ```bash
+    # Homebrew (planned)
+    brew install yuucu/tap/todotui
+    ```
+
+# Homebrew configuration for future use
+brews:
+  - repository:
+      owner: yuucu
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/yuucu/todotui
+    description: "A clean, efficient terminal-based todo manager that respects the todo.txt format"
+    license: MIT
+    skip_upload: auto
+    dependencies:
+      - name: git
+    test: |
+      system "#{bin}/todotui", "--version"
+    install: |
+      bin.install "todotui"
+
+# Universal Binaries for macOS
+universal_binaries:
+  - replace: true
+
+announce:
+  skip: '{{gt .Patch 0}}' 

@@ -15,7 +15,7 @@ YELLOW=\033[0;33m
 RED=\033[0;31m
 NC=\033[0m # No Color
 
-.PHONY: help build run test fmt lint clean deps tidy all lint-install check-go-version
+.PHONY: help build run test fmt lint clean deps tidy all lint-install check-go-version release-snapshot release-test
 
 # デフォルトターゲット
 all: check-go-version fmt test build
@@ -97,4 +97,38 @@ ci-build: ## CI用ビルド（複数プラットフォーム）
 	GOOS=darwin GOARCH=amd64 $(GO) build -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-amd64 $(MAIN_PATH)
 	GOOS=darwin GOARCH=arm64 $(GO) build -o $(BUILD_DIR)/$(BINARY_NAME)-darwin-arm64 $(MAIN_PATH)
 	GOOS=windows GOARCH=amd64 $(GO) build -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe $(MAIN_PATH)
-	@echo "$(GREEN)Multi-platform build completed$(NC)" 
+	@echo "$(GREEN)Multi-platform build completed$(NC)"
+
+# Goreleaser関連タスク
+goreleaser-install: ## GoReleaserをインストール
+	@echo "$(BLUE)Installing GoReleaser...$(NC)"
+	@if command -v goreleaser >/dev/null 2>&1; then \
+		echo "$(GREEN)GoReleaser is already installed$(NC)"; \
+	else \
+		if command -v brew >/dev/null 2>&1; then \
+			brew install goreleaser; \
+		else \
+			go install github.com/goreleaser/goreleaser@latest; \
+		fi; \
+	fi
+
+release-snapshot: goreleaser-install ## GoReleaserでスナップショットリリースをテスト
+	@echo "$(BLUE)Building snapshot release with GoReleaser...$(NC)"
+	goreleaser release --snapshot --clean
+	@echo "$(GREEN)Snapshot release completed. Check dist/ directory$(NC)"
+
+release-test: goreleaser-install ## GoReleaser設定をテスト（リリースなし）
+	@echo "$(BLUE)Testing GoReleaser configuration...$(NC)"
+	goreleaser check
+	@echo "$(GREEN)GoReleaser configuration is valid$(NC)"
+
+release-clean: ## GoReleaserの成果物をクリーンアップ
+	@echo "$(BLUE)Cleaning up GoReleaser artifacts...$(NC)"
+	rm -rf dist/
+	@echo "$(GREEN)Cleanup completed$(NC)"
+
+# クリーンアップ（GoReleaser対応）
+clean: release-clean ## ビルド成果物をクリーンアップ
+	@echo "$(BLUE)Cleaning up build artifacts...$(NC)"
+	rm -rf $(BUILD_DIR)
+	@echo "$(GREEN)Cleanup completed$(NC)" 

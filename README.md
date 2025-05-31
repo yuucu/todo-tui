@@ -12,11 +12,51 @@ A clean, efficient terminal-based todo manager that respects the [todo.txt](http
 - **Task Copy** - Copy task text to clipboard with visual feedback
 - **Japanese Input Support** - Full IME support for international users
 
+## 🚀 Installation
+
+### 📦 Download Binary (Recommended)
+
+Download the latest release for your platform from [GitHub Releases](https://github.com/yuucu/todotui/releases):
+
+```bash
+# Download and extract for your platform
+# Linux x86_64
+wget https://github.com/yuucu/todotui/releases/latest/download/todotui_Linux_x86_64.tar.gz
+tar -xzf todotui_Linux_x86_64.tar.gz
+sudo mv todotui /usr/local/bin/
+
+# macOS (Intel)
+wget https://github.com/yuucu/todotui/releases/latest/download/todotui_Darwin_x86_64.tar.gz
+tar -xzf todotui_Darwin_x86_64.tar.gz
+sudo mv todotui /usr/local/bin/
+
+# macOS (Apple Silicon)
+wget https://github.com/yuucu/todotui/releases/latest/download/todotui_Darwin_arm64.tar.gz
+tar -xzf todotui_Darwin_arm64.tar.gz
+sudo mv todotui /usr/local/bin/
+```
+
+### 🍺 Homebrew (Coming Soon)
+
+```bash
+# Add our tap
+brew tap yuucu/tap
+
+# Install
+brew install todotui
+```
+
+### 🔧 Go Install
+
+```bash
+go install github.com/yuucu/todotui/cmd/todotui@latest
+```
+
 ## 🚀 Quick Start
 
 ```bash
-# Install
-go install github.com/yuucu/todotui/cmd/todotui@latest
+# Check version
+todotui --version
 
 # Run with your todo file
 todotui ~/todo.txt
