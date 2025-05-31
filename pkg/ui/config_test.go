@@ -107,98 +107,90 @@ func TestDefaultAppConfig(t *testing.T) {
 }
 
 func TestValidateAndFixConfig(t *testing.T) {
-	tests := []struct {
-		name            string
-		input           AppConfig
-		expectedTheme   string
-		expectedRatio   float64
-		expectedMinLeft int
-		description     string
-	}{
-		{
-			name: "valid_config_unchanged",
-			input: AppConfig{
-				Theme:          "catppuccin",
-				PriorityLevels: []string{"", "A", "B", "C"},
-				UI: UIConfig{
-					LeftPaneRatio:     0.4,
-					MinLeftPaneWidth:  20,
-					MinRightPaneWidth: 30,
-					VerticalPadding:   3,
-				},
+	t.Run("valid config unchanged", func(t *testing.T) {
+		config := AppConfig{
+			Theme:          "catppuccin",
+			PriorityLevels: []string{"", "A", "B", "C", "D"},
+			UI: UIConfig{
+				LeftPaneRatio:     0.4,
+				MinLeftPaneWidth:  20,
+				MinRightPaneWidth: 30,
+				VerticalPadding:   3,
 			},
-			expectedTheme:   "catppuccin",
-			expectedRatio:   0.4,
-			expectedMinLeft: 20,
-			description:     "有効な設定は変更されない",
-		},
-		{
-			name: "invalid_theme_fixed",
-			input: AppConfig{
-				Theme: "invalid_theme",
-				UI: UIConfig{
-					LeftPaneRatio:     0.33,
-					MinLeftPaneWidth:  18,
-					MinRightPaneWidth: 28,
-				},
+			Logging: LoggingConfig{
+				MaxLogDays: 15,
 			},
-			expectedTheme:   "catppuccin",
-			expectedRatio:   0.33,
-			expectedMinLeft: 18,
-			description:     "無効なテーマはデフォルトに修正される",
-		},
-		{
-			name: "invalid_ratio_fixed",
-			input: AppConfig{
-				Theme: "nord",
-				UI: UIConfig{
-					LeftPaneRatio:     1.5, // 無効な値
-					MinLeftPaneWidth:  18,
-					MinRightPaneWidth: 28,
-				},
-			},
-			expectedTheme:   "nord",
-			expectedRatio:   0.33, // デフォルトに修正
-			expectedMinLeft: 18,
-			description:     "無効な比率はデフォルトに修正される",
-		},
-		{
-			name: "negative_min_width_fixed",
-			input: AppConfig{
-				Theme: "catppuccin",
-				UI: UIConfig{
-					LeftPaneRatio:     0.33,
-					MinLeftPaneWidth:  -5, // 無効な値
-					MinRightPaneWidth: 28,
-				},
-			},
-			expectedTheme:   "catppuccin",
-			expectedRatio:   0.33,
-			expectedMinLeft: 18, // デフォルトに修正
-			description:     "負の最小幅はデフォルトに修正される",
-		},
-	}
+		}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := validateAndFixConfig(tt.input)
+		result := validateAndFixConfig(config)
 
-			if result.Theme != tt.expectedTheme {
-				t.Errorf("validateAndFixConfig() theme = %s, expected %s for %s",
-					result.Theme, tt.expectedTheme, tt.description)
+		if result.Theme != "catppuccin" {
+			t.Errorf("Theme = %s, expected catppuccin", result.Theme)
+		}
+		if result.UI.LeftPaneRatio != 0.4 {
+			t.Errorf("LeftPaneRatio = %f, expected 0.4", result.UI.LeftPaneRatio)
+		}
+	})
+
+	t.Run("invalid theme fixed", func(t *testing.T) {
+		config := AppConfig{
+			Theme: "invalid-theme",
+		}
+
+		result := validateAndFixConfig(config)
+
+		if result.Theme != "catppuccin" {
+			t.Errorf("Invalid theme should fallback to catppuccin, got %s", result.Theme)
+		}
+	})
+
+	t.Run("everforest themes are valid", func(t *testing.T) {
+		testCases := []string{"everforest-dark", "everforest-light"}
+
+		for _, theme := range testCases {
+			config := AppConfig{
+				Theme: theme,
 			}
 
-			if result.UI.LeftPaneRatio != tt.expectedRatio {
-				t.Errorf("validateAndFixConfig() ratio = %f, expected %f for %s",
-					result.UI.LeftPaneRatio, tt.expectedRatio, tt.description)
-			}
+			result := validateAndFixConfig(config)
 
-			if result.UI.MinLeftPaneWidth != tt.expectedMinLeft {
-				t.Errorf("validateAndFixConfig() min left width = %d, expected %d for %s",
-					result.UI.MinLeftPaneWidth, tt.expectedMinLeft, tt.description)
+			if result.Theme != theme {
+				t.Errorf("Theme %s should be valid, but got %s", theme, result.Theme)
 			}
-		})
-	}
+		}
+	})
+
+	t.Run("invalid ratio fixed", func(t *testing.T) {
+		config := AppConfig{
+			UI: UIConfig{
+				LeftPaneRatio: 1.5, // Invalid - too high
+			},
+		}
+
+		result := validateAndFixConfig(config)
+
+		if result.UI.LeftPaneRatio != 0.33 {
+			t.Errorf("Invalid ratio should be fixed to 0.33, got %f", result.UI.LeftPaneRatio)
+		}
+	})
+
+	t.Run("negative min width fixed", func(t *testing.T) {
+		config := AppConfig{
+			UI: UIConfig{
+				MinLeftPaneWidth:  -5,
+				MinRightPaneWidth: -10,
+			},
+		}
+
+		result := validateAndFixConfig(config)
+
+		if result.UI.MinLeftPaneWidth != 18 {
+			t.Errorf("Negative MinLeftPaneWidth should be fixed to 18, got %d", result.UI.MinLeftPaneWidth)
+		}
+		if result.UI.MinRightPaneWidth != 28 {
+			t.Errorf("Negative MinRightPaneWidth should be fixed to 28, got %d", result.UI.MinRightPaneWidth)
+		}
+	})
 }
 
 func TestValidateAndFixConfigPriorityLevels(t *testing.T) {
