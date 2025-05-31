@@ -139,7 +139,7 @@ func applyEnvironmentOverrides(config AppConfig) AppConfig {
 // validateAndFixConfig validates the configuration and sets defaults for invalid values
 func validateAndFixConfig(config AppConfig) AppConfig {
 	// Validate theme
-	validThemes := GetAvailableThemes()
+	validThemes := []string{"catppuccin", "nord"}
 	isValidTheme := false
 	for _, theme := range validThemes {
 		if config.Theme == theme {

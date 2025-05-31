@@ -32,7 +32,6 @@ Arguments:
 Options:
   -c, --config CONFIG  Path to configuration file (YAML format)
   -t, --theme THEME    Set color theme (catppuccin, nord)
-  --list-themes        List available themes
   -v, --version        Show version information
   -h, --help          Show this help message
 
@@ -100,12 +99,6 @@ func main() {
 			os.Exit(0)
 		case "--version", "-v":
 			printVersion()
-			os.Exit(0)
-		case "--list-themes":
-			fmt.Println("Available themes:")
-			for _, theme := range ui.GetAvailableThemes() {
-				fmt.Printf("  %s\n", theme)
-			}
 			os.Exit(0)
 		default:
 			if todoFile == "" {

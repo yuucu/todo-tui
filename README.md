@@ -26,9 +26,6 @@ todotui ~/todo.txt
 
 # With custom configuration
 todotui --config config.yaml ~/todo.txt
-
-# Check available themes
-todotui --list-themes
 ```
 
 ## ⌨️ Key Bindings
