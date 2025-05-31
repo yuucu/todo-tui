@@ -100,19 +100,10 @@ func (m *Model) saveAndRefresh() tea.Cmd {
 	logger.Debug("Saving tasks to file", "file", m.todoFile, "task_count", len(m.tasks))
 	if err := todo.Save(m.tasks, m.todoFile); err != nil {
 		logger.Error("Failed to save tasks to file", "file", m.todoFile, "error", err)
-		// debugモードの時はUIにもエラーを表示
-		if m.appConfig.Logging.EnableDebug {
-			return m.setStatusMessage("❌ Failed to save tasks", 3*time.Second)
-		}
 		return nil
 	}
 	logger.Info("Tasks saved successfully", "file", m.todoFile)
 	m.refreshLists()
-
-	// debugモードの時のみUIにメッセージを表示
-	if m.appConfig.Logging.EnableDebug {
-		return m.setStatusMessage("💾 Tasks saved", 2*time.Second)
-	}
 	return nil
 }
 
@@ -540,11 +531,10 @@ func (m *Model) setStatusMessage(message string, duration time.Duration) tea.Cmd
 
 // findTaskInList finds a task in the main task list and returns its index and pointer
 func (m *Model) findTaskInList(targetTask todotxt.Task) (int, *todotxt.Task) {
-	_, index, found := lo.FindIndexOf(m.tasks, func(task todotxt.Task) bool {
-		return task.String() == targetTask.String()
-	})
-	if found {
-		return index, &m.tasks[index]
+	for i := range m.tasks {
+		if m.tasks[i].String() == targetTask.String() {
+			return i, &m.tasks[i]
+		}
 	}
 	return -1, nil
 }

@@ -4,7 +4,7 @@
 # =====================================
 # Theme Settings
 # =====================================
-# Available themes: catppuccin, nord, default
+# Available themes: catppuccin, nord, everforest-dark, everforest-light
 theme: catppuccin
 
 # =====================================
@@ -40,7 +40,7 @@ ui:
 # Log files are always created for troubleshooting
 logging:
   # Debug mode - shows detailed internal operations
-  enable_debug: false
+  enable_debug: true
 
   # Custom log file path (leave empty for OS-specific default)
   # macOS: ~/Library/Logs/todotui/todotui-YYYY-MM-DD.log

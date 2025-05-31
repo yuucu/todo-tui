@@ -115,7 +115,7 @@ func main() {
 		appConfig.Logging.LogFilePath = *logFile
 	}
 
-	// Initialize logging system
+	// Initialize logging system (first initialization without UI channel)
 	logConfig := logger.Config{
 		Level:          slog.LevelInfo,
 		EnableDebug:    appConfig.Logging.EnableDebug,

@@ -62,7 +62,7 @@ Create a YAML configuration file at `~/.config/todotui/config.yaml`:
 
 ```yaml
 # ~/.config/todotui/config.yaml
-theme: catppuccin                # Available: catppuccin, nord
+theme: catppuccin                # Available: catppuccin, nord, everforest-dark, everforest-light
 priority_levels: ["", A, B, C, D]
 default_todo_file: ~/todo.txt
 ui:
