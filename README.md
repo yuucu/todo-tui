@@ -88,11 +88,12 @@ Supported formats: YAML, JSON, TOML
 
 ## 🏗️ Development
 
+### Quick Setup
+
 ```bash
 git clone https://github.com/yuucu/todotui.git
 cd todotui
-make build
+make install  # Install development tools and set up pre-commit hooks
+make build    # Build the application
 ```
-
-**Requirements:** Go 1.24+, color-capable terminal
 
