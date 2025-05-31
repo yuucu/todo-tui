@@ -199,14 +199,16 @@ func (m *Model) refreshTaskList() {
 	}
 
 	// Only show default tasks if we're not viewing a specific filter that returned 0 results
-	// Exception: Don't show default tasks for "Deleted Tasks" filter
+	// Exception: Don't show default tasks for "Deleted Tasks" and "No Project" filters
 	if len(filteredTasks) == 0 {
-		// Check if current filter is "Deleted Tasks"
+		// Check if current filter is "Deleted Tasks" or "No Project"
 		isDeletedTasksFilter := m.filterList.selected < len(m.filters) &&
 			m.filters[m.filterList.selected].name == FilterDeletedTasks
+		isNoProjectFilter := m.filterList.selected < len(m.filters) &&
+			m.filters[m.filterList.selected].name == FilterNoProject
 
-		if !isDeletedTasksFilter {
-			// Default to all incomplete tasks (only for non-deleted task filters) using lo.Filter
+		if !isDeletedTasksFilter && !isNoProjectFilter {
+			// Default to all incomplete tasks (only for non-deleted and non-no-project task filters) using lo.Filter
 			filteredTasks = lo.Filter(m.tasks, func(task todotxt.Task, _ int) bool {
 				return !task.Completed && !isTaskDeleted(task)
 			})
