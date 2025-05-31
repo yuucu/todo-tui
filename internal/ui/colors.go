@@ -1,8 +1,6 @@
 package ui
 
 import (
-	"os"
-
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -99,26 +97,12 @@ var themes = map[string]Theme{
 	},
 }
 
-// GetTheme returns the theme based on environment variable or default
-func GetTheme() Theme {
-	themeName := os.Getenv("TODO_TUI_THEME")
-	if themeName == "" {
-		themeName = "catppuccin" // default theme
-	}
-
+// GetTheme returns the theme based on theme name
+func GetTheme(themeName string) Theme {
 	if theme, exists := themes[themeName]; exists {
 		return theme
 	}
 
 	// Fallback to catppuccin if theme not found
 	return themes["catppuccin"]
-}
-
-// GetAvailableThemes returns a list of available theme names
-func GetAvailableThemes() []string {
-	var names []string
-	for name := range themes {
-		names = append(names, name)
-	}
-	return names
 }

@@ -65,7 +65,7 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 		watcher:      nil,
 		width:        DefaultTerminalWidth,
 		height:       DefaultTerminalHeight,
-		currentTheme: GetTheme(),
+		currentTheme: GetTheme(appConfig.Theme),
 		appConfig:    appConfig,
 		imeHelper:    NewIMEHelper(),
 	}
