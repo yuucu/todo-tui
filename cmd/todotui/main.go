@@ -115,13 +115,14 @@ func main() {
 		appConfig.Logging.LogFilePath = *logFile
 	}
 
-	// Initialize logging system (ファイル出力は常に有効)
+	// Initialize logging system
 	logConfig := logger.Config{
-		Level:        slog.LevelInfo,
-		EnableDebug:  appConfig.Logging.EnableDebug,
-		OutputToFile: true, // 常にファイル出力を有効
-		LogFilePath:  appConfig.Logging.LogFilePath,
-		AppName:      "todotui",
+		Level:          slog.LevelInfo,
+		EnableDebug:    appConfig.Logging.EnableDebug,
+		OutputToFile:   true,  // 常にファイル出力を有効
+		OutputToStderr: false, // stderrには出力しない（UIのステータスメッセージで代替）
+		LogFilePath:    appConfig.Logging.LogFilePath,
+		AppName:        "todotui",
 	}
 
 	if err := logger.Init(logConfig); err != nil {

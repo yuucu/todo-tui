@@ -96,14 +96,24 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 }
 
 // saveAndRefresh saves the task list and refreshes the UI
-func (m *Model) saveAndRefresh() {
+func (m *Model) saveAndRefresh() tea.Cmd {
 	logger.Debug("Saving tasks to file", "file", m.todoFile, "task_count", len(m.tasks))
 	if err := todo.Save(m.tasks, m.todoFile); err != nil {
 		logger.Error("Failed to save tasks to file", "file", m.todoFile, "error", err)
-		return
+		// debugモードの時はUIにもエラーを表示
+		if m.appConfig.Logging.EnableDebug {
+			return m.setStatusMessage("❌ Failed to save tasks", 3*time.Second)
+		}
+		return nil
 	}
 	logger.Info("Tasks saved successfully", "file", m.todoFile)
 	m.refreshLists()
+
+	// debugモードの時のみUIにメッセージを表示
+	if m.appConfig.Logging.EnableDebug {
+		return m.setStatusMessage("💾 Tasks saved", 2*time.Second)
+	}
+	return nil
 }
 
 // Init initializes the model
@@ -185,8 +195,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.currentMode = modeView
 					m.editingTask = nil
 					m.textarea.SetValue("")
-					m.saveAndRefresh()
-					return m, nil
+					return m, m.saveAndRefresh()
 				}
 				// If text is empty, just cancel the edit
 				m.currentMode = modeView
@@ -264,8 +273,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if task != nil {
 					task.Complete()
 				}
-				m.saveAndRefresh()
-				return m, nil
+				return m, m.saveAndRefresh()
 			}
 		case dKey:
 			if m.activePane == paneTask {
@@ -292,8 +300,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 								}
 							}
 						}
-						m.saveAndRefresh()
-						return m, nil
+						return m, m.saveAndRefresh()
 					}
 				}
 			}
@@ -307,8 +314,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if task != nil {
 						m.cyclePriority(task)
 					}
-					m.saveAndRefresh()
-					return m, nil
+					return m, m.saveAndRefresh()
 				}
 			}
 		case tKey:
@@ -321,8 +327,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					if task != nil {
 						m.toggleDueToday(task)
 					}
-					m.saveAndRefresh()
-					return m, nil
+					return m, m.saveAndRefresh()
 				}
 			}
 		case rKey:
@@ -358,8 +363,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 								}
 							}
 						}
-						m.saveAndRefresh()
-						return m, nil
+						return m, m.saveAndRefresh()
 					}
 
 					// Handle completed tasks restoration
@@ -370,8 +374,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 							task.Completed = false
 							task.CompletedDate = time.Time{} // Clear completion date
 						}
-						m.saveAndRefresh()
-						return m, nil
+						return m, m.saveAndRefresh()
 					}
 				}
 			}
