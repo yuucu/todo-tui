@@ -344,6 +344,23 @@ func (m *Model) getUniqueContexts() []string {
 
 // getStatusInfo returns status information for display
 func (m *Model) getStatusInfo() string {
+	// If there's an active status message, show it instead with appropriate color
+	if m.statusMessage != "" && time.Now().Before(m.statusMessageEnd) {
+		// Apply color based on message type
+		messageStyle := lipgloss.NewStyle()
+		if strings.Contains(m.statusMessage, "📋") || strings.Contains(m.statusMessage, "✅") {
+			// Success message - green
+			messageStyle = messageStyle.Foreground(m.currentTheme.Success)
+		} else if strings.Contains(m.statusMessage, "❌") {
+			// Error message - red
+			messageStyle = messageStyle.Foreground(m.currentTheme.Danger)
+		} else {
+			// Default - normal text color
+			messageStyle = messageStyle.Foreground(m.currentTheme.Text)
+		}
+		return messageStyle.Render(m.statusMessage)
+	}
+
 	// Current time
 	now := time.Now().Format(TimeFormat)
 

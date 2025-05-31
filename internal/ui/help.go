@@ -46,6 +46,7 @@ func (m *Model) initializeHelpContent() {
 		{
 			Category: "Task Operations",
 			Items: []HelpItem{
+				{"y", "Copy task text to clipboard"},
 				{"p", "Cycle task priority"},
 				{"t", "Toggle due date to today"},
 			},

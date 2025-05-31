@@ -6,6 +6,7 @@ import (
 	"time"
 
 	todotxt "github.com/1set/todotxt"
+	"github.com/atotto/clipboard"
 	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fsnotify/fsnotify"
@@ -392,6 +393,22 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
+		case "y":
+			if m.activePane == paneTask {
+				// Copy task text to clipboard
+				if m.taskList.selected < len(m.filteredTasks) {
+					taskToCopy := m.filteredTasks[m.taskList.selected]
+					taskText := taskToCopy.String()
+
+					// Copy to clipboard
+					if err := clipboard.WriteAll(taskText); err == nil {
+						// Show success message for 2 seconds
+						return m, m.setStatusMessage("📋 Task copied to clipboard", 2*time.Second)
+					}
+					// Show error message for 3 seconds if copy failed
+					return m, m.setStatusMessage("❌ Failed to copy task", 3*time.Second)
+				}
+			}
 		case "j", "down":
 			if m.activePane == paneFilter {
 				m.filterList.MoveDown()
@@ -434,6 +451,12 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		}
 		// Continue watching
 		return m, m.watchFile()
+	case StatusMessageClearMsg:
+		// Clear status message if it has expired
+		if time.Now().After(m.statusMessageEnd) {
+			m.statusMessage = ""
+		}
+		return m, nil
 	}
 
 	return m, nil
@@ -523,4 +546,15 @@ func (m *Model) Cleanup() {
 	if m.watcher != nil {
 		m.watcher.Close()
 	}
+}
+
+// setStatusMessage sets a temporary status message with auto-clear timer
+func (m *Model) setStatusMessage(message string, duration time.Duration) tea.Cmd {
+	m.statusMessage = message
+	m.statusMessageEnd = time.Now().Add(duration)
+
+	// Return a command that clears the status message after the duration
+	return tea.Tick(duration, func(time.Time) tea.Msg {
+		return StatusMessageClearMsg{}
+	})
 }

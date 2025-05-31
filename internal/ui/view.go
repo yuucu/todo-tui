@@ -260,9 +260,9 @@ func (m *Model) renderCombinedHelpStatusBar() string {
 		// Check if we're viewing deleted tasks
 		isViewingDeleted := m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name == FilterDeletedTasks
 		if isViewingDeleted {
-			helpText = HelpDeletedTaskPane
+			helpText = "j/k: navigate | r: restore task | y: copy task | Tab/h/l: switch panes | a: add | q: quit"
 		} else {
-			helpText = HelpTaskPane
+			helpText = "j/k: navigate | Enter: complete task | e: edit | p: priority toggle | d: delete | y: copy task | Tab/h/l: switch panes | a: add | q: quit"
 		}
 	}
 

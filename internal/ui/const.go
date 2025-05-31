@@ -99,8 +99,8 @@ const (
 
 	// Help text
 	HelpFilterPane      = "?: help | j/k: navigate | Enter: select filter & move to tasks | Tab/h/l: switch panes | a: add | q: quit"
-	HelpTaskPane        = "?: help | j/k: navigate | Enter: complete task | e: edit | p: priority toggle | t: toggle due today | d: delete | Tab/h/l: switch panes | a: add | q: quit"
-	HelpDeletedTaskPane = "?: help | j/k: navigate | r: restore task | Tab/h/l: switch panes | a: add | q: quit"
+	HelpTaskPane        = "?: help | j/k: navigate | Enter: complete task | e: edit | p: priority toggle | t: toggle due today | d: delete | y: copy task | Tab/h/l: switch panes | a: add | q: quit"
+	HelpDeletedTaskPane = "?: help | j/k: navigate | r: restore task | y: copy task | Tab/h/l: switch panes | a: add | q: quit"
 
 	// Panel titles
 	FilterPaneTitle = "Workspaces"
