@@ -1,0 +1,135 @@
+name-template: 'v$RESOLVED_VERSION'
+tag-template: 'v$RESOLVED_VERSION'
+
+version-resolver:
+  major:
+    labels:
+      - 'breaking'
+      - 'major'
+      - 'breaking-change'
+  minor:
+    labels:
+      - 'feature'
+      - 'enhancement'
+      - 'minor'
+  patch:
+    labels:
+      - 'bug'
+      - 'bugfix'
+      - 'fix'
+      - 'patch'
+      - 'chore'
+      - 'docs'
+      - 'dependencies'
+  default: patch
+
+categories:
+  - title: '🚨 Breaking Changes'
+    labels:
+      - 'breaking'
+      - 'breaking-change'
+      - 'major'
+  - title: '🚀 New Features'
+    labels:
+      - 'feature'
+      - 'enhancement'
+      - 'minor'
+  - title: '🐛 Bug Fixes'
+    labels:
+      - 'bug'
+      - 'bugfix'
+      - 'fix'
+      - 'patch'
+  - title: '📚 Documentation'
+    labels:
+      - 'docs'
+      - 'documentation'
+  - title: '🏗️ Maintenance'
+    labels:
+      - 'chore'
+      - 'maintenance'
+      - 'refactor'
+  - title: '📦 Dependencies'
+    labels:
+      - 'dependencies'
+      - 'deps'
+
+change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
+
+change-title-escapes: '\<*_&' # You can add # and @ to disable mentions, and add ` to disable code blocks.
+
+template: |
+  ## 🚀 What's Changed in $RESOLVED_VERSION
+
+  $CHANGES
+
+  ## 📥 Installation
+
+  ### Quick Install
+  ```bash
+  # Go install (recommended)
+  go install github.com/yuucu/todotui/cmd/todotui@$RESOLVED_VERSION
+
+  # Download binary directly
+  # See assets below for your platform
+  ```
+
+  ### Using Downloaded Binary
+  1. Download the appropriate binary for your platform from the assets below
+  2. Extract the archive
+  3. Move the `todotui` binary to your PATH
+
+  **Full Changelog**: https://github.com/yuucu/todotui/compare/$PREVIOUS_TAG...$RESOLVED_VERSION
+
+autolabeler:
+  - label: 'breaking'
+    title:
+      - '/BREAKING CHANGE/i'
+      - '/!:/'
+  - label: 'feature'
+    title:
+      - '/feat(\(.+\))?:/i'
+      - '/feature(\(.+\))?:/i'
+    branch:
+      - '/feature\/.+/'
+      - '/feat\/.+/'
+  - label: 'bug'
+    title:
+      - '/fix(\(.+\))?:/i'
+      - '/bug(\(.+\))?:/i'
+    branch:
+      - '/fix\/.+/'
+      - '/bug\/.+/'
+      - '/hotfix\/.+/'
+  - label: 'chore'
+    title:
+      - '/chore(\(.+\))?:/i'
+      - '/build(\(.+\))?:/i'
+      - '/ci(\(.+\))?:/i'
+    branch:
+      - '/chore\/.+/'
+  - label: 'docs'
+    title:
+      - '/docs(\(.+\))?:/i'
+      - '/doc(\(.+\))?:/i'
+    files:
+      - '*.md'
+      - 'docs/**/*'
+    branch:
+      - '/docs?\/.+/'
+  - label: 'dependencies'
+    title:
+      - '/deps(\(.+\))?:/i'
+      - '/dependency(\(.+\))?:/i'
+    files:
+      - 'go.mod'
+      - 'go.sum'
+
+sort-by: title
+sort-direction: ascending
+
+exclude-labels:
+  - 'skip-changelog'
+  - 'invalid'
+  - 'duplicate'
+  - 'wontfix' 

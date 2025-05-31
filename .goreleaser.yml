@@ -52,6 +52,7 @@ snapshot:
   name_template: "{{ incpatch .Version }}-next"
 
 changelog:
+  disable: false
   sort: asc
   use: github
   filters:
@@ -60,16 +61,32 @@ changelog:
       - '^test:'
       - '^chore:'
       - '^ci:'
+      - '^build:'
+      - Merge pull request
+      - Merge branch
+      - go mod tidy
   groups:
-    - title: 'New Features'
-      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+    - title: '🚨 Breaking Changes'
+      regexp: '^.*?BREAKING CHANGE.*?$'
       order: 0
-    - title: 'Bug Fixes'
-      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+    - title: '🚀 New Features'
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
       order: 1
-    - title: 'Performance Improvements'
-      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+    - title: '🐛 Bug Fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
       order: 2
+    - title: '📚 Documentation'
+      regexp: '^.*?docs?(\([[:word:]]+\))??!?:.+$'
+      order: 3
+    - title: '🏗️ Maintenance'
+      regexp: '^.*?(chore|refactor|style)(\([[:word:]]+\))??!?:.+$'
+      order: 4
+    - title: '📦 Dependencies'
+      regexp: '^.*?(deps?|dependency)(\([[:word:]]+\))??!?:.+$'
+      order: 5
+    - title: '⚡ Performance Improvements'
+      regexp: '^.*?perf(\([[:word:]]+\))??!?:.+$'
+      order: 6
     - title: 'Others'
       order: 999
 
@@ -80,23 +97,34 @@ release:
   draft: false
   prerelease: auto
   mode: replace
-  name_template: "{{.ProjectName}} v{{.Version}}"
+  name_template: "{{.ProjectName}} {{.Tag}}"
   header: |
-    ## 🚀 What's Changed in v{{.Version}}
+    ## 🚀 What's Changed in {{.Tag}}
     
     Download the latest release for your platform below.
+    
+    ### 📥 Quick Installation
+    ```bash
+    # Go install (recommended for latest version)
+    go install github.com/yuucu/todotui/cmd/todotui@{{.Tag}}
+    ```
   footer: |
     **Full Changelog**: https://github.com/yuucu/todotui/compare/{{ .PreviousTag }}...{{ .Tag }}
     
-    ## 📥 Installation
+    ## 📥 Installation Options
     
-    ### Quick Install
+    ### Binary Download
+    1. Download the appropriate binary for your platform from the assets above
+    2. Extract the archive: `tar -xzf todotui_*.tar.gz` (or unzip for Windows)
+    3. Move the binary to your PATH: `sudo mv todotui /usr/local/bin/` (Unix-like systems)
+    
+    ### Go Install
     ```bash
-    # macOS/Linux (via go install)
+    # Install latest stable version
     go install github.com/yuucu/todotui/cmd/todotui@latest
     
-    # Or download binary directly
-    # Extract and move to your PATH
+    # Install specific version
+    go install github.com/yuucu/todotui/cmd/todotui@{{.Tag}}
     ```
     
     ### Package Managers (Coming Soon)
@@ -104,6 +132,15 @@ release:
     # Homebrew (planned)
     brew install yuucu/tap/todotui
     ```
+    
+    ## 🚀 Getting Started
+    
+    After installation, run:
+    ```bash
+    todotui --help
+    ```
+    
+    For configuration and usage examples, see our [documentation](https://github.com/yuucu/todotui#readme).
 
 # Homebrew configuration for future use
 brews:
