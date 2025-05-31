@@ -14,7 +14,7 @@ output:
 
 linters-settings:
   govet:
-    check-shadowing: true
+    # check-shadowing: true  # Deprecated - use enable: shadow instead
     enable:
       - shadow
     disable:

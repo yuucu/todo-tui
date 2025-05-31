@@ -108,9 +108,11 @@ func (m *Model) renderHelpView() string {
 	// Prepare content sections as simple strings for easier scrolling
 	var allSections []string
 
-	// Header
-	allSections = append(allSections, headerStyle.Render("📚 TodoTUI - Keyboard Shortcuts Help"))
-	allSections = append(allSections, "") // Empty line
+	// Header and empty line
+	allSections = append(allSections,
+		headerStyle.Render("📚 TodoTUI - Keyboard Shortcuts Help"),
+		"", // Empty line
+	)
 
 	// Content sections
 	for i, category := range m.helpContent {
@@ -204,22 +206,6 @@ func (m *Model) renderHelpView() string {
 		Background(m.currentTheme.Background)
 
 	return centeredStyle.Render(styledContent)
-}
-
-// Helper function for minimum value
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-// Helper function for maximum value
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 // KeyBinding represents a key binding configuration
