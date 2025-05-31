@@ -12,14 +12,13 @@ import (
 
 // よく使用される文字列定数
 const (
-	deletedTasksFilter = "Deleted Tasks"
-	enterKeyStr        = "enter"
+	enterKeyStr = "enter"
 )
 
-// isTaskDeleted checks if a task has been soft deleted
+// isTaskDeleted checks if a task has the deleted_at field
 func isTaskDeleted(task todotxt.Task) bool {
 	taskString := task.String()
-	return strings.Contains(taskString, "deleted_at:")
+	return strings.Contains(taskString, TaskFieldDeletedPrefix)
 }
 
 // refreshLists updates both filter and task lists
@@ -30,14 +29,20 @@ func (m *Model) refreshLists() {
 
 // refreshFilterList builds the filter list with projects and due dates
 func (m *Model) refreshFilterList() {
+	// Remember currently selected filter name for restoration
+	var currentFilterName string
+	if m.filterList.selected < len(m.filters) {
+		currentFilterName = m.filters[m.filterList.selected].name
+	}
+
 	var filters []FilterData
 
 	// Add time-based filters
 	filters = append(filters, m.getTimeBasedFilters()...)
 
 	// Always add "All Tasks" filter
-	filters = append(filters, FilterData{
-		name: "All Tasks",
+	allTasksFilter := FilterData{
+		name: FilterAllTasks,
 		filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
 			var result todotxt.TaskList
 			for _, task := range tasks {
@@ -47,13 +52,14 @@ func (m *Model) refreshFilterList() {
 			}
 			return result
 		},
-	})
+	}
+	filters = append(filters, allTasksFilter)
 
 	// Add project filters if any exist
 	projects := m.getUniqueProjects()
 	if len(projects) > 0 {
 		filters = append(filters, FilterData{
-			name: "── Projects ──",
+			name: FilterHeaderProjects,
 			filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
 				return todotxt.TaskList{}
 			},
@@ -85,7 +91,7 @@ func (m *Model) refreshFilterList() {
 	contexts := m.getUniqueContexts()
 	if len(contexts) > 0 {
 		filters = append(filters, FilterData{
-			name: "── Contexts ──",
+			name: FilterHeaderContexts,
 			filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
 				return todotxt.TaskList{}
 			},
@@ -114,7 +120,7 @@ func (m *Model) refreshFilterList() {
 	}
 
 	filters = append(filters, FilterData{
-		name: "Completed Tasks",
+		name: FilterCompletedTasks,
 		filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
 			var result todotxt.TaskList
 			for _, task := range tasks {
@@ -130,7 +136,7 @@ func (m *Model) refreshFilterList() {
 	deletedTasks := m.tasks.Filter(isTaskDeleted)
 	if len(deletedTasks) > 0 {
 		filters = append(filters, FilterData{
-			name: deletedTasksFilter,
+			name: FilterDeletedTasks,
 			filterFn: func(list todotxt.TaskList) todotxt.TaskList {
 				return list.Filter(isTaskDeleted)
 			},
@@ -156,8 +162,50 @@ func (m *Model) refreshFilterList() {
 		}
 	}
 
+	// Find the new index for the previously selected filter
+	newSelectedIndex := 0
+	foundPreviousFilter := false
+
+	// First, try to find the exact same filter name
+	for i, filter := range filters {
+		if filter.name == currentFilterName {
+			newSelectedIndex = i
+			foundPreviousFilter = true
+			break
+		}
+	}
+
+	// If the previous filter was not found (e.g., "Due Today" was removed),
+	// switch to "All Tasks" filter
+	if !foundPreviousFilter && currentFilterName != "" {
+		// Check if it was a time-based filter that got removed
+		timeBasedFilters := []string{"Due Today", "This Week", "Overdue"}
+		wasTimeBasedFilter := false
+		for _, tbf := range timeBasedFilters {
+			if currentFilterName == tbf {
+				wasTimeBasedFilter = true
+				break
+			}
+		}
+
+		if wasTimeBasedFilter {
+			// Find "All Tasks" filter and select it
+			for i, filter := range filters {
+				if filter.name == "All Tasks" {
+					newSelectedIndex = i
+					break
+				}
+			}
+		}
+	}
+
 	m.filters = filters
 	m.filterList.SetItems(items)
+
+	// Restore or update the selected filter position
+	if newSelectedIndex < len(items) {
+		m.filterList.selected = newSelectedIndex
+	}
 }
 
 // refreshTaskList updates the task list based on current filter
@@ -176,7 +224,7 @@ func (m *Model) refreshTaskList() {
 	if len(filteredTasks) == 0 {
 		// Check if current filter is "Deleted Tasks"
 		isDeletedTasksFilter := m.filterList.selected < len(m.filters) &&
-			m.filters[m.filterList.selected].name == deletedTasksFilter
+			m.filters[m.filterList.selected].name == FilterDeletedTasks
 
 		if !isDeletedTasksFilter {
 			// Default to all incomplete tasks (only for non-deleted task filters)
@@ -230,9 +278,9 @@ func (m *Model) refreshTaskList() {
 		// Add due date
 		if task.HasDueDate() {
 			dueStyle := lipgloss.NewStyle()
-			dueDate := task.DueDate.Format("2006-01-02")
+			dueDate := task.DueDate.Format(DateFormat)
 			now := time.Now()
-			today := now.Format("2006-01-02")
+			today := now.Format(DateFormat)
 
 			if dueDate < today {
 				dueStyle = dueStyle.Foreground(m.currentTheme.Danger) // Overdue
@@ -242,7 +290,7 @@ func (m *Model) refreshTaskList() {
 				dueStyle = dueStyle.Foreground(m.currentTheme.Success) // Future
 			}
 
-			tags = append(tags, dueStyle.Render("due:"+dueDate))
+			tags = append(tags, dueStyle.Render(TaskFieldDuePrefix+dueDate))
 		}
 
 		if len(tags) > 0 {
@@ -297,7 +345,7 @@ func (m *Model) getUniqueContexts() []string {
 // getStatusInfo returns status information for display
 func (m *Model) getStatusInfo() string {
 	// Current time
-	now := time.Now().Format("15:04")
+	now := time.Now().Format(TimeFormat)
 
 	// Current filter name
 	var currentFilter string

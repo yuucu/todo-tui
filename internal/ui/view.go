@@ -10,10 +10,10 @@ import (
 func (m *Model) updatePaneSizes() {
 	// Set minimum dimensions if not yet initialized
 	if m.width <= 0 {
-		m.width = 80 // Default terminal width
+		m.width = DefaultTerminalWidth // Default terminal width
 	}
 	if m.height <= 0 {
-		m.height = 24 // Default terminal height
+		m.height = DefaultTerminalHeight // Default terminal height
 	}
 
 	// Use actual terminal size for calculations - NEVER exceed actual size
@@ -21,14 +21,14 @@ func (m *Model) updatePaneSizes() {
 	actualHeight := m.height
 
 	// Calculate pane sizes using configuration
-	borderWidth := 4
+	borderWidth := PaneBorderWidth
 	availableWidth := actualWidth - borderWidth
 
 	// Ensure minimum viable width but never exceed actual width
-	if availableWidth < 20 {
-		availableWidth = 20
-		if availableWidth > actualWidth-4 {
-			availableWidth = actualWidth - 4
+	if availableWidth < MinimumAvailableWidth {
+		availableWidth = MinimumAvailableWidth
+		if availableWidth > actualWidth-PaneBorderWidth {
+			availableWidth = actualWidth - PaneBorderWidth
 		}
 	}
 
@@ -59,7 +59,7 @@ func (m *Model) updatePaneSizes() {
 	// Reserve space for:
 	// - Combined help/status bar (1 line)
 	// - Configurable vertical padding
-	helpBarHeight := 1
+	helpBarHeight := HelpStatusBarHeight
 	verticalPadding := m.appConfig.UI.VerticalPadding
 
 	// Ensure padding doesn't exceed reasonable limits for small terminals
@@ -71,15 +71,15 @@ func (m *Model) updatePaneSizes() {
 	contentHeight := actualHeight - helpBarHeight - verticalPadding
 
 	// Ensure we have at least minimal content height
-	if contentHeight < 3 {
-		contentHeight = 3
+	if contentHeight < MinimumContentHeight {
+		contentHeight = MinimumContentHeight
 	}
 
 	// Reserve space for border (2 lines) and title (1 line) within content area
-	listHeight := contentHeight - 3 // 2 for borders + 1 for title
+	listHeight := contentHeight - ListContentReserved // 2 for borders + 1 for title
 
-	if listHeight < 1 { // Ensure at least 1 line for list content
-		listHeight = 1
+	if listHeight < MinimumListHeight { // Ensure at least 1 line for list content
+		listHeight = MinimumListHeight
 	}
 
 	// Set the calculated height for both lists
@@ -101,9 +101,9 @@ func (m *Model) View() string {
 
 	// If in add/edit mode, show textarea (keeping existing behavior as full screen)
 	if m.currentMode == modeAdd || m.currentMode == modeEdit {
-		title := "Add New Task"
+		title := AddTaskTitle
 		if m.currentMode == modeEdit {
-			title = "Edit Task"
+			title = EditTaskTitle
 		}
 
 		titleStyle := lipgloss.NewStyle().
@@ -123,7 +123,7 @@ func (m *Model) View() string {
 		return lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render(title),
 			inputStyle.Render(m.textarea.View()),
-			helpStyle.Render("Enter/Ctrl+S: 保存 | Esc/Ctrl+C: キャンセル"),
+			helpStyle.Render(EditModeHelp),
 		)
 	}
 
@@ -148,11 +148,11 @@ func (m *Model) View() string {
 				Foreground(m.currentTheme.TextSubtle)
 
 			dialogContent := lipgloss.JoinVertical(lipgloss.Left,
-				dialogTitleStyle.Render("Delete Task?"),
+				dialogTitleStyle.Render(DeleteConfirmTitle),
 				"",
 				taskStyle.Render(task.Todo),
 				"",
-				dialogHelpStyle.Render("y: Yes, delete | n: No, cancel | Esc: Cancel"),
+				dialogHelpStyle.Render(DeleteConfirmHelp),
 			)
 
 			// Style the dialog with background to make it opaque
@@ -180,14 +180,14 @@ func (m *Model) renderMainView() string {
 	actualHeight := m.height
 
 	// Calculate dimensions for panels using configuration
-	borderWidth := 4
+	borderWidth := PaneBorderWidth
 	availableWidth := actualWidth - borderWidth
 
 	// Ensure minimum viable width but never exceed actual width
-	if availableWidth < 20 {
-		availableWidth = 20
-		if availableWidth > actualWidth-4 {
-			availableWidth = actualWidth - 4
+	if availableWidth < MinimumAvailableWidth {
+		availableWidth = MinimumAvailableWidth
+		if availableWidth > actualWidth-PaneBorderWidth {
+			availableWidth = actualWidth - PaneBorderWidth
 		}
 	}
 
@@ -215,7 +215,7 @@ func (m *Model) renderMainView() string {
 	}
 
 	// Calculate content height using actual terminal size
-	helpBarHeight := 1
+	helpBarHeight := HelpStatusBarHeight
 	verticalPadding := m.appConfig.UI.VerticalPadding
 
 	// Ensure padding doesn't exceed reasonable limits for small terminals
@@ -226,8 +226,8 @@ func (m *Model) renderMainView() string {
 	contentHeight := actualHeight - helpBarHeight - verticalPadding
 
 	// Ensure we have at least minimal content height
-	if contentHeight < 3 {
-		contentHeight = 3
+	if contentHeight < MinimumContentHeight {
+		contentHeight = MinimumContentHeight
 	}
 
 	// Define styles for the panels (strictly use calculated content height)
@@ -262,8 +262,8 @@ func (m *Model) renderMainView() string {
 		Foreground(m.currentTheme.Primary).
 		Bold(true)
 
-	filterTitle := titleStyle.Render("Workspaces")
-	taskTitle := titleStyle.Render("Todos")
+	filterTitle := titleStyle.Render(FilterPaneTitle)
+	taskTitle := titleStyle.Render(TaskPaneTitle)
 
 	if m.activePane == paneFilter {
 		leftPaneContent := lipgloss.JoinVertical(lipgloss.Left, filterTitle, m.filterList.View())
@@ -295,14 +295,14 @@ func (m *Model) renderCombinedHelpStatusBar() string {
 	// Get help text based on active pane and current filter
 	var helpText string
 	if m.activePane == paneFilter {
-		helpText = "?: help | j/k: navigate | Enter: select filter & move to tasks | Tab/h/l: switch panes | a: add | q: quit"
+		helpText = HelpFilterPane
 	} else {
 		// Check if we're viewing deleted tasks
-		isViewingDeleted := m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name == deletedTasksFilter
+		isViewingDeleted := m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name == FilterDeletedTasks
 		if isViewingDeleted {
-			helpText = "?: help | j/k: navigate | r: restore task | Tab/h/l: switch panes | a: add | q: quit"
+			helpText = HelpDeletedTaskPane
 		} else {
-			helpText = "?: help | j/k: navigate | Enter: complete task | e: edit | p: priority toggle | t: toggle due today | d: delete | Tab/h/l: switch panes | a: add | q: quit"
+			helpText = HelpTaskPane
 		}
 	}
 
@@ -313,28 +313,28 @@ func (m *Model) renderCombinedHelpStatusBar() string {
 	statusWidth := lipgloss.Width(statusText)
 
 	// Reserve space for status text and some padding
-	reservedWidth := statusWidth + 2 // 2 spaces for padding
+	reservedWidth := statusWidth + StatusTextSpacing // 2 spaces for padding
 	helpAvailableWidth := m.width - reservedWidth
 
 	// Ensure we have at least some space for help text
-	if helpAvailableWidth < 10 {
+	if helpAvailableWidth < MinimumHelpTextWidth {
 		// If terminal is too narrow, prioritize status and truncate help heavily
-		helpAvailableWidth = 10
-		if m.width < 20 {
+		helpAvailableWidth = MinimumHelpTextWidth
+		if m.width < MinimumTerminalWidth {
 			helpAvailableWidth = m.width / 2
 		}
 	}
 
 	// Truncate help text if necessary
 	if lipgloss.Width(helpText) > helpAvailableWidth {
-		truncateLen := helpAvailableWidth - 3 // Account for "..."
+		truncateLen := helpAvailableWidth - EllipsisLength // Account for "..."
 		if truncateLen > 0 {
 			runes := []rune(helpText)
 			if len(runes) > truncateLen {
-				helpText = string(runes[:truncateLen]) + "..."
+				helpText = string(runes[:truncateLen]) + Ellipsis
 			}
 		} else {
-			helpText = "..." // Minimal text if extremely narrow
+			helpText = Ellipsis // Minimal text if extremely narrow
 		}
 	}
 
@@ -343,12 +343,12 @@ func (m *Model) renderCombinedHelpStatusBar() string {
 		// Truncate status text if it's taking up too much space
 		statusRunes := []rune(statusText)
 		maxStatusWidth := m.width / 2
-		if len(statusRunes)*2 > maxStatusWidth { // Rough estimate for character width
-			truncateLen := maxStatusWidth/2 - 3
+		if len(statusRunes)*WidthEstimateMultiplier > maxStatusWidth { // Rough estimate for character width
+			truncateLen := maxStatusWidth/WidthEstimateMultiplier - EllipsisLength
 			if truncateLen > 0 {
-				statusText = string(statusRunes[:truncateLen]) + "..."
+				statusText = string(statusRunes[:truncateLen]) + Ellipsis
 			} else {
-				statusText = "..."
+				statusText = Ellipsis
 			}
 		}
 		statusWidth = lipgloss.Width(statusText)

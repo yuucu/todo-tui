@@ -58,22 +58,22 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 		activePane:   paneFilter,
 		currentMode:  modeView,
 		textarea:     textarea.New(),
-		deleteIndex:  -1,
+		deleteIndex:  InvalidIndex,
 		currentTheme: GetTheme(),
 		appConfig:    appConfig,
 		imeHelper:    NewIMEHelper(),
-		width:        80, // Default terminal width
-		height:       24, // Default terminal height
+		width:        DefaultTerminalWidth,  // Default terminal width
+		height:       DefaultTerminalHeight, // Default terminal height
 	}
 
 	// Initialize help content
 	model.initializeHelpContent()
 
 	// Initialize textarea
-	model.textarea.Placeholder = "タスクの説明を入力してください (例: '電話 @母 +home due:2025-01-15')"
-	model.textarea.CharLimit = 0
-	model.textarea.SetWidth(80)
-	model.textarea.SetHeight(3)
+	model.textarea.Placeholder = TaskInputPlaceholder
+	model.textarea.CharLimit = TextAreaCharLimit
+	model.textarea.SetWidth(DefaultTerminalWidth)
+	model.textarea.SetHeight(TextAreaHeight)
 
 	// Initialize file watcher
 	watcher, err := fsnotify.NewWatcher()
@@ -124,18 +124,18 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch msg.String() {
 			case "y", "Y":
 				// Confirm deletion - use soft delete with deleted_at field
-				if m.deleteIndex >= 0 && m.deleteIndex < len(m.filteredTasks) {
+				if m.deleteIndex >= StartIndex && m.deleteIndex < len(m.filteredTasks) {
 					taskToDelete := m.filteredTasks[m.deleteIndex]
 					// Find the task in main tasks list and add deleted_at field
-					for i := 0; i < len(m.tasks); i++ {
+					for i := StartIndex; i < len(m.tasks); i++ {
 						if m.tasks[i].String() == taskToDelete.String() {
 							// Add deleted_at field to mark as soft deleted
-							currentDate := time.Now().Format("2006-01-02")
+							currentDate := time.Now().Format(DateFormat)
 							taskString := m.tasks[i].String()
 
 							// Add deleted_at field to the task string
-							if !strings.Contains(taskString, "deleted_at:") {
-								taskString += " deleted_at:" + currentDate
+							if !strings.Contains(taskString, TaskFieldDeletedPrefix) {
+								taskString += " " + TaskFieldDeletedPrefix + currentDate
 
 								// Parse the modified task string back to update the task
 								if newTask, err := todotxt.ParseTask(taskString); err == nil {
@@ -147,13 +147,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 				m.currentMode = modeView
-				m.deleteIndex = -1
+				m.deleteIndex = InvalidIndex
 				m.saveAndRefresh()
 				return m, nil
 			case "n", "N", "esc", ctrlCKey:
 				// Cancel deletion
 				m.currentMode = modeView
-				m.deleteIndex = -1
+				m.deleteIndex = InvalidIndex
 				return m, nil
 			}
 			return m, nil
@@ -282,7 +282,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Delete task (only for non-deleted tasks)
 				if m.taskList.selected < len(m.filteredTasks) {
 					// Check if current filter is "Deleted Tasks"
-					if m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name != deletedTasksFilter {
+					if m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name != FilterDeletedTasks {
 						m.currentMode = modeDeleteConfirm
 						m.deleteIndex = m.taskList.selected
 						return m, nil
@@ -333,7 +333,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					taskToRestore := m.filteredTasks[m.taskList.selected]
 
 					// Handle deleted tasks restoration
-					if currentFilter == deletedTasksFilter {
+					if currentFilter == FilterDeletedTasks {
 						// Find the task in main tasks list and remove deleted_at field
 						for i := 0; i < len(m.tasks); i++ {
 							if m.tasks[i].String() == taskToRestore.String() {
@@ -404,8 +404,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.updatePaneSizes()
 
 		// Also update textarea size if we're in add/edit mode
-		if m.width > 10 {
-			m.textarea.SetWidth(m.width - 10)
+		if m.width > TextAreaPadding {
+			m.textarea.SetWidth(m.width - TextAreaPadding)
 		}
 
 		// Force refresh of lists to apply new sizes and ensure content fits
@@ -456,14 +456,14 @@ func (m *Model) cyclePriority(task *todotxt.Task) {
 
 // toggleDueToday toggles the due date of a task to today or removes it if already set to today
 func (m *Model) toggleDueToday(task *todotxt.Task) {
-	today := time.Now().Format("2006-01-02")
+	today := time.Now().Format(DateFormat)
 
 	// Get the current task string
 	taskString := task.String()
 
 	// Check if task already has a due date
 	hasDueToday := false
-	if task.HasDueDate() && task.DueDate.Format("2006-01-02") == today {
+	if task.HasDueDate() && task.DueDate.Format(DateFormat) == today {
 		hasDueToday = true
 	}
 
@@ -474,7 +474,7 @@ func (m *Model) toggleDueToday(task *todotxt.Task) {
 		parts := strings.Fields(taskString)
 		var newParts []string
 		for _, part := range parts {
-			if !strings.HasPrefix(part, "due:") {
+			if !strings.HasPrefix(part, TaskFieldDuePrefix) {
 				newParts = append(newParts, part)
 			}
 		}
@@ -486,8 +486,8 @@ func (m *Model) toggleDueToday(task *todotxt.Task) {
 			parts := strings.Fields(taskString)
 			var newParts []string
 			for _, part := range parts {
-				if strings.HasPrefix(part, "due:") {
-					newParts = append(newParts, "due:"+today)
+				if strings.HasPrefix(part, TaskFieldDuePrefix) {
+					newParts = append(newParts, TaskFieldDuePrefix+today)
 				} else {
 					newParts = append(newParts, part)
 				}
@@ -495,7 +495,7 @@ func (m *Model) toggleDueToday(task *todotxt.Task) {
 			newTaskString = strings.Join(newParts, " ")
 		} else {
 			// Add new due date
-			newTaskString = taskString + " due:" + today
+			newTaskString = taskString + " " + TaskFieldDuePrefix + today
 		}
 	}
 
