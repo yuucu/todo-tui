@@ -22,7 +22,7 @@ priority_levels:
 # File Settings
 # =====================================
 # Default todo.txt file path
-default_todo_file: ~/todo.txt
+default_todo_file: ./sample.todo.txt
 
 # =====================================
 # UI Settings
