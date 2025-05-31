@@ -1,7 +1,6 @@
 package ui
 
 import (
-	"os"
 	"strings"
 	"time"
 
@@ -47,11 +46,6 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 	taskList, err := todo.Load(todoFile)
 	if err != nil {
 		return nil, err
-	}
-
-	// Set theme from config
-	if appConfig.Theme != "" {
-		os.Setenv("TODO_TUI_THEME", appConfig.Theme)
 	}
 
 	model := &Model{
