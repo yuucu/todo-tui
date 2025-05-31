@@ -5,44 +5,38 @@
 
 set -e
 
-# カラー出力用
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-YELLOW='\033[0;33m'
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+# プロジェクトルートに移動して共通ライブラリを読み込み
+cd "$(git rev-parse --show-toplevel)"
+source "scripts/common.sh"
 
 echo -e "${BLUE}=== Pre-commit hooks for todotui ===${NC}"
 
-# プロジェクトルートに移動
-cd "$(git rev-parse --show-toplevel)"
-
-echo -e "${BLUE}Running make fmt...${NC}"
+log_info "Running make fmt..."
 if ! make fmt; then
-    echo -e "${RED}✗ make fmt failed${NC}"
+    log_error "make fmt failed"
     exit 1
 fi
-echo -e "${GREEN}✓ make fmt completed${NC}"
+log_success "make fmt completed"
 
-echo -e "${BLUE}Running make lint...${NC}"
+log_info "Running make lint..."
 if ! make lint; then
-    echo -e "${RED}✗ make lint failed${NC}"
-    echo -e "${YELLOW}Please fix linting errors before committing${NC}"
+    log_error "make lint failed"
+    log_warning "Please fix linting errors before committing"
     exit 1
 fi
-echo -e "${GREEN}✓ make lint completed${NC}"
+log_success "make lint completed"
 
-echo -e "${BLUE}Running make test...${NC}"
+log_info "Running make test..."
 if ! make test; then
-    echo -e "${RED}✗ make test failed${NC}"
-    echo -e "${YELLOW}Please fix failing tests before committing${NC}"
+    log_error "make test failed"
+    log_warning "Please fix failing tests before committing"
     exit 1
 fi
-echo -e "${GREEN}✓ make test completed${NC}"
+log_success "make test completed"
 
 # フォーマットの変更があった場合、ステージングエリアに追加
 if ! git diff --quiet --exit-code; then
-    echo -e "${YELLOW}Code formatting changes detected. Adding to staging area...${NC}"
+    log_warning "Code formatting changes detected. Adding to staging area..."
     git add .
 fi
 
