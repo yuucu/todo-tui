@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/yuucu/todotui/internal/ui"
@@ -34,7 +33,6 @@ Options:
   -c, --config CONFIG  Path to configuration file (YAML format)
   -t, --theme THEME    Set color theme (catppuccin, nord)
   --list-themes        List available themes
-  --init-config        Create a sample configuration file
   -v, --version        Show version information
   -h, --help          Show this help message
 
@@ -48,7 +46,6 @@ Examples:
   %s -c ~/.config/todotui/config.yaml  # Use configuration file
   %s -t nord                   # Use nord theme
   %s --theme catppuccin ~/todo.txt  # Use catppuccin theme with custom file
-  %s --init-config             # Create sample configuration file
 
 Keybindings:
   Tab/h/l      Switch between panes
@@ -66,7 +63,7 @@ Priority Configuration:
   Set TODO_TUI_PRIORITY_LEVELS environment variable to customize priority levels.
   Example: TODO_TUI_PRIORITY_LEVELS="A,B,C" for A→B→C cycle
   Default: A,B,C,D
-`, os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
+`, os.Args[0], os.Args[0], os.Args[0], os.Args[0], os.Args[0])
 }
 
 func main() {
@@ -76,7 +73,6 @@ func main() {
 	var todoFile string
 	var themeName string
 	var configFile string
-	var initConfig bool
 
 	// Parse command line arguments
 	args := os.Args[1:]
@@ -111,9 +107,6 @@ func main() {
 				fmt.Printf("  %s\n", theme)
 			}
 			os.Exit(0)
-		case "--init-config":
-			initConfig = true
-			i++
 		default:
 			if todoFile == "" {
 				todoFile = args[i]
@@ -124,26 +117,6 @@ func main() {
 			}
 			i++
 		}
-	}
-
-	// Handle init config
-	if initConfig {
-		homeDir, err := os.UserHomeDir()
-		if err != nil {
-			fmt.Printf("Error getting home directory: %v\n", err)
-			os.Exit(1)
-		}
-
-		defaultConfigPath := filepath.Join(homeDir, ".config", "todotui", "config.yaml")
-		if configFile != "" {
-			defaultConfigPath = configFile
-		}
-
-		if err := ui.CreateSampleConfig(defaultConfigPath); err != nil {
-			fmt.Printf("Error creating sample config: %v\n", err)
-			os.Exit(1)
-		}
-		return
 	}
 
 	// Load configuration

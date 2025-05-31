@@ -219,15 +219,3 @@ func SaveConfigToFile(config AppConfig, configPath string) error {
 
 	return nil
 }
-
-// CreateSampleConfig creates a sample configuration file
-func CreateSampleConfig(configPath string) error {
-	config := DefaultAppConfig()
-
-	if err := SaveConfigToFile(config, configPath); err != nil {
-		return fmt.Errorf("failed to create sample config: %w", err)
-	}
-
-	fmt.Printf("Sample configuration created at: %s\n", configPath)
-	return nil
-}

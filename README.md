@@ -31,6 +31,9 @@ todotui ~/todo.txt
 
 # Run with custom config
 todotui --config config.yaml ~/todo.txt
+
+# Or use the sample file
+todotui sample.todo.txt
 ```
 
 ## ⌨️ Key Bindings
@@ -72,15 +75,14 @@ todotui --init-config
 
 ### Configuration File Location
 
-You can specify a configuration file using the `--config` flag or place it at `~/.config/todotui/config.yaml`.
+You can specify a configuration file using the `--config` flag:
 
 ```bash
 # Use specific config file
 todotui --config /path/to/config.yaml
-
-# Or create at the default location
-todotui --init-config  # Creates ~/.config/todotui/config.yaml
 ```
+
+To create a configuration file, manually create a YAML file with your preferred settings based on the sample below.
 
 ### Sample Configuration
 
