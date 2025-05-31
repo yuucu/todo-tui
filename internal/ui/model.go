@@ -14,11 +14,6 @@ import (
 	"github.com/yuucu/todotui/pkg/logger"
 )
 
-// よく使用されるキー文字列定数
-const (
-	ctrlCKey = "ctrl+c"
-)
-
 // watchFile returns a command that watches for file changes
 func (m *Model) watchFile() tea.Cmd {
 	return func() tea.Msg {
@@ -126,7 +121,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Handle help mode with scrolling support
 		if m.currentMode == modeHelp {
 			switch msg.String() {
-			case "j", "down":
+			case jKey, downKey:
 				// Scroll down
 				// Estimate total lines (rough calculation for responsive scrolling)
 				estimatedLines := len(m.helpContent)*8 + 20 // Approximate lines per category + header/footer
@@ -135,17 +130,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.helpScroll++
 				}
 				return m, nil
-			case "k", "up":
+			case kKey, upKey:
 				// Scroll up
 				if m.helpScroll > 0 {
 					m.helpScroll--
 				}
 				return m, nil
-			case "g":
+			case gKey:
 				// Go to top
 				m.helpScroll = 0
 				return m, nil
-			case "G":
+			case GKey:
 				// Go to bottom
 				estimatedLines := len(m.helpContent)*8 + 20
 				maxScroll := max(0, estimatedLines-(m.height-8))
@@ -162,13 +157,13 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Handle input mode (add/edit)
 		if m.currentMode == modeAdd || m.currentMode == modeEdit {
 			switch msg.String() {
-			case ctrlCKey:
+			case ctrlCKey, escKey:
 				// Cancel input
 				m.currentMode = modeView
 				m.editingTask = nil
 				m.textarea.SetValue("")
 				return m, nil
-			case "enter", "ctrl+s":
+			case enterKey, ctrlSKey:
 				// Save task
 				text := strings.TrimSpace(m.textarea.Value())
 				if text != "" {
@@ -207,20 +202,20 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Handle normal mode keys
 		switch msg.String() {
-		case "?":
+		case helpKey:
 			// Show help
 			m.currentMode = modeHelp
 			m.helpScroll = 0 // Reset scroll position
 			return m, nil
-		case "q", ctrlCKey:
+		case qKey, ctrlCKey:
 			return m, tea.Quit
-		case "a":
+		case aKey:
 			// Add new task
 			m.currentMode = modeAdd
 			m.textarea.SetValue("")
 			m.textarea.Focus()
 			return m, nil
-		case "e":
+		case eKey:
 			// Edit selected task
 			if m.activePane == paneTask {
 				if m.taskList.selected < len(m.filteredTasks) {
@@ -237,7 +232,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 			}
-		case "tab":
+		case tabKey:
 			// Switch between panes
 			if m.activePane == paneFilter {
 				m.activePane = paneTask
@@ -245,15 +240,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.activePane = paneFilter
 			}
 			return m, nil
-		case "h":
+		case hKey:
 			// Move to left pane (filter)
 			m.activePane = paneFilter
 			return m, nil
-		case "l":
+		case lKey:
 			// Move to right pane (task)
 			m.activePane = paneTask
 			return m, nil
-		case "enter":
+		case enterKey:
 			if m.activePane == paneFilter {
 				// Filter selection changed, refresh task list
 				m.refreshTaskList()
@@ -272,7 +267,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.saveAndRefresh()
 				return m, nil
 			}
-		case "d":
+		case dKey:
 			if m.activePane == paneTask {
 				// Delete task directly (only for non-deleted tasks)
 				if m.taskList.selected < len(m.filteredTasks) {
@@ -302,7 +297,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
-		case "p":
+		case pKey:
 			if m.activePane == paneTask {
 				// Toggle priority level
 				if m.taskList.selected < len(m.filteredTasks) {
@@ -316,7 +311,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 			}
-		case "t":
+		case tKey:
 			if m.activePane == paneTask {
 				// Toggle due date to today
 				if m.taskList.selected < len(m.filteredTasks) {
@@ -330,7 +325,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, nil
 				}
 			}
-		case "r":
+		case rKey:
 			if m.activePane == paneTask {
 				// Restore deleted or completed task
 				if m.taskList.selected < len(m.filteredTasks) {
@@ -380,7 +375,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					}
 				}
 			}
-		case "y":
+		case yKey:
 			if m.activePane == paneTask {
 				// Copy task text to clipboard
 				if m.taskList.selected < len(m.filteredTasks) {
@@ -396,7 +391,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					return m, m.setStatusMessage("❌ Failed to copy task", 3*time.Second)
 				}
 			}
-		case "j", "down":
+		case jKey, downKey:
 			if m.activePane == paneFilter {
 				m.filterList.MoveDown()
 				m.refreshTaskList()
@@ -404,7 +399,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.taskList.MoveDown()
 			}
 			return m, nil
-		case "k", "up":
+		case kKey, upKey:
 			if m.activePane == paneFilter {
 				m.filterList.MoveUp()
 				m.refreshTaskList()

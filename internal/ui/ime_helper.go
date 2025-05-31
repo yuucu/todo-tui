@@ -78,7 +78,7 @@ func (ime *IMEHelper) handleIMEInput(msg tea.KeyMsg) {
 // isCommitKey checks if the key commits the current composition
 func (ime *IMEHelper) isCommitKey(msg tea.KeyMsg) bool {
 	key := msg.String()
-	return key == enterKeyStr || key == " " || key == "tab"
+	return key == enterKey || key == spaceKey || key == tabKey
 }
 
 // SetupIMEEnvironment sets up environment variables for better IME support

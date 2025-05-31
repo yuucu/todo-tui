@@ -11,11 +11,6 @@ import (
 	"github.com/samber/lo"
 )
 
-// よく使用される文字列定数
-const (
-	enterKeyStr = "enter"
-)
-
 // isTaskDeleted checks if a task has the deleted_at field
 func isTaskDeleted(task todotxt.Task) bool {
 	taskString := task.String()

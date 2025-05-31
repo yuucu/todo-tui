@@ -54,15 +54,8 @@ func (m *Model) initializeHelpContent() {
 		{
 			Category: "Edit Mode",
 			Items: []HelpItem{
-				{"Ctrl+C", "Cancel editing"},
+				{"Esc / Ctrl+C", "Cancel editing"},
 				{"Enter / Ctrl+S", "Save task"},
-			},
-		},
-		{
-			Category: "Delete Confirmation",
-			Items: []HelpItem{
-				{"y / Y", "Confirm deletion"},
-				{"n / N / Esc", "Cancel deletion"},
 			},
 		},
 	}
