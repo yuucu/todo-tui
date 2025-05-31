@@ -76,6 +76,7 @@ const (
 	FilterAllTasks       = "All Tasks"
 	FilterCompletedTasks = "Completed Tasks"
 	FilterDeletedTasks   = "Deleted Tasks"
+	FilterNoProject      = "No Project"
 
 	// Section headers
 	FilterHeaderProjects = "── Projects ──"
