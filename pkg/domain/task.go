@@ -47,7 +47,7 @@ func (t *Task) GetCompletedDate() time.Time {
 
 // ShouldMoveToCompleted checks if a completed task should be moved to "Completed Tasks" filter
 // based on the completion date and transition configuration
-func (t *Task) ShouldMoveToCompleted(config CompletedTaskTransitionConfig) bool {
+func (t *Task) ShouldMoveToCompleted(config CompletedTaskTransitionConfig, now time.Time) bool {
 	if !t.task.Completed || t.task.CompletedDate.IsZero() {
 		return false
 	}
@@ -57,7 +57,6 @@ func (t *Task) ShouldMoveToCompleted(config CompletedTaskTransitionConfig) bool 
 		return true
 	}
 
-	now := time.Now()
 	completedDate := t.task.CompletedDate
 
 	// Calculate the target transition date/time

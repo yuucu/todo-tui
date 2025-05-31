@@ -54,7 +54,7 @@ func (m *Model) refreshFilterList() {
 				}
 				// For completed tasks, check if they should move
 				config := m.getCompletedTaskTransitionConfig()
-				return !domainTask.ShouldMoveToCompleted(config)
+				return !domainTask.ShouldMoveToCompleted(config, time.Now())
 			})
 		},
 	}
@@ -74,7 +74,7 @@ func (m *Model) refreshFilterList() {
 					return true
 				}
 				config := m.getCompletedTaskTransitionConfig()
-				return !domainTask.ShouldMoveToCompleted(config)
+				return !domainTask.ShouldMoveToCompleted(config, time.Now())
 			})
 		},
 	}
@@ -104,7 +104,7 @@ func (m *Model) refreshFilterList() {
 								return true
 							}
 							config := m.getCompletedTaskTransitionConfig()
-							return !domainTask.ShouldMoveToCompleted(config)
+							return !domainTask.ShouldMoveToCompleted(config, time.Now())
 						})
 					}
 				}(project),
@@ -136,7 +136,7 @@ func (m *Model) refreshFilterList() {
 								return true
 							}
 							config := m.getCompletedTaskTransitionConfig()
-							return !domainTask.ShouldMoveToCompleted(config)
+							return !domainTask.ShouldMoveToCompleted(config, time.Now())
 						})
 					}
 				}(context),
@@ -153,7 +153,7 @@ func (m *Model) refreshFilterList() {
 				domainTask := domain.NewTask(&task)
 				config := m.getCompletedTaskTransitionConfig()
 				return task.Completed && !domainTask.IsDeleted() &&
-					domainTask.ShouldMoveToCompleted(config)
+					domainTask.ShouldMoveToCompleted(config, time.Now())
 			})
 		},
 	})
@@ -264,7 +264,7 @@ func (m *Model) refreshTaskList() {
 				}
 				// For completed tasks, check if they should move
 				config := m.getCompletedTaskTransitionConfig()
-				return !domainTask.ShouldMoveToCompleted(config)
+				return !domainTask.ShouldMoveToCompleted(config, time.Now())
 			})
 		}
 	}

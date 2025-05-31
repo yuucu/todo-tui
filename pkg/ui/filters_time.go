@@ -40,7 +40,7 @@ func (m *Model) getDueTodayFilterFn() func(todotxt.TaskList) todotxt.TaskList {
 			// For completed tasks, only show them if they haven't moved to "Completed Tasks" yet
 			if task.Completed {
 				config := m.getCompletedTaskTransitionConfig()
-				return !domainTask.ShouldMoveToCompleted(config)
+				return !domainTask.ShouldMoveToCompleted(config, now)
 			}
 			return true
 		})
@@ -59,7 +59,7 @@ func (m *Model) getThisWeekFilterFn() func(todotxt.TaskList) todotxt.TaskList {
 			// For completed tasks, only show them if they haven't moved to "Completed Tasks" yet
 			if task.Completed {
 				config := m.getCompletedTaskTransitionConfig()
-				return !domainTask.ShouldMoveToCompleted(config)
+				return !domainTask.ShouldMoveToCompleted(config, now)
 			}
 			return true
 		})
@@ -78,7 +78,7 @@ func (m *Model) getOverdueFilterFn() func(todotxt.TaskList) todotxt.TaskList {
 			// For completed tasks, only show them if they haven't moved to "Completed Tasks" yet
 			if task.Completed {
 				config := m.getCompletedTaskTransitionConfig()
-				return !domainTask.ShouldMoveToCompleted(config)
+				return !domainTask.ShouldMoveToCompleted(config, now)
 			}
 			return true
 		})

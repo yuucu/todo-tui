@@ -60,16 +60,22 @@ func TestTask_ToggleCompletion(t *testing.T) {
 }
 
 func TestTask_ShouldMoveToCompleted(t *testing.T) {
-	// Create a completed task
-	task, _ := todotxt.ParseTask("Buy groceries +shopping")
-	domainTask := NewTask(task)
-	domainTask.ToggleCompletion() // Complete the task
+	// テストタスクを作成
+	task, err := todotxt.ParseTask("Test task")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// テスト用の基準時刻（2025年6月1日 10:00）
+	baseTime := time.Date(2025, 6, 1, 10, 0, 0, 0, time.UTC)
 
 	tests := []struct {
-		name             string
-		config           CompletedTaskTransitionConfig
-		completionOffset time.Duration // How much time ago the task was completed
-		expected         bool
+		name           string
+		config         CompletedTaskTransitionConfig
+		completionTime time.Time
+		currentTime    time.Time
+		expected       bool
+		description    string
 	}{
 		{
 			name: "immediate_move_delay_0",
@@ -77,8 +83,10 @@ func TestTask_ShouldMoveToCompleted(t *testing.T) {
 				DelayDays:      0,
 				TransitionHour: 5,
 			},
-			completionOffset: 0,
-			expected:         true,
+			completionTime: baseTime.Add(-1 * time.Hour), // 1時間前に完了
+			currentTime:    baseTime,
+			expected:       true,
+			description:    "DelayDays=0なら即座に移動",
 		},
 		{
 			name: "not_yet_time_same_day",
@@ -86,41 +94,50 @@ func TestTask_ShouldMoveToCompleted(t *testing.T) {
 				DelayDays:      1,
 				TransitionHour: 5,
 			},
-			completionOffset: 12 * time.Hour, // 12 hours ago, but same day
-			expected:         false,
+			completionTime: baseTime.Add(-5 * time.Hour), // 5時間前（同じ日の05:00）に完了
+			currentTime:    baseTime,                     // 現在10:00
+			expected:       false,
+			description:    "同じ日に完了したが、まだ1日経っていない",
 		},
 		{
-			name: "time_to_move_next_day",
+			name: "time_to_move_next_day_before_transition",
 			config: CompletedTaskTransitionConfig{
 				DelayDays:      1,
-				TransitionHour: 5,
+				TransitionHour: 12, // 12時に移行
 			},
-			completionOffset: 25 * time.Hour, // Over 1 day ago
-			expected:         false,          // Still false because current time (04:41) < transition hour (05:00)
+			completionTime: baseTime.Add(-25 * time.Hour), // 25時間前に完了
+			currentTime:    baseTime,                      // 現在10:00（移行時刻の12:00前）
+			expected:       false,
+			description:    "1日経ったが、まだ移行時刻（12:00）前",
 		},
 		{
-			name: "time_to_move_well_past_transition",
+			name: "time_to_move_next_day_after_transition",
 			config: CompletedTaskTransitionConfig{
 				DelayDays:      1,
-				TransitionHour: 3, // 3 AM transition time
+				TransitionHour: 8, // 8時に移行
 			},
-			completionOffset: 25 * time.Hour, // Over 1 day ago, and current time (04:41) > transition hour (03:00)
-			expected:         true,
+			completionTime: baseTime.Add(-25 * time.Hour), // 25時間前に完了
+			currentTime:    baseTime,                      // 現在10:00（移行時刻の8:00後）
+			expected:       true,
+			description:    "1日経って、移行時刻（8:00）も過ぎた",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set completion date to a specific time in the past
-			completionTime := time.Now().Add(-tt.completionOffset)
-			domainTask.task.CompletedDate = completionTime
+			// タスクの完了日時を設定
+			domainTask := NewTask(task)
+			domainTask.task.Completed = true
+			domainTask.task.CompletedDate = tt.completionTime
 
-			result := domainTask.ShouldMoveToCompleted(tt.config)
+			// 修正されたShouldMoveToCompleted関数を使用
+			result := domainTask.ShouldMoveToCompleted(tt.config, tt.currentTime)
 
 			if result != tt.expected {
 				t.Errorf("ShouldMoveToCompleted() = %v, expected %v", result, tt.expected)
-				t.Logf("Completion time: %v", completionTime)
-				t.Logf("Current time: %v", time.Now())
+				t.Logf("Test: %s", tt.description)
+				t.Logf("Completion time: %v", tt.completionTime)
+				t.Logf("Current time: %v", tt.currentTime)
 				t.Logf("Config: %+v", tt.config)
 			}
 		})
