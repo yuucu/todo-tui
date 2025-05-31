@@ -9,6 +9,19 @@ import (
 	"github.com/yuucu/todotui/internal/ui"
 )
 
+// Build information variables (set by goreleaser)
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
+func printVersion() {
+	fmt.Printf("todotui %s\n", version)
+	fmt.Printf("Commit: %s\n", commit)
+	fmt.Printf("Built: %s\n", date)
+}
+
 func printUsage() {
 	fmt.Printf(`Usage: %s [OPTIONS] [TODO_FILE]
 
@@ -22,6 +35,7 @@ Options:
   -t, --theme THEME    Set color theme (catppuccin, nord)
   --list-themes        List available themes
   --init-config        Create a sample configuration file
+  -v, --version        Show version information
   -h, --help          Show this help message
 
 Environment Variables:
@@ -87,6 +101,9 @@ func main() {
 			i += 2
 		case "--help", "-h":
 			printUsage()
+			os.Exit(0)
+		case "--version", "-v":
+			printVersion()
 			os.Exit(0)
 		case "--list-themes":
 			fmt.Println("Available themes:")
