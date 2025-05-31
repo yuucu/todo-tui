@@ -55,15 +55,13 @@ x 2025-01-14 Clean garage @home +chores
 
 ## ⚙️ Configuration
 
-Create a YAML configuration file at `~/.config/todotui/config.yaml`. todotui will automatically load this file if it exists.
-
-You can also specify a custom config file with `--config`:
+Create a YAML configuration file at `~/.config/todotui/config.yaml`:
 
 ```yaml
 # ~/.config/todotui/config.yaml
-theme: catppuccin                # Available: catppuccin, nord, default
+theme: catppuccin                # Available: catppuccin, nord
 priority_levels: ["", A, B, C, D]
-default_todo_file: ~/todo.txt    # Default todo file path
+default_todo_file: ~/todo.txt
 ui:
   left_pane_ratio: 0.33
   min_left_pane_width: 18
@@ -71,31 +69,19 @@ ui:
   vertical_padding: 2
 ```
 
-### Todo File Path Priority
-
-The todo file path is determined by the following priority order:
-
-1. **CLI argument** (highest priority): `todotui ~/my-todo.txt`
-2. **Config file**: `default_todo_file` setting in config.yaml
-
-**Usage examples:**
+**Usage:**
 ```bash
-# Priority 1: CLI argument overrides config
-todotui ~/work/todo.txt
+# Use CLI argument (takes priority over config)
+todotui ~/my-todo.txt
 
-# Priority 2: Uses config file setting
+# Use config file setting
 todotui
 
-# With custom config file
+# Custom config file
 todotui --config /path/to/config.yaml
-
-# CLI argument still takes precedence over config
-todotui --config /path/to/config.yaml ~/override.txt
 ```
 
-**Path expansion:** All paths support `~` expansion to home directory.
-
-Supported formats: YAML (recommended), JSON, TOML
+Supported formats: YAML, JSON, TOML
 
 ## 🏗️ Development
 
