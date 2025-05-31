@@ -74,8 +74,8 @@ todotui --init-config
 
 Todo TUI looks for configuration files in the following order:
 1. Path specified with `--config` flag
-2. `~/.config/todotui/config.yaml` (recommended)
-3. `./config.yaml` (current directory)
+2. `~/.config/todotui/config.yaml` (user configuration)
+3. `./config.yaml` (current directory - highest priority if exists)
 
 ### Sample Configuration
 

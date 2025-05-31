@@ -95,6 +95,7 @@ func LoadConfig(configPath string) AppConfig {
 	var config AppConfig
 
 	if configPath != "" {
+		// 1. Use specified config file path
 		var err error
 		config, err = LoadConfigFromFile(configPath)
 		if err != nil {
@@ -103,7 +104,23 @@ func LoadConfig(configPath string) AppConfig {
 			config = DefaultAppConfig()
 		}
 	} else {
+		// Try to load config files in order of priority
 		config = DefaultAppConfig()
+
+		// 2. Try user config directory: ~/.config/todotui/config.yaml
+		homeDir, err := os.UserHomeDir()
+		if err == nil {
+			userConfigPath := filepath.Join(homeDir, ".config", "todotui", "config.yaml")
+			if userConfig, err := LoadConfigFromFile(userConfigPath); err == nil {
+				config = userConfig
+			}
+		}
+
+		// 3. Try current directory: ./config.yaml (highest priority if exists)
+		currentDirConfig := "./config.yaml"
+		if currentConfig, err := LoadConfigFromFile(currentDirConfig); err == nil {
+			config = currentConfig
+		}
 	}
 
 	// Override with environment variables if set
