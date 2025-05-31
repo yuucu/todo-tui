@@ -1,35 +1,35 @@
 # Todo TUI Configuration File
-# 設定ファイルの場所: ~/.config/todotui/config.yaml
+# Configuration file location: ~/.config/todotui/config.yaml
 
 # =====================================
-# テーマ設定
+# Theme Settings
 # =====================================
-# 利用可能なテーマ: catppuccin, nord, default
+# Available themes: catppuccin, nord, default
 theme: catppuccin
 
 # =====================================
-# 優先度レベル設定
+# Priority Level Settings
 # =====================================
-# 最初の空文字("")は優先度なしを表す（必須）
+# First empty string ("") represents no priority (required)
 priority_levels:
-  - ""    # 優先度なし
-  - A     # 最高優先度
-  - B     # 高優先度
-  - C     # 中優先度
-  - D     # 低優先度
+  - ""    # No priority
+  - A     # Highest priority
+  - B     # High priority
+  - C     # Medium priority
+  - D     # Low priority
 
 # =====================================
-# ファイル設定
+# File Settings
 # =====================================
-# デフォルトのtodo.txtファイルのパス
+# Default todo.txt file path
 default_todo_file: ~/todo.txt
 
 # =====================================
-# UI設定
+# UI Settings
 # =====================================
 ui:
-  # レイアウト設定
-  left_pane_ratio: 0.33        # 左ペインの幅比率 (0.1-0.9)
-  min_left_pane_width: 18      # 左ペイン最小幅
-  min_right_pane_width: 28     # 右ペイン最小幅
-  vertical_padding: 2          # 垂直パディング (1-5) 
+  # Layout settings
+  left_pane_ratio: 0.33        # Left pane width ratio (0.1-0.9)
+  min_left_pane_width: 18      # Minimum left pane width
+  min_right_pane_width: 28     # Minimum right pane width
+  vertical_padding: 2          # Vertical padding (1-5) 
