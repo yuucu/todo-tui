@@ -2,14 +2,48 @@ package ui
 
 import (
 	"strings"
+
+	"github.com/charmbracelet/lipgloss"
 )
 
-// SimpleList represents a simple list with selection
+// Constants for list rendering
+const (
+	selectionIndicator = "▶ "
+	spacing            = "  "
+	checkboxCompleted  = "● "
+	checkboxIncomplete = "○ "
+)
+
+// SimpleList represents a simple list with selection and enhanced styling
 type SimpleList struct {
-	items    []string
-	selected int
-	offset   int
-	height   int
+	items          []string
+	selected       int
+	offset         int
+	height         int
+	theme          *Theme           // Theme for styling
+	isTaskList     bool             // Whether this is a task list (affects rendering)
+	completedItems []bool           // Track which items are completed
+	checkboxColors []lipgloss.Color // Track checkbox colors for incomplete tasks
+}
+
+// SetTheme sets the theme for styling
+func (l *SimpleList) SetTheme(theme *Theme) {
+	l.theme = theme
+}
+
+// SetTaskList sets whether this list displays tasks (affects rendering)
+func (l *SimpleList) SetTaskList(isTaskList bool) {
+	l.isTaskList = isTaskList
+}
+
+// SetCompletedItems sets which items are completed
+func (l *SimpleList) SetCompletedItems(completed []bool) {
+	l.completedItems = completed
+}
+
+// SetCheckboxColors sets colors for incomplete task checkboxes
+func (l *SimpleList) SetCheckboxColors(colors []lipgloss.Color) {
+	l.checkboxColors = colors
 }
 
 func (l *SimpleList) SetItems(items []string) {
@@ -23,6 +57,44 @@ func (l *SimpleList) SetItems(items []string) {
 func (l *SimpleList) SetHeight(height int) {
 	l.height = height
 	l.adjustOffset()
+}
+
+// GetSelectedIndex returns the currently selected index
+func (l *SimpleList) GetSelectedIndex() int {
+	return l.selected
+}
+
+// SetSelectedIndex sets the selected index and adjusts offset
+func (l *SimpleList) SetSelectedIndex(index int) {
+	if index >= 0 && index < len(l.items) {
+		l.selected = index
+		l.adjustOffset()
+	}
+}
+
+// SetSelectedIndexPreserveScroll sets the selected index while trying to preserve scroll position
+func (l *SimpleList) SetSelectedIndexPreserveScroll(index int) {
+	if index >= 0 && index < len(l.items) {
+		oldOffset := l.offset
+		l.selected = index
+
+		// Only adjust offset if the new selection is outside the current visible range
+		if l.selected >= oldOffset && l.selected < oldOffset+l.height {
+			// Selection is still visible, keep the old offset
+			l.offset = oldOffset
+		} else {
+			// Selection is outside visible range, adjust minimally
+			l.adjustOffset()
+		}
+	}
+}
+
+// GetSelectedItem returns the currently selected item
+func (l *SimpleList) GetSelectedItem() string {
+	if l.selected >= 0 && l.selected < len(l.items) {
+		return l.items[l.selected]
+	}
+	return ""
 }
 
 func (l *SimpleList) MoveUp() {
@@ -44,11 +116,16 @@ func (l *SimpleList) adjustOffset() {
 		return
 	}
 
+	// Only adjust offset if the selected item is outside the visible range
+	// This helps preserve the current scroll position
 	if l.selected < l.offset {
+		// Selected item is above the visible range - scroll up minimally
 		l.offset = l.selected
 	} else if l.selected >= l.offset+l.height {
+		// Selected item is below the visible range - scroll down minimally
 		l.offset = l.selected - l.height + 1
 	}
+	// If selected item is already visible, don't change offset
 }
 
 func (l *SimpleList) View() string {
@@ -69,12 +146,14 @@ func (l *SimpleList) View() string {
 
 		for i := start; i < end; i++ {
 			line := l.items[i]
-			if i == l.selected {
-				// Note: Theme will be applied by the parent component
-				line = "▶ " + line
+
+			// Apply different styling for task lists vs filter lists
+			if l.isTaskList {
+				line = l.renderTaskItem(line, i)
 			} else {
-				line = "  " + line
+				line = l.renderFilterItem(line, i)
 			}
+
 			lines = append(lines, line)
 		}
 	}
@@ -85,4 +164,122 @@ func (l *SimpleList) View() string {
 	}
 
 	return strings.Join(lines, "\n")
+}
+
+// renderTaskItem renders a task item with modern styling
+func (l *SimpleList) renderTaskItem(item string, index int) string {
+	if l.theme == nil {
+		// Fallback to simple rendering if no theme
+		if index == l.selected {
+			return selectionIndicator + item
+		}
+		return spacing + item
+	}
+
+	// Determine if this task is completed
+	isCompleted := index < len(l.completedItems) && l.completedItems[index]
+
+	// Create modern checkbox with circles (● / ○)
+	var checkbox string
+	if isCompleted {
+		// Filled circle for completed tasks with green color
+		checkboxStyle := lipgloss.NewStyle().
+			Foreground(l.theme.Success).
+			Bold(true)
+		checkbox = checkboxStyle.Render(checkboxCompleted)
+	} else {
+		// Empty circle for incomplete tasks with dynamic color based on due date
+		var checkboxColor lipgloss.Color
+		if index < len(l.checkboxColors) && l.checkboxColors[index] != "" {
+			// Use provided due date color
+			checkboxColor = l.checkboxColors[index]
+		} else {
+			// Fallback to muted color
+			checkboxColor = l.theme.TextMuted
+		}
+
+		checkboxStyle := lipgloss.NewStyle().
+			Foreground(checkboxColor).
+			Bold(false)
+		checkbox = checkboxStyle.Render(checkboxIncomplete)
+	}
+
+	// Apply selection highlighting if this item is selected
+	if index == l.selected {
+		// Selection indicator with theme color
+		indicator := lipgloss.NewStyle().
+			Foreground(l.theme.Primary).
+			Bold(true).
+			Render(selectionIndicator)
+
+		// For selected items, we need to handle text styling differently
+		var content string
+		if isCompleted {
+			// For completed selected tasks: keep strikethrough but override colors
+			contentStyle := lipgloss.NewStyle().
+				Background(l.theme.SelectionBg).
+				Foreground(l.theme.SelectionFg).
+				Strikethrough(true).
+				Bold(true)
+			content = contentStyle.Render(item)
+		} else {
+			// For incomplete selected tasks: apply selection highlighting
+			contentStyle := lipgloss.NewStyle().
+				Background(l.theme.SelectionBg).
+				Foreground(l.theme.SelectionFg).
+				Bold(true)
+			content = contentStyle.Render(item)
+		}
+
+		// Combine components: indicator + checkbox + highlighted content
+		return indicator + checkbox + content
+	}
+
+	// Non-selected item
+	var content string
+	if isCompleted {
+		// For completed tasks, apply both strikethrough and muted color
+		contentStyle := lipgloss.NewStyle().
+			Foreground(l.theme.TextMuted).
+			Strikethrough(true)
+		content = contentStyle.Render(item)
+	} else {
+		// Normal task content
+		content = item
+	}
+
+	// Add spacing for non-selected items
+	return spacing + checkbox + content
+}
+
+// renderFilterItem renders a filter item with highlighting
+func (l *SimpleList) renderFilterItem(item string, index int) string {
+	if l.theme == nil {
+		// Fallback to simple rendering if no theme
+		if index == l.selected {
+			return selectionIndicator + item
+		}
+		return spacing + item
+	}
+
+	// Apply selection highlighting for filter items
+	if index == l.selected {
+		// Selection indicator with theme color
+		indicator := lipgloss.NewStyle().
+			Foreground(l.theme.Primary).
+			Bold(true).
+			Render(selectionIndicator)
+
+		// Apply selection highlighting to the content
+		contentStyle := lipgloss.NewStyle().
+			Background(l.theme.SelectionBg).
+			Foreground(l.theme.SelectionFg).
+			Bold(true)
+
+		content := contentStyle.Render(item)
+		return indicator + content
+	}
+
+	// Non-selected filter item
+	return spacing + item
 }

@@ -49,6 +49,9 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 
 	logger.Info("Loaded tasks from file", "file", todoFile, "task_count", len(taskList))
 
+	// Get theme for the lists
+	currentTheme := GetTheme(appConfig.Theme)
+
 	model := &Model{
 		filterList:   SimpleList{},
 		taskList:     SimpleList{},
@@ -60,10 +63,17 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 		watcher:      nil,
 		width:        DefaultTerminalWidth,
 		height:       DefaultTerminalHeight,
-		currentTheme: GetTheme(appConfig.Theme),
+		currentTheme: currentTheme,
 		appConfig:    appConfig,
 		imeHelper:    NewIMEHelper(),
 	}
+
+	// Initialize enhanced list features
+	model.filterList.SetTheme(&currentTheme)
+	model.filterList.SetTaskList(false) // Filter list is not a task list
+
+	model.taskList.SetTheme(&currentTheme)
+	model.taskList.SetTaskList(true) // Task list requires special rendering
 
 	// Initialize help content
 	model.initializeHelpContent()

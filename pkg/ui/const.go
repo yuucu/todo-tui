@@ -136,10 +136,6 @@ const (
 
 	// Start index
 	StartIndex = 0
-
-	// List selector symbols
-	ListSelectorSymbol = "▶ "
-	ListPaddingSymbol  = "  "
 )
 
 // ===============================
@@ -182,3 +178,19 @@ const (
 	// Help key
 	helpKey = "?"
 )
+
+// ===============================
+// Checkbox Style Constants
+// ===============================
+
+// Modern checkbox styles
+const (
+	CheckboxStyleCircle  = "circle"  // ● / ○
+	CheckboxStyleSquare  = "square"  // ■ / □
+	CheckboxStyleCheck   = "check"   // ✓ / ○
+	CheckboxStyleDiamond = "diamond" // ◆ / ◇
+	CheckboxStyleStar    = "star"    // ★ / ☆
+)
+
+// Default checkbox style
+const DefaultCheckboxStyle = CheckboxStyleCircle
