@@ -72,10 +72,15 @@ todotui --init-config
 
 ### Configuration File Location
 
-Todo TUI looks for configuration files in the following order:
-1. Path specified with `--config` flag
-2. `~/.config/todotui/config.yaml` (user configuration)
-3. `./config.yaml` (current directory - highest priority if exists)
+You can specify a configuration file using the `--config` flag or place it at `~/.config/todotui/config.yaml`.
+
+```bash
+# Use specific config file
+todotui --config /path/to/config.yaml
+
+# Or create at the default location
+todotui --init-config  # Creates ~/.config/todotui/config.yaml
+```
 
 ### Sample Configuration
 
