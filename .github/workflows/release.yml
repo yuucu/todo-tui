@@ -1,6 +1,8 @@
 name: Release
 
 on:
+  release:
+    types: [published]
   push:
     tags:
       - 'v*'
@@ -36,6 +38,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
+      - name: Run tests
+        run: go test -v ./...
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
@@ -45,4 +50,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # For future Homebrew tap support
-          # HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }} 
+          # HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+
+      - name: Update release notes
+        if: github.event_name == 'release'
+        run: |
+          echo "Release ${{ github.event.release.tag_name }} has been published successfully!"
+          echo "Download URL: ${{ github.event.release.html_url }}" 

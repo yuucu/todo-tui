@@ -1,0 +1,99 @@
+# Semantic Versioning Labels
+- name: breaking
+  color: 'B60205'
+  description: 'Breaking change that requires major version bump'
+
+- name: major
+  color: 'B60205'
+  description: 'Major version changes'
+
+- name: breaking-change
+  color: 'B60205'
+  description: 'Breaking change'
+
+- name: feature
+  color: '0052CC'
+  description: 'New feature or enhancement'
+
+- name: enhancement
+  color: '0052CC'
+  description: 'Enhancement to existing feature'
+
+- name: minor
+  color: '0052CC'
+  description: 'Minor version changes'
+
+- name: bug
+  color: 'D73A49'
+  description: 'Bug fix'
+
+- name: bugfix
+  color: 'D73A49'
+  description: 'Bug fix'
+
+- name: fix
+  color: 'D73A49'
+  description: 'Fix for an issue'
+
+- name: patch
+  color: 'D73A49'
+  description: 'Patch version changes'
+
+# Category Labels
+- name: docs
+  color: '0075CA'
+  description: 'Documentation updates'
+
+- name: documentation
+  color: '0075CA'
+  description: 'Documentation improvements'
+
+- name: chore
+  color: '7057FF'
+  description: 'Maintenance and chore tasks'
+
+- name: maintenance
+  color: '7057FF'
+  description: 'Maintenance work'
+
+- name: refactor
+  color: '7057FF'
+  description: 'Code refactoring'
+
+- name: dependencies
+  color: '0366D6'
+  description: 'Dependencies updates'
+
+- name: deps
+  color: '0366D6'
+  description: 'Dependencies'
+
+# Process Labels
+- name: skip-changelog
+  color: 'F9D0C4'
+  description: 'Skip this PR from changelog'
+
+- name: invalid
+  color: 'E4E669'
+  description: 'Invalid issue or PR'
+
+- name: duplicate
+  color: 'CFD3D7'
+  description: 'Duplicate issue or PR'
+
+- name: wontfix
+  color: 'FFFFFF'
+  description: 'This will not be worked on'
+
+# Additional useful labels
+- name: good first issue
+  color: '7057FF'
+  description: 'Good for newcomers'
+
+- name: help wanted
+  color: '008672'
+  description: 'Extra attention is needed'
+
+- name: question
+  color: 'D876E3'
+  description: 'Further information is requested' 
