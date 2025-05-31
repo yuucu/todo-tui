@@ -4,7 +4,9 @@ import (
 	"strings"
 	"time"
 
+	todotxt "github.com/1set/todotxt"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/yuucu/todotui/pkg/domain"
 )
 
 // Constants for list rendering
@@ -310,18 +312,33 @@ func (l *SimpleList) styleTaskContentInternal(item string, backgroundColor *lipg
 			if backgroundColor != nil {
 				dueStyle = dueStyle.Background(*backgroundColor).Bold(true)
 			}
-			dueDate := strings.TrimPrefix(part, "due:")
+			dueDateStr := strings.TrimPrefix(part, "due:")
 
-			// Parse and color based on date
-			now := time.Now()
-			today := now.Format("2006-01-02")
+			// Create a temporary task to use domain methods for date comparison
+			tempTaskStr := "temp task " + part
+			if tempTask, err := todotxt.ParseTask(tempTaskStr); err == nil {
+				domainTask := domain.NewTask(tempTask)
+				now := time.Now()
 
-			if dueDate < today {
-				dueStyle = dueStyle.Foreground(l.theme.Danger) // Overdue
-			} else if dueDate == today {
-				dueStyle = dueStyle.Foreground(l.theme.Warning) // Due today
+				if domainTask.IsOverdue(now) {
+					dueStyle = dueStyle.Foreground(l.theme.Danger) // Overdue
+				} else if domainTask.IsDueToday(now) {
+					dueStyle = dueStyle.Foreground(l.theme.Warning) // Due today
+				} else {
+					dueStyle = dueStyle.Foreground(l.theme.Success) // Future
+				}
 			} else {
-				dueStyle = dueStyle.Foreground(l.theme.Success) // Future
+				// Fallback to simple string comparison if parsing fails
+				now := time.Now()
+				today := now.Format("2006-01-02")
+
+				if dueDateStr < today {
+					dueStyle = dueStyle.Foreground(l.theme.Danger) // Overdue
+				} else if dueDateStr == today {
+					dueStyle = dueStyle.Foreground(l.theme.Warning) // Due today
+				} else {
+					dueStyle = dueStyle.Foreground(l.theme.Success) // Future
+				}
 			}
 
 			styledParts = append(styledParts, dueStyle.Render(part))

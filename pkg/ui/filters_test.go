@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	todotxt "github.com/1set/todotxt"
+	"github.com/yuucu/todotui/pkg/domain"
 )
 
 // テスト用のタスクリスト作成ヘルパー
@@ -74,9 +75,9 @@ func TestIsTaskDeleted(t *testing.T) {
 				t.Fatalf("Failed to parse task: %v", err)
 			}
 
-			result := isTaskDeleted(*task)
+			result := domain.NewTask(task).IsDeleted()
 			if result != tt.expected {
-				t.Errorf("isTaskDeleted() = %v, expected %v for task: %s",
+				t.Errorf("domain.NewTask(&).IsDeleted() = %v, expected %v for task: %s",
 					result, tt.expected, tt.taskString)
 			}
 		})
@@ -138,7 +139,7 @@ func TestProjectFilter(t *testing.T) {
 	groceryFilter := func(tasks todotxt.TaskList) todotxt.TaskList {
 		var filtered todotxt.TaskList
 		for _, task := range tasks {
-			if !task.Completed && !isTaskDeleted(task) {
+			if !task.Completed && !domain.NewTask(&task).IsDeleted() {
 				for _, project := range task.Projects {
 					if project == "grocery" {
 						filtered = append(filtered, task)
@@ -169,7 +170,7 @@ func TestContextFilter(t *testing.T) {
 	workFilter := func(tasks todotxt.TaskList) todotxt.TaskList {
 		var filtered todotxt.TaskList
 		for _, task := range tasks {
-			if !task.Completed && !isTaskDeleted(task) {
+			if !task.Completed && !domain.NewTask(&task).IsDeleted() {
 				for _, context := range task.Contexts {
 					if context == "work" {
 						filtered = append(filtered, task)
@@ -200,7 +201,7 @@ func TestAllTasksFilter(t *testing.T) {
 	allTasksFilter := func(tasks todotxt.TaskList) todotxt.TaskList {
 		var filtered todotxt.TaskList
 		for _, task := range tasks {
-			if !task.Completed && !isTaskDeleted(task) {
+			if !task.Completed && !domain.NewTask(&task).IsDeleted() {
 				filtered = append(filtered, task)
 			}
 		}
@@ -220,7 +221,7 @@ func TestAllTasksFilter(t *testing.T) {
 		if task.Completed {
 			t.Errorf("All tasks filter included completed task: %s", task.Todo)
 		}
-		if isTaskDeleted(task) {
+		if domain.NewTask(&task).IsDeleted() {
 			t.Errorf("All tasks filter included deleted task: %s", task.Todo)
 		}
 	}
@@ -233,7 +234,7 @@ func TestNoProjectFilter(t *testing.T) {
 	noProjectFilter := func(tasks todotxt.TaskList) todotxt.TaskList {
 		var filtered todotxt.TaskList
 		for _, task := range tasks {
-			if !task.Completed && !isTaskDeleted(task) && len(task.Projects) == 0 {
+			if !task.Completed && !domain.NewTask(&task).IsDeleted() && len(task.Projects) == 0 {
 				filtered = append(filtered, task)
 			}
 		}
@@ -264,7 +265,7 @@ func TestCompletedTasksFilter(t *testing.T) {
 	completedFilter := func(tasks todotxt.TaskList) todotxt.TaskList {
 		var filtered todotxt.TaskList
 		for _, task := range tasks {
-			if task.Completed && !isTaskDeleted(task) {
+			if task.Completed && !domain.NewTask(&task).IsDeleted() {
 				filtered = append(filtered, task)
 			}
 		}
@@ -284,7 +285,7 @@ func TestCompletedTasksFilter(t *testing.T) {
 		if !task.Completed {
 			t.Errorf("Completed tasks filter included non-completed task: %s", task.Todo)
 		}
-		if isTaskDeleted(task) {
+		if domain.NewTask(&task).IsDeleted() {
 			t.Errorf("Completed tasks filter included deleted task: %s", task.Todo)
 		}
 	}
@@ -297,7 +298,7 @@ func TestDeletedTasksFilter(t *testing.T) {
 	deletedFilter := func(tasks todotxt.TaskList) todotxt.TaskList {
 		var filtered todotxt.TaskList
 		for _, task := range tasks {
-			if isTaskDeleted(task) {
+			if domain.NewTask(&task).IsDeleted() {
 				filtered = append(filtered, task)
 			}
 		}
@@ -314,7 +315,7 @@ func TestDeletedTasksFilter(t *testing.T) {
 
 	// すべてのタスクが削除済みであることを確認
 	for _, task := range filtered {
-		if !isTaskDeleted(task) {
+		if !domain.NewTask(&task).IsDeleted() {
 			t.Errorf("Deleted tasks filter included non-deleted task: %s", task.Todo)
 		}
 	}
@@ -328,7 +329,7 @@ func TestFilterWithEmptyTaskList(t *testing.T) {
 	allTasksFilter := func(tasks todotxt.TaskList) todotxt.TaskList {
 		var filtered todotxt.TaskList
 		for _, task := range tasks {
-			if !task.Completed && !isTaskDeleted(task) {
+			if !task.Completed && !domain.NewTask(&task).IsDeleted() {
 				filtered = append(filtered, task)
 			}
 		}
@@ -369,7 +370,7 @@ func TestFilterIntegration(t *testing.T) {
 			return func(tasks todotxt.TaskList) todotxt.TaskList {
 				var filtered todotxt.TaskList
 				for _, task := range tasks {
-					if !task.Completed && !isTaskDeleted(task) {
+					if !task.Completed && !domain.NewTask(&task).IsDeleted() {
 						for _, taskProject := range task.Projects {
 							if taskProject == p {
 								filtered = append(filtered, task)
