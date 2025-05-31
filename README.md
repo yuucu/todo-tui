@@ -88,13 +88,35 @@ Supported formats: YAML, JSON, TOML
 
 ## 🏗️ Development
 
+### Quick Setup
+
 ```bash
 git clone https://github.com/yuucu/todotui.git
 cd todotui
-make build  # or make help for available commands
+make install  # Install development tools and set up pre-commit hooks
+make build    # Build the application
 ```
+
+### Manual Setup
+
+```bash
+git clone https://github.com/yuucu/todotui.git
+cd todotui
+make help     # See all available commands
+```
+
+### Development Scripts
+
+The project uses reusable shell scripts in the `scripts/` directory:
+
+- `scripts/install-dev-tools.sh` - Install development tools (golangci-lint, etc.)
+- `scripts/setup-hooks.sh` - Set up Git pre-commit hooks
+- `scripts/pre-commit.sh` - Pre-commit hook script
 
 **Requirements:** Go 1.24+, color-capable terminal
 
-**Pre-commit hooks:** Automatically run `make fmt`, `make lint`, and `make test` before each commit.
+**What `make install` does:**
+- Installs `golangci-lint` (if not already installed)
+- Sets up pre-commit hooks to automatically run `make fmt`, `make lint`, and `make test` before each commit
+- All scripts are reusable and can be run independently
 
