@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/spf13/viper"
+	"github.com/yuucu/todotui/pkg/logger"
 )
 
 // 設定ファイル用のディレクトリパーミッション
@@ -47,6 +48,9 @@ type AppConfig struct {
 
 	// UI settings
 	UI UIConfig `mapstructure:"ui"`
+
+	// Logging settings
+	Logging LoggingConfig `mapstructure:"logging"`
 }
 
 // UIConfig represents UI-specific configuration
@@ -62,6 +66,21 @@ type UIConfig struct {
 	VerticalPadding int `mapstructure:"vertical_padding"`
 }
 
+// LoggingConfig represents logging configuration
+type LoggingConfig struct {
+	// Enable debug logging
+	EnableDebug bool `mapstructure:"enable_debug"`
+
+	// Enable file output
+	OutputToFile bool `mapstructure:"output_to_file"`
+
+	// Custom log file path (optional)
+	LogFilePath string `mapstructure:"log_file_path"`
+
+	// Maximum days to keep log files
+	MaxLogDays int `mapstructure:"max_log_days"`
+}
+
 // DefaultAppConfig returns the default application configuration
 func DefaultAppConfig() AppConfig {
 	return AppConfig{
@@ -73,6 +92,12 @@ func DefaultAppConfig() AppConfig {
 			MinLeftPaneWidth:  18,
 			MinRightPaneWidth: 28,
 			VerticalPadding:   2,
+		},
+		Logging: LoggingConfig{
+			EnableDebug:  false,
+			OutputToFile: true,
+			LogFilePath:  "", // 空の場合はデフォルトパスを使用
+			MaxLogDays:   30, // 30日間ログを保持
 		},
 	}
 }
@@ -117,6 +142,10 @@ func LoadConfig(configPath string) AppConfig {
 		config, err = LoadConfigFromFile(configPath)
 		if err != nil {
 			// If config file loading fails, print warning and use defaults
+			// ログシステムが初期化されているかチェックして両方に出力
+			if logger.GetLogger() != nil {
+				logger.Warn("Config file loading failed, using defaults", "error", err)
+			}
 			fmt.Fprintf(os.Stderr, "Warning: %v\nUsing default configuration.\n", err)
 			config = DefaultAppConfig()
 		} else {
@@ -131,6 +160,10 @@ func LoadConfig(configPath string) AppConfig {
 			config, err = LoadConfigFromFile(configPath)
 			if err != nil {
 				// If config file loading fails, print warning and use defaults
+				// ログシステムが初期化されているかチェックして両方に出力
+				if logger.GetLogger() != nil {
+					logger.Warn("Config file loading failed from default location, using defaults", "path", configPath, "error", err)
+				}
 				fmt.Fprintf(os.Stderr, "Warning: Failed to load config from %s: %v\nUsing default configuration.\n", configPath, err)
 				config = DefaultAppConfig()
 			} else {
@@ -205,9 +238,19 @@ func validateAndFixConfig(config AppConfig) AppConfig {
 		config.UI.VerticalPadding = 2
 	}
 
+	// Validate logging settings
+	if config.Logging.MaxLogDays <= 0 {
+		config.Logging.MaxLogDays = 30
+	}
+
 	// Expand ~ in path if present (only if path is specified)
 	if config.DefaultTodoFile != "" {
 		config.DefaultTodoFile = ExpandHomePath(config.DefaultTodoFile)
+	}
+
+	// Expand ~ in log file path if present
+	if config.Logging.LogFilePath != "" {
+		config.Logging.LogFilePath = ExpandHomePath(config.Logging.LogFilePath)
 	}
 
 	return config
@@ -233,6 +276,12 @@ func SaveConfigToFile(config AppConfig, configPath string) error {
 	v.Set("ui.min_left_pane_width", config.UI.MinLeftPaneWidth)
 	v.Set("ui.min_right_pane_width", config.UI.MinRightPaneWidth)
 	v.Set("ui.vertical_padding", config.UI.VerticalPadding)
+
+	// Set logging configuration
+	v.Set("logging.enable_debug", config.Logging.EnableDebug)
+	v.Set("logging.output_to_file", config.Logging.OutputToFile)
+	v.Set("logging.log_file_path", config.Logging.LogFilePath)
+	v.Set("logging.max_log_days", config.Logging.MaxLogDays)
 
 	// Set config file path (Viper will determine format by extension)
 	v.SetConfigFile(configPath)

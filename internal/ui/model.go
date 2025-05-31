@@ -11,6 +11,7 @@ import (
 	"github.com/fsnotify/fsnotify"
 	"github.com/samber/lo"
 	"github.com/yuucu/todotui/internal/todo"
+	"github.com/yuucu/todotui/pkg/logger"
 )
 
 // よく使用されるキー文字列定数
@@ -42,11 +43,16 @@ func (m *Model) watchFile() tea.Cmd {
 
 // NewModel creates a new model instance
 func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
+	logger.Debug("Creating new model", "todo_file", todoFile, "theme", appConfig.Theme)
+
 	// Load tasks from file
 	taskList, err := todo.Load(todoFile)
 	if err != nil {
+		logger.Error("Failed to load tasks from file", "file", todoFile, "error", err)
 		return nil, err
 	}
+
+	logger.Info("Loaded tasks from file", "file", todoFile, "task_count", len(taskList))
 
 	model := &Model{
 		filterList:   SimpleList{},
@@ -74,8 +80,10 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 	model.textarea.SetHeight(TextAreaHeight)
 
 	// Initialize file watcher
+	logger.Debug("Initializing file watcher")
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
+		logger.Error("Failed to create file watcher", "error", err)
 		return nil, err
 	}
 	model.watcher = watcher
@@ -83,19 +91,23 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 	// Watch the todo file
 	err = watcher.Add(todoFile)
 	if err != nil {
+		logger.Error("Failed to watch todo file", "file", todoFile, "error", err)
 		watcher.Close()
 		return nil, err
 	}
 
+	logger.Debug("File watcher initialized successfully", "file", todoFile)
 	return model, nil
 }
 
 // saveAndRefresh saves the task list and refreshes the UI
 func (m *Model) saveAndRefresh() {
+	logger.Debug("Saving tasks to file", "file", m.todoFile, "task_count", len(m.tasks))
 	if err := todo.Save(m.tasks, m.todoFile); err != nil {
-		// TODO: Handle error properly
+		logger.Error("Failed to save tasks to file", "file", m.todoFile, "error", err)
 		return
 	}
+	logger.Info("Tasks saved successfully", "file", m.todoFile)
 	m.refreshLists()
 }
 
