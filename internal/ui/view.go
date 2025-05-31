@@ -16,6 +16,17 @@ func (m *Model) updatePaneSizes() {
 		m.height = 24 // Default terminal height
 	}
 
+	// Ensure absolute minimum terminal size
+	minTerminalWidth := 40
+	minTerminalHeight := 8
+
+	if m.width < minTerminalWidth {
+		m.width = minTerminalWidth
+	}
+	if m.height < minTerminalHeight {
+		m.height = minTerminalHeight
+	}
+
 	// Calculate pane sizes using configuration
 	borderWidth := 4
 	availableWidth := m.width - borderWidth
@@ -31,27 +42,31 @@ func (m *Model) updatePaneSizes() {
 		rightWidth = m.appConfig.UI.MinRightPaneWidth
 	}
 
+	// Calculate available height for list content (consistent with renderMainView)
 	// Reserve space for:
-	// - Custom title (1 line each pane)
 	// - Combined help/status bar (1 line)
-	// - Border space (top + bottom = 2 lines)
 	// - Configurable vertical padding
-	titleHeight := 1
-	combinedBarHeight := 1
-	borderSpace := 2 // Top and bottom border lines
+	helpBarHeight := 1
 	verticalPadding := m.appConfig.UI.VerticalPadding
 
-	availableHeight := m.height - titleHeight - combinedBarHeight - borderSpace - verticalPadding
+	// Available height for the entire content area (including borders and titles)
+	contentHeight := m.height - helpBarHeight - verticalPadding
 
-	if availableHeight <= 2 { // Ensure at least 2 lines for list content
-		availableHeight = 2
+	// Ensure minimum content height
+	if contentHeight < 5 { // Minimum 5 lines to show border + some content
+		contentHeight = 5
 	}
 
-	// Set the calculated height for both lists with proper validation
-	if availableHeight > 0 {
-		m.filterList.SetHeight(availableHeight)
-		m.taskList.SetHeight(availableHeight)
+	// Reserve space for border (2 lines) and title (1 line) within content area
+	listHeight := contentHeight - 3 // 2 for borders + 1 for title
+
+	if listHeight < 1 { // Ensure at least 1 line for list content
+		listHeight = 1
 	}
+
+	// Set the calculated height for both lists
+	m.filterList.SetHeight(listHeight)
+	m.taskList.SetHeight(listHeight)
 }
 
 // View renders the UI
@@ -152,8 +167,10 @@ func (m *Model) renderMainView() string {
 		rightWidth = m.appConfig.UI.MinRightPaneWidth
 	}
 
-	// Calculate content height (reserve space for combined help/status bar and configurable padding)
-	contentHeight := m.height - 1 - m.appConfig.UI.VerticalPadding // 1 for help bar + configurable padding
+	// Calculate content height (consistent with updatePaneSizes)
+	helpBarHeight := 1
+	verticalPadding := m.appConfig.UI.VerticalPadding
+	contentHeight := m.height - helpBarHeight - verticalPadding
 
 	// Ensure minimum content height
 	if contentHeight < 5 { // Minimum 5 lines to show border + some content
