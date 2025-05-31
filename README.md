@@ -9,6 +9,7 @@ A clean, efficient terminal-based todo manager that respects the [todo.txt](http
 - **Clean TUI Interface** - Navigate with intuitive keyboard shortcuts
 - **Todo.txt Compatible** - Works with your existing todo.txt files
 - **Smart Filtering** - Filter by projects (`+project`), contexts (`@context`), due dates, and more
+- **Task Copy** - Copy task text to clipboard with visual feedback
 - **Japanese Input Support** - Full IME support for international users
 
 ## 🚀 Quick Start
@@ -39,6 +40,7 @@ todotui sample.todo.txt
 | `d` | Delete task |
 | `p` | Cycle priority (A→B→C→D→none) |
 | `r` | Restore deleted/completed task |
+| `y` | Copy task text to clipboard |
 | `q` | Quit |
 
 ## 📝 Task Format
