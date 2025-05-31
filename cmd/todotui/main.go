@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 
@@ -43,55 +44,56 @@ func main() {
 	// Setup IME environment for Japanese input support
 	ui.SetupIMEEnvironment()
 
-	var todoFile string
-	var themeName string
-	var configFile string
+	// Define command line flags
+	var (
+		configFile  = flag.String("config", "", "Path to configuration file")
+		themeName   = flag.String("theme", "", "Set color theme (catppuccin, nord)")
+		showVersion = flag.Bool("version", false, "Show version information")
+		showHelp    = flag.Bool("help", false, "Show this help message")
+	)
 
-	// Parse command line arguments
-	args := os.Args[1:]
-	i := 0
-	for i < len(args) {
-		switch args[i] {
-		case "--config", "-c":
-			if i+1 >= len(args) {
-				fmt.Printf("Error: --config requires a value\n")
-				printUsage()
-				os.Exit(1)
-			}
-			configFile = args[i+1]
-			i += 2
-		case "--theme", "-t":
-			if i+1 >= len(args) {
-				fmt.Printf("Error: --theme requires a value\n")
-				printUsage()
-				os.Exit(1)
-			}
-			themeName = args[i+1]
-			i += 2
-		case "--help", "-h":
-			printUsage()
-			os.Exit(0)
-		case "--version", "-v":
-			printVersion()
-			os.Exit(0)
-		default:
-			if todoFile == "" {
-				todoFile = args[i]
-			} else {
-				fmt.Printf("Error: unexpected argument %s\n", args[i])
-				printUsage()
-				os.Exit(1)
-			}
-			i++
-		}
+	// Define short flag aliases (reuse same help text)
+	flag.StringVar(configFile, "c", "", "Path to configuration file")
+	flag.StringVar(themeName, "t", "", "Set color theme (catppuccin, nord)")
+	flag.BoolVar(showVersion, "v", false, "Show version information")
+	flag.BoolVar(showHelp, "h", false, "Show this help message")
+
+	// Set custom usage function
+	flag.Usage = printUsage
+
+	// Parse command line flags
+	flag.Parse()
+
+	// Handle help flag first (convention)
+	if *showHelp {
+		flag.Usage()
+		os.Exit(0)
+	}
+
+	// Handle version flag
+	if *showVersion {
+		printVersion()
+		os.Exit(0)
+	}
+
+	// Get remaining non-flag arguments (todo file)
+	args := flag.Args()
+	var todoFile string
+	if len(args) > 0 {
+		todoFile = args[0]
+	}
+	if len(args) > 1 {
+		fmt.Fprintf(os.Stderr, "Error: too many arguments\n")
+		flag.Usage()
+		os.Exit(1)
 	}
 
 	// Load configuration
-	appConfig := ui.LoadConfig(configFile)
+	appConfig := ui.LoadConfig(*configFile)
 
 	// Override theme if specified via command line
-	if themeName != "" {
-		appConfig.Theme = themeName
+	if *themeName != "" {
+		appConfig.Theme = *themeName
 	}
 
 	// Determine todo file path with priority: CLI argument > config file > error
@@ -104,8 +106,8 @@ func main() {
 		finalTodoFile = appConfig.DefaultTodoFile
 	} else {
 		// No todo file specified
-		fmt.Printf("Error: No todo file specified. Use CLI argument or set default_todo_file in config.\n")
-		fmt.Printf("Example: %s ~/todo.txt\n", os.Args[0])
+		fmt.Fprintf(os.Stderr, "Error: No todo file specified. Use CLI argument or set default_todo_file in config.\n")
+		fmt.Fprintf(os.Stderr, "Example: %s ~/todo.txt\n", os.Args[0])
 		os.Exit(1)
 	}
 
@@ -115,7 +117,7 @@ func main() {
 	// Create model with configuration
 	model, err := ui.NewModel(finalTodoFile, appConfig)
 	if err != nil {
-		fmt.Printf("Error initializing: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error initializing: %v\n", err)
 		os.Exit(1)
 	}
 	defer model.Cleanup()
@@ -123,7 +125,7 @@ func main() {
 	// Start the Bubble Tea program
 	p := tea.NewProgram(model, tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
-		fmt.Printf("Error running program: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Error running program: %v\n", err)
 		os.Exit(1)
 	}
 }
