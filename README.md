@@ -2,7 +2,16 @@
 
 A clean, efficient terminal-based todo manager that respects the [todo.txt](http://todotxt.org/) format.
 
-![todotui](https://github.com/user-attachments/assets/8e7223f2-0429-4733-a128-53ef2935a6aa)
+<table>
+<tr>
+<td width="50%">
+<img width="100%" alt="todotui_top" src="https://github.com/user-attachments/assets/2dcd692f-bd63-442b-af37-91197f738feb" />
+</td>
+<td width="50%">
+<img width="100%" alt="todotui_help" src="https://github.com/user-attachments/assets/4c1965ef-5dfa-4d11-8b34-4d714569d668" />
+</td>
+</tr>
+</table>
 
 ## ✨ Features
 
