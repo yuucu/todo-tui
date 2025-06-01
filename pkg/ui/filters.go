@@ -9,12 +9,15 @@ import (
 	todotxt "github.com/1set/todotxt"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/samber/lo"
+	"github.com/yuucu/todotui/pkg/domain"
 )
 
-// isTaskDeleted checks if a task has the deleted_at field
-func isTaskDeleted(task todotxt.Task) bool {
-	taskString := task.String()
-	return strings.Contains(taskString, TaskFieldDeletedPrefix)
+// getCompletedTaskTransitionConfig converts UI config to domain config
+func (m *Model) getCompletedTaskTransitionConfig() domain.CompletedTaskTransitionConfig {
+	return domain.CompletedTaskTransitionConfig{
+		DelayDays:      m.appConfig.UI.CompletedTaskTransition.DelayDays,
+		TransitionHour: m.appConfig.UI.CompletedTaskTransition.TransitionHour,
+	}
 }
 
 // refreshLists updates both filter and task lists
@@ -41,7 +44,17 @@ func (m *Model) refreshFilterList() {
 		name: FilterAllTasks,
 		filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
 			return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
-				return !task.Completed && !isTaskDeleted(task)
+				domainTask := domain.NewTask(&task)
+				if domainTask.IsDeleted() {
+					return false
+				}
+				// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
+				if !task.Completed {
+					return true
+				}
+				// For completed tasks, check if they should move
+				config := m.getCompletedTaskTransitionConfig()
+				return !domainTask.ShouldMoveToCompleted(config, time.Now())
 			})
 		},
 	}
@@ -52,7 +65,16 @@ func (m *Model) refreshFilterList() {
 		name: FilterNoProject,
 		filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
 			return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
-				return !task.Completed && !isTaskDeleted(task) && len(task.Projects) == 0
+				domainTask := domain.NewTask(&task)
+				if domainTask.IsDeleted() || len(task.Projects) > 0 {
+					return false
+				}
+				// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
+				if !task.Completed {
+					return true
+				}
+				config := m.getCompletedTaskTransitionConfig()
+				return !domainTask.ShouldMoveToCompleted(config, time.Now())
 			})
 		},
 	}
@@ -73,8 +95,16 @@ func (m *Model) refreshFilterList() {
 				filterFn: func(p string) func(todotxt.TaskList) todotxt.TaskList {
 					return func(tasks todotxt.TaskList) todotxt.TaskList {
 						return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
-							return !task.Completed && !isTaskDeleted(task) &&
-								lo.Contains(task.Projects, p)
+							domainTask := domain.NewTask(&task)
+							if domainTask.IsDeleted() || !lo.Contains(task.Projects, p) {
+								return false
+							}
+							// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
+							if !task.Completed {
+								return true
+							}
+							config := m.getCompletedTaskTransitionConfig()
+							return !domainTask.ShouldMoveToCompleted(config, time.Now())
 						})
 					}
 				}(project),
@@ -97,8 +127,16 @@ func (m *Model) refreshFilterList() {
 				filterFn: func(c string) func(todotxt.TaskList) todotxt.TaskList {
 					return func(tasks todotxt.TaskList) todotxt.TaskList {
 						return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
-							return !task.Completed && !isTaskDeleted(task) &&
-								lo.Contains(task.Contexts, c)
+							domainTask := domain.NewTask(&task)
+							if domainTask.IsDeleted() || !lo.Contains(task.Contexts, c) {
+								return false
+							}
+							// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
+							if !task.Completed {
+								return true
+							}
+							config := m.getCompletedTaskTransitionConfig()
+							return !domainTask.ShouldMoveToCompleted(config, time.Now())
 						})
 					}
 				}(context),
@@ -110,18 +148,27 @@ func (m *Model) refreshFilterList() {
 		name: FilterCompletedTasks,
 		filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
 			return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
-				return task.Completed && !isTaskDeleted(task)
+				// Only show completed tasks that should be moved to the "Completed Tasks" filter
+				// based on the transition configuration
+				domainTask := domain.NewTask(&task)
+				config := m.getCompletedTaskTransitionConfig()
+				return task.Completed && !domainTask.IsDeleted() &&
+					domainTask.ShouldMoveToCompleted(config, time.Now())
 			})
 		},
 	})
 
 	// Deleted Tasks filter
-	deletedTasks := m.tasks.Filter(isTaskDeleted)
+	deletedTasks := lo.Filter(m.tasks, func(task todotxt.Task, _ int) bool {
+		return domain.NewTask(&task).IsDeleted()
+	})
 	if len(deletedTasks) > 0 {
 		filters = append(filters, FilterData{
 			name: FilterDeletedTasks,
 			filterFn: func(list todotxt.TaskList) todotxt.TaskList {
-				return list.Filter(isTaskDeleted)
+				return lo.Filter(list, func(task todotxt.Task, _ int) bool {
+					return domain.NewTask(&task).IsDeleted()
+				})
 			},
 			count: len(deletedTasks),
 		})
@@ -204,9 +251,20 @@ func (m *Model) refreshTaskList() {
 			m.filters[m.filterList.selected].name == FilterNoProject
 
 		if !isDeletedTasksFilter && !isNoProjectFilter {
-			// Default to all incomplete tasks (only for non-deleted and non-no-project task filters) using lo.Filter
+			// Default to all incomplete tasks AND completed tasks that haven't moved yet
+			// (only for non-deleted and non-no-project task filters) using lo.Filter
 			filteredTasks = lo.Filter(m.tasks, func(task todotxt.Task, _ int) bool {
-				return !task.Completed && !isTaskDeleted(task)
+				domainTask := domain.NewTask(&task)
+				if domainTask.IsDeleted() {
+					return false
+				}
+				// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
+				if !task.Completed {
+					return true
+				}
+				// For completed tasks, check if they should move
+				config := m.getCompletedTaskTransitionConfig()
+				return !domainTask.ShouldMoveToCompleted(config, time.Now())
 			})
 		}
 	}
@@ -221,19 +279,18 @@ func (m *Model) refreshTaskList() {
 
 		// Track completion status for the enhanced list display
 		// Consider both completed tasks and deleted tasks as "completed" for UI purposes
-		isTaskCompleted := task.Completed || isTaskDeleted(*task)
+		isTaskCompleted := task.Completed || domain.NewTask(task).IsDeleted()
 		completedItems = append(completedItems, isTaskCompleted)
 
 		// Calculate checkbox color based on due date for incomplete tasks
 		var checkboxColor lipgloss.Color
 		if !isTaskCompleted && task.HasDueDate() {
-			dueDate := task.DueDate.Format(DateFormat)
 			now := time.Now()
-			today := now.Format(DateFormat)
+			domainTask := domain.NewTask(task)
 
-			if dueDate < today {
+			if domainTask.IsOverdue(now) {
 				checkboxColor = m.currentTheme.Danger // Overdue - red
-			} else if dueDate == today {
+			} else if domainTask.IsDueToday(now) {
 				checkboxColor = m.currentTheme.Warning // Due today - yellow
 			} else {
 				checkboxColor = m.currentTheme.Success // Future - green
@@ -283,7 +340,7 @@ func (m *Model) refreshTaskList() {
 func (m *Model) getUniqueProjects() []string {
 	// Get all incomplete, non-deleted tasks
 	activeTasks := lo.Filter(m.tasks, func(task todotxt.Task, _ int) bool {
-		return !task.Completed && !isTaskDeleted(task)
+		return !task.Completed && !domain.NewTask(&task).IsDeleted()
 	})
 
 	// Extract all projects from active tasks
@@ -301,7 +358,7 @@ func (m *Model) getUniqueProjects() []string {
 func (m *Model) getUniqueContexts() []string {
 	// Get all incomplete, non-deleted tasks
 	activeTasks := lo.Filter(m.tasks, func(task todotxt.Task, _ int) bool {
-		return !task.Completed && !isTaskDeleted(task)
+		return !task.Completed && !domain.NewTask(&task).IsDeleted()
 	})
 
 	// Extract all contexts from active tasks

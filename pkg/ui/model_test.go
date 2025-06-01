@@ -5,6 +5,7 @@ import (
 	"time"
 
 	todotxt "github.com/1set/todotxt"
+	"github.com/yuucu/todotui/pkg/domain"
 )
 
 // テスト用のモデル作成ヘルパー
@@ -361,7 +362,7 @@ func TestTaskDeletion(t *testing.T) {
 	model.tasks[0] = *deletedTask
 
 	// 削除されたタスクが削除済みとして認識されることを確認
-	if !isTaskDeleted(model.tasks[0]) {
+	if !domain.NewTask(&model.tasks[0]).IsDeleted() {
 		t.Error("Task should be marked as deleted")
 	}
 
@@ -399,7 +400,7 @@ func TestTaskListIntegrity(t *testing.T) {
 
 	// すべてのタスクが有効であることを確認
 	for i, task := range model.tasks {
-		if task.Todo == "" && !task.Completed && !isTaskDeleted(task) {
+		if task.Todo == "" && !task.Completed && !domain.NewTask(&task).IsDeleted() {
 			t.Errorf("Task at index %d has empty content and is not completed/deleted", i)
 		}
 

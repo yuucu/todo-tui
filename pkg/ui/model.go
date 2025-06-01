@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fsnotify/fsnotify"
 	"github.com/samber/lo"
+	"github.com/yuucu/todotui/pkg/domain"
 	"github.com/yuucu/todotui/pkg/logger"
 	"github.com/yuucu/todotui/pkg/todo"
 )
@@ -266,13 +267,27 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.activePane = paneTask
 				return m, nil
 			}
-			// Complete task
+			// Toggle task completion
 			if m.taskList.selected < len(m.filteredTasks) {
-				taskToComplete := m.filteredTasks[m.taskList.selected]
-				// Find the task in main tasks list and mark as completed using lo
-				_, task := m.findTaskInList(taskToComplete)
+				taskToToggle := m.filteredTasks[m.taskList.selected]
+				// Find the task in main tasks list and toggle completion using domain model
+				_, task := m.findTaskInList(taskToToggle)
 				if task != nil {
-					task.Complete()
+					domainTask := domain.NewTask(task)
+					isCompleted := domainTask.ToggleCompletion()
+
+					// Show status message
+					if isCompleted {
+						return m, tea.Batch(
+							m.saveAndRefresh(),
+							m.setStatusMessage("✅ Task completed", 2*time.Second),
+						)
+					} else {
+						return m, tea.Batch(
+							m.saveAndRefresh(),
+							m.setStatusMessage("🔄 Task marked as incomplete", 2*time.Second),
+						)
+					}
 				}
 				return m, m.saveAndRefresh()
 			}
@@ -369,11 +384,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					// Handle completed tasks restoration
 					if currentFilter == "Completed Tasks" {
-						// Find the task in main tasks list and mark as incomplete using lo
+						// Find the task in main tasks list and toggle completion using domain model
 						_, task := m.findTaskInList(taskToRestore)
 						if task != nil {
-							task.Completed = false
-							task.CompletedDate = time.Time{} // Clear completion date
+							domainTask := domain.NewTask(task)
+							domainTask.ToggleCompletion() // This will mark as incomplete
 						}
 						return m, m.saveAndRefresh()
 					}
@@ -477,16 +492,15 @@ func (m *Model) cyclePriority(task *todotxt.Task) {
 
 // toggleDueToday toggles the due date of a task to today or removes it if already set to today
 func (m *Model) toggleDueToday(task *todotxt.Task) {
-	today := time.Now().Format(DateFormat)
+	now := time.Now()
+	today := now.Format(DateFormat)
 
 	// Get the current task string
 	taskString := task.String()
 
-	// Check if task already has a due date
-	hasDueToday := false
-	if task.HasDueDate() && task.DueDate.Format(DateFormat) == today {
-		hasDueToday = true
-	}
+	// Check if task is already due today using domain method
+	domainTask := domain.NewTask(task)
+	hasDueToday := domainTask.IsDueToday(now)
 
 	var newTaskString string
 

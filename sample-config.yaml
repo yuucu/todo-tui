@@ -34,6 +34,14 @@ ui:
   min_right_pane_width: 28     # Minimum right pane width
   vertical_padding: 2          # Vertical padding (1-5)
 
+  # Completed task transition settings
+  completed_task_transition:
+    # Number of days to wait before moving completed tasks to "Completed Tasks" filter
+    delay_days: 1              # Default: 1 day (0 for immediate move)
+    
+    # Time of day (24-hour format) when the transition should occur
+    transition_hour: 5         # Default: 5 (05:00 morning)
+
 # =====================================
 # Logging Settings
 # =====================================
