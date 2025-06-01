@@ -1,6 +1,7 @@
 # 📋 Todo TUI
 
-A clean, efficient terminal-based todo manager that respects the [todo.txt](http://todotxt.org/) format.
+⌨️ A Vim-like TUI that honors the simplicity of todo.txt 📝
+
 
 <table>
 <tr>
@@ -13,13 +14,16 @@ A clean, efficient terminal-based todo manager that respects the [todo.txt](http
 </tr>
 </table>
 
+---
+
 ## ✨ Features
 
-- **Clean TUI Interface** - Navigate with intuitive keyboard shortcuts
-- **Todo.txt Compatible** - Works with your existing todo.txt files
-- **Smart Filtering** - Filter by projects (`+project`), contexts (`@context`), due dates, and more
-- **Task Copy** - Copy task text to clipboard with visual feedback
-- **Japanese Input Support** - Full IME support for international users
+- ⚡ **Vim-like TUI** — Navigate with intuitive, familiar keybindings (`j`, `k`, etc.)
+- 📄 **todo.txt Compatible** — Fully supports the standard todo.txt format
+- 🔍 **Powerful Filtering** — Filter by `+project`, `@context`, due dates, and more
+- 📋 **Clipboard Support** — Easily copy task text with visual confirmation
+
+---
 
 ## 🚀 Installation
 
