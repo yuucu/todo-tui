@@ -89,36 +89,21 @@ ui:
 # =====================================
 # Logging Configuration
 # =====================================
-# Todo TUI creates log files for troubleshooting and debugging
+# Todo TUI outputs logs to stderr for troubleshooting
 logging:
   # Debug Mode
   # ==========
-  # Enable detailed logging for troubleshooting
-  # true  = verbose logging (useful for bug reports)
-  # false = normal logging (recommended for daily use)
+  # Controls log verbosity level
+  # true  = debug level (all logs including detailed debugging info)
+  # false = warning level (warnings and errors only, default)
   enable_debug: false
 
-  # Log File Location
-  # =================
-  # Custom path for log files (leave empty for OS defaults)
-  # 
-  # Default locations when empty:
-  # macOS:   ~/Library/Logs/todotui/todotui-YYYY-MM-DD.log
-  # Linux:   ~/.local/share/todotui/logs/todotui-YYYY-MM-DD.log
-  # Windows: %APPDATA%/todotui/logs/todotui-YYYY-MM-DD.log
-  # 
-  # Custom examples:
-  # log_file_path: "~/logs/todotui.log"
-  # log_file_path: "/var/log/todotui/app.log"
-  log_file_path: ""
-
-  # Log Retention
-  # =============
-  # Number of days to keep old log files
-  # Older files are automatically deleted to save disk space
-  # Range: 1 - 365
-  # Recommended: 7 - 30 days
-  max_log_days: 30
+  # Log Level
+  # =========
+  # Specify exact log level (takes precedence over enable_debug)
+  # Available levels: DEBUG, INFO, WARN, ERROR
+  # Default: WARN (warnings and errors only)
+  log_level: "WARN"
 
 # =====================================
 # Example Configurations
@@ -151,5 +136,3 @@ logging:
 # -------------------------------------
 # logging:
 #   enable_debug: true
-#   log_file_path: "~/todotui-debug.log"
-#   max_log_days: 7
