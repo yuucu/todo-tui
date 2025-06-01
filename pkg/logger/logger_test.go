@@ -2,14 +2,11 @@ package logger
 
 import (
 	"bytes"
-	"fmt"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestGetLogDirectory(t *testing.T) {
@@ -81,20 +78,16 @@ func TestGetLogDirectory(t *testing.T) {
 
 func TestInit(t *testing.T) {
 	tests := []struct {
-		name               string
-		config             Config
-		wantError          bool
-		errorContains      string
-		checkLogger        bool
-		checkLogFile       bool
-		useTemporaryConfig bool
+		name          string
+		config        Config
+		wantError     bool
+		errorContains string
+		checkLogger   bool
 	}{
 		{
-			name: "Output to stderr only (actual usage)",
+			name: "Output to stderr (actual usage)",
 			config: Config{
 				Level:          slog.LevelInfo,
-				EnableDebug:    false,
-				OutputToFile:   false,
 				OutputToStderr: true,
 				AppName:        "todotui",
 			},
@@ -102,25 +95,9 @@ func TestInit(t *testing.T) {
 			checkLogger: true,
 		},
 		{
-			name: "Output to file only (for testing)",
-			config: Config{
-				Level:          slog.LevelDebug,
-				EnableDebug:    true,
-				OutputToFile:   true,
-				OutputToStderr: false,
-				AppName:        "test",
-			},
-			wantError:          false,
-			checkLogger:        true,
-			checkLogFile:       true,
-			useTemporaryConfig: true,
-		},
-		{
 			name: "No output configured",
 			config: Config{
 				Level:          slog.LevelInfo,
-				EnableDebug:    false,
-				OutputToFile:   false,
 				OutputToStderr: false,
 				AppName:        "test",
 			},
@@ -128,18 +105,14 @@ func TestInit(t *testing.T) {
 			errorContains: "ログの出力先が設定されていません",
 		},
 		{
-			name: "Both outputs enabled (for testing)",
+			name: "Debug level with stderr",
 			config: Config{
-				Level:          slog.LevelWarn,
-				EnableDebug:    false,
-				OutputToFile:   true,
+				Level:          slog.LevelDebug,
 				OutputToStderr: true,
 				AppName:        "test",
 			},
-			wantError:          false,
-			checkLogger:        true,
-			checkLogFile:       true,
-			useTemporaryConfig: true,
+			wantError:   false,
+			checkLogger: true,
 		},
 	}
 
@@ -151,12 +124,6 @@ func TestInit(t *testing.T) {
 				globalLogger = originalLogger
 				slog.SetDefault(slog.Default())
 			}()
-
-			// テスト用の一時ファイルパスを設定（AppNameベースで自動生成）
-			if tt.useTemporaryConfig {
-				// テスト用に一時的なAppNameを設定してファイルの場所を予測可能にする
-				tt.config.AppName = "test-" + tt.name
-			}
 
 			err := Init(tt.config)
 
@@ -184,27 +151,6 @@ func TestInit(t *testing.T) {
 				logger := GetLogger()
 				if logger == nil {
 					t.Error("GetLogger() should not return nil")
-				}
-			}
-
-			if tt.checkLogFile {
-				// ログファイルが作成されることを確認
-				Info("test message")
-
-				// AppNameベースで自動生成されたログファイルの存在確認
-				// 実際のファイルパスは getLogDirectory() + AppName-date.log の形式
-				logDir, err := getLogDirectory(tt.config.AppName)
-				if err != nil {
-					t.Logf("Could not get log directory (expected for some tests): %v", err)
-					return
-				}
-
-				// 日付ベースのログファイル名を生成
-				today := time.Now().Format("2006-01-02")
-				expectedLogFile := filepath.Join(logDir, fmt.Sprintf("%s-%s.log", tt.config.AppName, today))
-
-				if _, err := os.Stat(expectedLogFile); os.IsNotExist(err) {
-					t.Logf("Log file not found at expected location (may be expected for some environments): %v", expectedLogFile)
 				}
 			}
 		})
@@ -372,8 +318,6 @@ func TestConfig_DefaultValues(t *testing.T) {
 		name           string
 		config         Config
 		expectedLevel  slog.Level
-		expectedDebug  bool
-		expectedFile   bool
 		expectedStderr bool
 		expectedApp    string
 	}{
@@ -381,8 +325,6 @@ func TestConfig_DefaultValues(t *testing.T) {
 			name:           "Zero value config",
 			config:         Config{},
 			expectedLevel:  0,
-			expectedDebug:  false,
-			expectedFile:   false,
 			expectedStderr: false,
 			expectedApp:    "",
 		},
@@ -390,14 +332,10 @@ func TestConfig_DefaultValues(t *testing.T) {
 			name: "Actual usage config (stderr only)",
 			config: Config{
 				Level:          slog.LevelWarn,
-				EnableDebug:    false,
-				OutputToFile:   false,
 				OutputToStderr: true,
 				AppName:        "todotui",
 			},
 			expectedLevel:  slog.LevelWarn,
-			expectedDebug:  false,
-			expectedFile:   false,
 			expectedStderr: true,
 			expectedApp:    "todotui",
 		},
@@ -407,12 +345,6 @@ func TestConfig_DefaultValues(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if tt.config.Level != tt.expectedLevel {
 				t.Errorf("Level should be %v, got: %v", tt.expectedLevel, tt.config.Level)
-			}
-			if tt.config.EnableDebug != tt.expectedDebug {
-				t.Errorf("EnableDebug should be %v, got: %v", tt.expectedDebug, tt.config.EnableDebug)
-			}
-			if tt.config.OutputToFile != tt.expectedFile {
-				t.Errorf("OutputToFile should be %v, got: %v", tt.expectedFile, tt.config.OutputToFile)
 			}
 			if tt.config.OutputToStderr != tt.expectedStderr {
 				t.Errorf("OutputToStderr should be %v, got: %v", tt.expectedStderr, tt.config.OutputToStderr)

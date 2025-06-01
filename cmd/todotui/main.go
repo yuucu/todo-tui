@@ -52,7 +52,6 @@ Arguments:
 Options:
   -c, --config CONFIG       Path to configuration file
   -t, --theme THEME         Set color theme (catppuccin, nord, everforest-dark, everforest-light)
-  -d, --debug               Enable debug level logging (default: warning level)
   -v, --version             Show version information
   -h, --help               Show this help message
 
@@ -68,7 +67,6 @@ func main() {
 	var (
 		configFile  = flag.String("config", "", "Path to configuration file")
 		themeName   = flag.String("theme", "", "Set color theme (catppuccin, nord, everforest-dark, everforest-light)")
-		enableDebug = flag.Bool("debug", false, "Enable debug logging")
 		showVersion = flag.Bool("version", false, "Show version information")
 		showHelp    = flag.Bool("help", false, "Show this help message")
 	)
@@ -76,7 +74,6 @@ func main() {
 	// Define short flag aliases (reuse same help text)
 	flag.StringVar(configFile, "c", "", "Path to configuration file")
 	flag.StringVar(themeName, "t", "", "Set color theme (catppuccin, nord, everforest-dark, everforest-light)")
-	flag.BoolVar(enableDebug, "d", false, "Enable debug logging")
 	flag.BoolVar(showVersion, "v", false, "Show version information")
 	flag.BoolVar(showHelp, "h", false, "Show this help message")
 
@@ -119,16 +116,9 @@ func main() {
 		appConfig.Theme = *themeName
 	}
 
-	// Override debug logging if specified via command line
-	if *enableDebug {
-		appConfig.Logging.EnableDebug = true
-	}
-
 	// Initialize logging system (first initialization without UI channel)
 	var finalLogLevel string
-	if *enableDebug {
-		finalLogLevel = "DEBUG"
-	} else if appConfig.Logging.LogLevel != "" {
+	if appConfig.Logging.LogLevel != "" {
 		finalLogLevel = appConfig.Logging.LogLevel
 	} else {
 		finalLogLevel = "WARN"
@@ -136,9 +126,7 @@ func main() {
 
 	logConfig := logger.Config{
 		Level:          parseLogLevel(finalLogLevel),
-		EnableDebug:    parseLogLevel(finalLogLevel) == slog.LevelDebug,
-		OutputToFile:   false, // ファイル出力は無効
-		OutputToStderr: true,  // 標準エラー出力のみ
+		OutputToStderr: true, // 標準エラー出力のみ
 		AppName:        "todotui",
 	}
 

@@ -13,9 +13,7 @@ import (
 // Config はログの設定を定義
 type Config struct {
 	Level          slog.Level
-	EnableDebug    bool
-	OutputToFile   bool
-	OutputToStderr bool   // 新規追加: stderrへの出力を制御
+	OutputToStderr bool   // stderrへの出力を制御
 	AppName        string // アプリケーション名（ログディレクトリの決定に使用）
 }
 
@@ -78,35 +76,9 @@ func Init(config Config) error {
 		writers = append(writers, os.Stderr)
 	}
 
-	// ファイル出力が有効な場合
-	if config.OutputToFile {
-		// AppNameベースでログファイルパスを生成
-		appName := config.AppName
-		if appName == "" {
-			appName = "app"
-		}
-
-		logDir, err := getLogDirectory(appName)
-		if err != nil {
-			return fmt.Errorf("ログディレクトリの取得に失敗: %w", err)
-		}
-
-		// ファイル名に日付を含める
-		today := time.Now().Format("2006-01-02")
-		logFilePath := filepath.Join(logDir, fmt.Sprintf("%s-%s.log", appName, today))
-
-		// ログファイルを開く（追記モード）
-		logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
-		if err != nil {
-			return fmt.Errorf("ログファイルの作成に失敗: %w", err)
-		}
-
-		writers = append(writers, logFile)
-	}
-
 	// 出力先が設定されていない場合はエラー
 	if len(writers) == 0 {
-		return fmt.Errorf("ログの出力先が設定されていません（OutputToFile または OutputToStderr のいずれかを有効にしてください）")
+		return fmt.Errorf("ログの出力先が設定されていません（OutputToStderr を有効にしてください）")
 	}
 
 	// マルチライターを作成
@@ -114,9 +86,6 @@ func Init(config Config) error {
 
 	// ログレベルを設定
 	level := slog.LevelInfo
-	if config.EnableDebug {
-		level = slog.LevelDebug
-	}
 	if config.Level != 0 {
 		level = config.Level
 	}
@@ -136,7 +105,7 @@ func Init(config Config) error {
 			}
 			return a
 		},
-		AddSource: config.EnableDebug, // デバッグ時のみソース情報を表示
+		AddSource: level == slog.LevelDebug, // デバッグ時のみソース情報を表示
 	}
 
 	handler := slog.NewTextHandler(multiWriter, handlerOpts)

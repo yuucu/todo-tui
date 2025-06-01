@@ -81,12 +81,8 @@ type CompletedTaskTransitionConfig struct {
 	TransitionHour int `mapstructure:"transition_hour"`
 }
 
-// LoggingConfig represents logging configuration
+// LoggingConfig defines logging settings
 type LoggingConfig struct {
-	// Enable debug logging (deprecated, use LogLevel instead)
-	EnableDebug bool `mapstructure:"enable_debug"`
-
-	// Log level (DEBUG, INFO, WARN, ERROR)
 	LogLevel string `mapstructure:"log_level"`
 }
 
@@ -108,8 +104,7 @@ func DefaultAppConfig() AppConfig {
 			},
 		},
 		Logging: LoggingConfig{
-			EnableDebug: false,
-			LogLevel:    "WARN", // デフォルトは警告レベル
+			LogLevel: "WARN", // デフォルトは警告レベル
 		},
 	}
 }
@@ -324,7 +319,6 @@ func SaveConfigToFile(config AppConfig, configPath string) error {
 	v.Set("ui.completed_task_transition.transition_hour", config.UI.CompletedTaskTransition.TransitionHour)
 
 	// Set logging configuration
-	v.Set("logging.enable_debug", config.Logging.EnableDebug)
 	v.Set("logging.log_level", config.Logging.LogLevel)
 
 	// Set config file path (Viper will determine format by extension)

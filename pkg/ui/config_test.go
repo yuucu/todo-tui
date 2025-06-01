@@ -118,7 +118,7 @@ func TestValidateAndFixConfig(t *testing.T) {
 				VerticalPadding:   3,
 			},
 			Logging: LoggingConfig{
-				EnableDebug: true,
+				LogLevel: "DEBUG",
 			},
 		}
 
