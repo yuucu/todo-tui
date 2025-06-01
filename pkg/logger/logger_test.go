@@ -152,12 +152,8 @@ func TestInit(t *testing.T) {
 				slog.SetDefault(slog.Default())
 			}()
 
-			// テスト用の一時ファイルパスを設定（LogFilePathフィールドは使わない）
+			// テスト用の一時ファイルパスを設定（AppNameベースで自動生成）
 			if tt.useTemporaryConfig {
-				// AppNameベースで自動生成されるパスをテスト用に設定
-				// 実際の実装ではLogFilePathは空文字列で、AppNameから自動生成される
-				tt.config.LogFilePath = "" // 実際の使用方法に合わせて空文字列
-
 				// テスト用に一時的なAppNameを設定してファイルの場所を予測可能にする
 				tt.config.AppName = "test-" + tt.name
 			}
@@ -379,7 +375,6 @@ func TestConfig_DefaultValues(t *testing.T) {
 		expectedDebug  bool
 		expectedFile   bool
 		expectedStderr bool
-		expectedPath   string
 		expectedApp    string
 	}{
 		{
@@ -389,7 +384,6 @@ func TestConfig_DefaultValues(t *testing.T) {
 			expectedDebug:  false,
 			expectedFile:   false,
 			expectedStderr: false,
-			expectedPath:   "", // LogFilePathは実際には使用されない
 			expectedApp:    "",
 		},
 		{
@@ -399,14 +393,12 @@ func TestConfig_DefaultValues(t *testing.T) {
 				EnableDebug:    false,
 				OutputToFile:   false,
 				OutputToStderr: true,
-				LogFilePath:    "", // 実際の使用では空文字列
 				AppName:        "todotui",
 			},
 			expectedLevel:  slog.LevelWarn,
 			expectedDebug:  false,
 			expectedFile:   false,
 			expectedStderr: true,
-			expectedPath:   "", // LogFilePathは実際には使用されない
 			expectedApp:    "todotui",
 		},
 	}
@@ -424,9 +416,6 @@ func TestConfig_DefaultValues(t *testing.T) {
 			}
 			if tt.config.OutputToStderr != tt.expectedStderr {
 				t.Errorf("OutputToStderr should be %v, got: %v", tt.expectedStderr, tt.config.OutputToStderr)
-			}
-			if tt.config.LogFilePath != tt.expectedPath {
-				t.Errorf("LogFilePath should be %v, got: %v", tt.expectedPath, tt.config.LogFilePath)
 			}
 			if tt.config.AppName != tt.expectedApp {
 				t.Errorf("AppName should be %v, got: %v", tt.expectedApp, tt.config.AppName)

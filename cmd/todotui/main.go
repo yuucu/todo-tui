@@ -139,7 +139,6 @@ func main() {
 		EnableDebug:    parseLogLevel(finalLogLevel) == slog.LevelDebug,
 		OutputToFile:   false, // ファイル出力は無効
 		OutputToStderr: true,  // 標準エラー出力のみ
-		LogFilePath:    "",    // ファイルパスは不要
 		AppName:        "todotui",
 	}
 

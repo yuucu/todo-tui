@@ -15,8 +15,7 @@ type Config struct {
 	Level          slog.Level
 	EnableDebug    bool
 	OutputToFile   bool
-	OutputToStderr bool // 新規追加: stderrへの出力を制御
-	LogFilePath    string
+	OutputToStderr bool   // 新規追加: stderrへの出力を制御
 	AppName        string // アプリケーション名（ログディレクトリの決定に使用）
 }
 
@@ -81,26 +80,20 @@ func Init(config Config) error {
 
 	// ファイル出力が有効な場合
 	if config.OutputToFile {
-		var logFilePath string
-
-		if config.LogFilePath != "" {
-			logFilePath = config.LogFilePath
-		} else {
-			// デフォルトのログファイルパスを生成
-			appName := config.AppName
-			if appName == "" {
-				appName = "app"
-			}
-
-			logDir, err := getLogDirectory(appName)
-			if err != nil {
-				return fmt.Errorf("ログディレクトリの取得に失敗: %w", err)
-			}
-
-			// ファイル名に日付を含める
-			today := time.Now().Format("2006-01-02")
-			logFilePath = filepath.Join(logDir, fmt.Sprintf("%s-%s.log", appName, today))
+		// AppNameベースでログファイルパスを生成
+		appName := config.AppName
+		if appName == "" {
+			appName = "app"
 		}
+
+		logDir, err := getLogDirectory(appName)
+		if err != nil {
+			return fmt.Errorf("ログディレクトリの取得に失敗: %w", err)
+		}
+
+		// ファイル名に日付を含める
+		today := time.Now().Format("2006-01-02")
+		logFilePath := filepath.Join(logDir, fmt.Sprintf("%s-%s.log", appName, today))
 
 		// ログファイルを開く（追記モード）
 		logFile, err := os.OpenFile(logFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
