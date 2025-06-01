@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/yuucu/todotui/pkg/logger"
@@ -17,6 +18,22 @@ var (
 	commit  = "none"
 	date    = "unknown"
 )
+
+// parseLogLevel converts string log level to slog.Level
+func parseLogLevel(levelStr string) slog.Level {
+	switch strings.ToUpper(levelStr) {
+	case "DEBUG":
+		return slog.LevelDebug
+	case "INFO":
+		return slog.LevelInfo
+	case "WARN", "WARNING":
+		return slog.LevelWarn
+	case "ERROR":
+		return slog.LevelError
+	default:
+		return slog.LevelWarn // デフォルトは警告レベル
+	}
+}
 
 func printVersion() {
 	fmt.Printf("todotui %s\n", version)
@@ -35,8 +52,7 @@ Arguments:
 Options:
   -c, --config CONFIG       Path to configuration file
   -t, --theme THEME         Set color theme (catppuccin, nord, everforest-dark, everforest-light)
-  -d, --debug               Enable debug logging
-  -l, --log-file PATH       Custom log file path (default: OS-specific location)
+  -d, --debug               Enable debug level logging (default: warning level)
   -v, --version             Show version information
   -h, --help               Show this help message
 
@@ -53,7 +69,6 @@ func main() {
 		configFile  = flag.String("config", "", "Path to configuration file")
 		themeName   = flag.String("theme", "", "Set color theme (catppuccin, nord, everforest-dark, everforest-light)")
 		enableDebug = flag.Bool("debug", false, "Enable debug logging")
-		logFile     = flag.String("log-file", "", "Custom log file path (default: OS-specific location)")
 		showVersion = flag.Bool("version", false, "Show version information")
 		showHelp    = flag.Bool("help", false, "Show this help message")
 	)
@@ -62,7 +77,6 @@ func main() {
 	flag.StringVar(configFile, "c", "", "Path to configuration file")
 	flag.StringVar(themeName, "t", "", "Set color theme (catppuccin, nord, everforest-dark, everforest-light)")
 	flag.BoolVar(enableDebug, "d", false, "Enable debug logging")
-	flag.StringVar(logFile, "l", "", "Custom log file path (default: OS-specific location)")
 	flag.BoolVar(showVersion, "v", false, "Show version information")
 	flag.BoolVar(showHelp, "h", false, "Show this help message")
 
@@ -110,18 +124,22 @@ func main() {
 		appConfig.Logging.EnableDebug = true
 	}
 
-	// Override log file path if specified via command line
-	if *logFile != "" {
-		appConfig.Logging.LogFilePath = *logFile
+	// Initialize logging system (first initialization without UI channel)
+	var finalLogLevel string
+	if *enableDebug {
+		finalLogLevel = "DEBUG"
+	} else if appConfig.Logging.LogLevel != "" {
+		finalLogLevel = appConfig.Logging.LogLevel
+	} else {
+		finalLogLevel = "WARN"
 	}
 
-	// Initialize logging system (first initialization without UI channel)
 	logConfig := logger.Config{
-		Level:          slog.LevelInfo,
-		EnableDebug:    appConfig.Logging.EnableDebug,
-		OutputToFile:   true, // 常にファイル出力を有効
-		OutputToStderr: true, // stderrにも出力する
-		LogFilePath:    appConfig.Logging.LogFilePath,
+		Level:          parseLogLevel(finalLogLevel),
+		EnableDebug:    parseLogLevel(finalLogLevel) == slog.LevelDebug,
+		OutputToFile:   false, // ファイル出力は無効
+		OutputToStderr: true,  // 標準エラー出力のみ
+		LogFilePath:    "",    // ファイルパスは不要
 		AppName:        "todotui",
 	}
 
@@ -132,11 +150,6 @@ func main() {
 
 	// ログシステム開始メッセージ
 	logger.Info("todotui started", "version", version, "commit", commit)
-
-	// 古いログファイルのクリーンアップ（エラーは無視）
-	if err := logger.CleanupOldLogs("todotui", appConfig.Logging.MaxLogDays); err != nil {
-		logger.Debug("古いログファイルのクリーンアップに失敗", "error", err)
-	}
 
 	// Determine todo file path with priority: CLI argument > config file > error
 	var finalTodoFile string
