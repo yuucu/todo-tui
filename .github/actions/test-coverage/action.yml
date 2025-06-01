@@ -60,8 +60,9 @@ runs:
 
     - name: Upload coverage to Codecov
       if: inputs.upload-codecov == 'true'
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
+        token: ${{ secrets.CODECOV_TOKEN }}
         files: ./coverage.out
         flags: unittests
         name: codecov-umbrella
