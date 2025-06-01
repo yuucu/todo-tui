@@ -93,7 +93,6 @@ ui:
 logging:
   # Log Level
   # =========
-  # Specify exact log level (takes precedence over enable_debug)
   # Available levels: DEBUG, INFO, WARN, ERROR
   # Default: WARN (warnings and errors only)
   log_level: "WARN"
