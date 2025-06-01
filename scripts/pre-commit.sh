@@ -34,10 +34,4 @@ if ! make test; then
 fi
 log_success "make test completed"
 
-# フォーマットの変更があった場合、ステージングエリアに追加
-if ! git diff --quiet --exit-code; then
-    log_warning "Code formatting changes detected. Adding to staging area..."
-    git add .
-fi
-
 echo -e "${GREEN}=== All pre-commit checks passed! ===${NC}" 
