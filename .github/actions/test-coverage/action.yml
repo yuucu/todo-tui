@@ -10,6 +10,10 @@ inputs:
     description: 'Upload to Codecov'
     required: false
     default: 'true'
+  codecov-token:
+    description: 'Codecov token for uploading coverage'
+    required: false
+    default: ''
   comment-pr:
     description: 'Comment on PR with coverage report'
     required: false
@@ -62,7 +66,7 @@ runs:
       if: inputs.upload-codecov == 'true'
       uses: codecov/codecov-action@v5
       with:
-        token: ${{ secrets.CODECOV_TOKEN }}
+        token: ${{ inputs.codecov-token }}
         files: ./coverage.out
         flags: unittests
         name: codecov-umbrella

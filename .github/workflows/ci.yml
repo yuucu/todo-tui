@@ -93,6 +93,7 @@ jobs:
       uses: ./.github/actions/test-coverage
       with:
         go-version: ${{ env.GO_VERSION }}
+        codecov-token: ${{ secrets.CODECOV_TOKEN }}
         upload-codecov: 'true'
         comment-pr: 'true'
 
