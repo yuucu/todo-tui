@@ -19,13 +19,13 @@ var (
 	date    = "unknown"
 )
 
-// Config represents the parsed command line configuration
-type Config struct {
-	ConfigFile  string
-	ThemeName   string
-	TodoFile    string
-	ShowVersion bool
-	ShowHelp    bool
+// config represents the parsed command line configuration
+type config struct {
+	configFile  string
+	themeName   string
+	todoFile    string
+	showVersion bool
+	showHelp    bool
 }
 
 // parseLogLevel converts string log level to slog.Level
@@ -68,8 +68,8 @@ For detailed documentation and keybindings, see: https://github.com/yuucu/todotu
 `, os.Args[0])
 }
 
-// ParseFlags parses command line flags and returns configuration
-func ParseFlags() (*Config, error) {
+// parseFlags parses command line flags and returns configuration
+func parseFlags() (*config, error) {
 	// Define command line flags
 	var (
 		configFile  = flag.String("config", "", "Path to configuration file")
@@ -100,26 +100,26 @@ func ParseFlags() (*Config, error) {
 		return nil, fmt.Errorf("too many arguments")
 	}
 
-	return &Config{
-		ConfigFile:  *configFile,
-		ThemeName:   *themeName,
-		TodoFile:    todoFile,
-		ShowVersion: *showVersion,
-		ShowHelp:    *showHelp,
+	return &config{
+		configFile:  *configFile,
+		themeName:   *themeName,
+		todoFile:    todoFile,
+		showVersion: *showVersion,
+		showHelp:    *showHelp,
 	}, nil
 }
 
-// RunBubbleTea runs the bubble tea application with given configuration
-func RunBubbleTea(config *Config) error {
+// runBubbleTea runs the bubble tea application with given configuration
+func runBubbleTea(cfg *config) error {
 	// Setup IME environment for Japanese input support
 	ui.SetupIMEEnvironment()
 
 	// Load configuration
-	appConfig := ui.LoadConfig(config.ConfigFile)
+	appConfig := ui.LoadConfig(cfg.configFile)
 
 	// Override theme if specified via command line
-	if config.ThemeName != "" {
-		appConfig.Theme = config.ThemeName
+	if cfg.themeName != "" {
+		appConfig.Theme = cfg.themeName
 	}
 
 	// Initialize logging system
@@ -144,8 +144,8 @@ func RunBubbleTea(config *Config) error {
 
 	// Determine todo file path
 	var finalTodoFile string
-	if config.TodoFile != "" {
-		finalTodoFile = config.TodoFile
+	if cfg.todoFile != "" {
+		finalTodoFile = cfg.todoFile
 		logger.Debug("TODO file specified via CLI", "file", finalTodoFile)
 	} else if appConfig.DefaultTodoFile != "" {
 		finalTodoFile = appConfig.DefaultTodoFile
@@ -181,21 +181,21 @@ func RunBubbleTea(config *Config) error {
 
 // Run is the main entry point
 func Run() error {
-	config, err := ParseFlags()
+	cfg, err := parseFlags()
 	if err != nil {
 		return err
 	}
 
 	// Handle help and version flags
-	if config.ShowHelp {
+	if cfg.showHelp {
 		flag.Usage()
 		return nil
 	}
 
-	if config.ShowVersion {
+	if cfg.showVersion {
 		printVersion()
 		return nil
 	}
 
-	return RunBubbleTea(config)
+	return runBubbleTea(cfg)
 }
