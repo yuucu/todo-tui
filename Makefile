@@ -15,7 +15,7 @@ YELLOW=\033[0;33m
 RED=\033[0;31m
 NC=\033[0m # No Color
 
-.PHONY: help build run test fmt lint clean git-hooks-status install
+.PHONY: help build run test coverage fmt lint clean git-hooks-status install
 
 # デフォルトターゲット
 all: fmt test build
@@ -46,9 +46,30 @@ run: ## アプリケーションを実行
 
 # テスト
 test: ## テストを実行
-	@echo "$(BLUE)Running tests...$(NC)"
-	$(GO) test -v ./...
-	@echo "$(GREEN)✓ Tests completed$(NC)"
+	go test -v ./...
+
+# テストカバレッジ
+coverage:
+	go test -cover ./... -coverprofile=cover.out.tmp
+	# 自動生成コードをカバレッジ対象から外し、カバレッジファイルを作成
+	cat cover.out.tmp | grep -v "**_mock.go" | grep -v "wire_gen.go" > cover.out
+	rm cover.out.tmp
+	go tool cover -html=cover.out -o cover.html
+	@echo ""
+	@echo "📊 Coverage Summary:"
+	@go tool cover -func=cover.out | tail -n 1
+	@COVERAGE=$$(go tool cover -func=cover.out | grep total | awk '{print $$3}' | sed 's/%//'); \
+	THRESHOLD=70; \
+	echo ""; \
+	echo "Coverage Check (threshold: $$THRESHOLD%):"; \
+	if [ $$(echo "$$COVERAGE >= $$THRESHOLD" | bc -l) -eq 1 ]; then \
+		echo "✅ Coverage $$COVERAGE% meets threshold"; \
+	else \
+		echo "⚠️  Coverage $$COVERAGE% is below threshold"; \
+	fi
+	@echo ""
+	@echo "Opening coverage report in browser..."
+	open cover.html
 
 # コードフォーマット
 fmt: ## コードをフォーマット
@@ -68,6 +89,7 @@ clean: ## ビルド成果物をクリーンアップ
 	@echo "$(BLUE)Cleaning up...$(NC)"
 	rm -rf $(BUILD_DIR)
 	rm -rf dist/
+	rm -rf coverage/
 	@echo "$(GREEN)✓ Cleanup completed$(NC)"
 
 # Git フックの状態確認
