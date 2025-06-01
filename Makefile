@@ -8,6 +8,14 @@ BUILD_DIR=bin
 # Go コマンド
 GO=go
 
+# ビルド情報の取得
+VERSION ?= $(shell git describe --tags --dirty --always 2>/dev/null || echo "dev")
+COMMIT ?= $(shell git rev-parse --short HEAD 2>/dev/null || echo "none")
+DATE ?= $(shell date -u "+%Y-%m-%dT%H:%M:%SZ")
+LDFLAGS = -X github.com/yuucu/todotui/pkg/app.version=$(VERSION) \
+          -X github.com/yuucu/todotui/pkg/app.commit=$(COMMIT) \
+          -X github.com/yuucu/todotui/pkg/app.date=$(DATE)
+
 # カラー出力用
 GREEN=\033[0;32m
 BLUE=\033[0;34m
@@ -36,7 +44,7 @@ install: ## 開発に必要なツールとpre-commitフックをインストー�
 build: ## バイナリをビルド
 	@echo "$(BLUE)Building $(BINARY_NAME)...$(NC)"
 	@mkdir -p $(BUILD_DIR)
-	$(GO) build -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)
+	$(GO) build -ldflags "$(LDFLAGS)" -o $(BUILD_DIR)/$(BINARY_NAME) $(MAIN_PATH)
 	@echo "$(GREEN)✓ Build completed: $(BUILD_DIR)/$(BINARY_NAME)$(NC)"
 
 # 実行

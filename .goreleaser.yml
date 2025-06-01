@@ -23,9 +23,9 @@ builds:
       - -trimpath
     ldflags:
       - -s -w
-      - -X main.version={{.Version}}
-      - -X main.commit={{.Commit}}
-      - -X main.date={{.Date}}
+      - -X github.com/yuucu/todotui/pkg/app.version={{.Version}}
+      - -X github.com/yuucu/todotui/pkg/app.commit={{.Commit}}
+      - -X github.com/yuucu/todotui/pkg/app.date={{.Date}}
     mod_timestamp: '{{ .CommitTimestamp }}'
 
 archives:
