@@ -83,11 +83,6 @@ runs:
         
         **Coverage:** ${COVERAGE}%
         
-        ### Coverage Summary
-        \`\`\`
-        $(go tool cover -func=coverage.out | tail -n 1)
-        \`\`\`
-        
         ### Coverage Details
         <details>
         <summary>Click to expand detailed coverage</summary>
