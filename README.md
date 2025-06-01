@@ -114,6 +114,5 @@ git clone https://github.com/yuucu/todotui.git
 cd todotui
 make install  # Install development tools and set up pre-commit hooks
 make build    # Build the application
-make coverage # Run tests with coverage report
 ```
 

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"log/slog"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
@@ -84,41 +83,21 @@ func TestInit(t *testing.T) {
 		wantError     bool
 		errorContains string
 		checkLogger   bool
-		checkLogFile  bool
-		customLogFile string
 	}{
 		{
-			name: "Output to stderr only",
+			name: "Output to stderr (actual usage)",
 			config: Config{
 				Level:          slog.LevelInfo,
-				EnableDebug:    false,
-				OutputToFile:   false,
 				OutputToStderr: true,
-				AppName:        "test",
+				AppName:        "todotui",
 			},
 			wantError:   false,
 			checkLogger: true,
 		},
 		{
-			name: "Output to file only",
-			config: Config{
-				Level:          slog.LevelDebug,
-				EnableDebug:    true,
-				OutputToFile:   true,
-				OutputToStderr: false,
-				AppName:        "test",
-			},
-			wantError:     false,
-			checkLogger:   true,
-			checkLogFile:  true,
-			customLogFile: "test.log", // will be set in tempDir
-		},
-		{
 			name: "No output configured",
 			config: Config{
 				Level:          slog.LevelInfo,
-				EnableDebug:    false,
-				OutputToFile:   false,
 				OutputToStderr: false,
 				AppName:        "test",
 			},
@@ -126,18 +105,14 @@ func TestInit(t *testing.T) {
 			errorContains: "ログの出力先が設定されていません",
 		},
 		{
-			name: "Both outputs enabled",
+			name: "Debug level with stderr",
 			config: Config{
-				Level:          slog.LevelWarn,
-				EnableDebug:    false,
-				OutputToFile:   true,
+				Level:          slog.LevelDebug,
 				OutputToStderr: true,
 				AppName:        "test",
 			},
-			wantError:     false,
-			checkLogger:   true,
-			checkLogFile:  true,
-			customLogFile: "both-output.log",
+			wantError:   false,
+			checkLogger: true,
 		},
 	}
 
@@ -149,12 +124,6 @@ func TestInit(t *testing.T) {
 				globalLogger = originalLogger
 				slog.SetDefault(slog.Default())
 			}()
-
-			// カスタムログファイルパスを設定
-			if tt.customLogFile != "" {
-				tempDir := t.TempDir()
-				tt.config.LogFilePath = filepath.Join(tempDir, tt.customLogFile)
-			}
 
 			err := Init(tt.config)
 
@@ -182,15 +151,6 @@ func TestInit(t *testing.T) {
 				logger := GetLogger()
 				if logger == nil {
 					t.Error("GetLogger() should not return nil")
-				}
-			}
-
-			if tt.checkLogFile {
-				// ログファイルが作成されることを確認
-				Info("test message")
-
-				if _, err := os.Stat(tt.config.LogFilePath); os.IsNotExist(err) {
-					t.Errorf("Log file should be created: %v", tt.config.LogFilePath)
 				}
 			}
 		})
@@ -358,36 +318,26 @@ func TestConfig_DefaultValues(t *testing.T) {
 		name           string
 		config         Config
 		expectedLevel  slog.Level
-		expectedDebug  bool
-		expectedFile   bool
 		expectedStderr bool
-		expectedPath   string
 		expectedApp    string
 	}{
 		{
 			name:           "Zero value config",
 			config:         Config{},
 			expectedLevel:  0,
-			expectedDebug:  false,
-			expectedFile:   false,
 			expectedStderr: false,
-			expectedPath:   "",
 			expectedApp:    "",
 		},
 		{
-			name: "Partially configured",
+			name: "Actual usage config (stderr only)",
 			config: Config{
-				Level:        slog.LevelWarn,
-				EnableDebug:  true,
-				OutputToFile: true,
-				AppName:      "testapp",
+				Level:          slog.LevelWarn,
+				OutputToStderr: true,
+				AppName:        "todotui",
 			},
 			expectedLevel:  slog.LevelWarn,
-			expectedDebug:  true,
-			expectedFile:   true,
-			expectedStderr: false,
-			expectedPath:   "",
-			expectedApp:    "testapp",
+			expectedStderr: true,
+			expectedApp:    "todotui",
 		},
 	}
 
@@ -396,17 +346,8 @@ func TestConfig_DefaultValues(t *testing.T) {
 			if tt.config.Level != tt.expectedLevel {
 				t.Errorf("Level should be %v, got: %v", tt.expectedLevel, tt.config.Level)
 			}
-			if tt.config.EnableDebug != tt.expectedDebug {
-				t.Errorf("EnableDebug should be %v, got: %v", tt.expectedDebug, tt.config.EnableDebug)
-			}
-			if tt.config.OutputToFile != tt.expectedFile {
-				t.Errorf("OutputToFile should be %v, got: %v", tt.expectedFile, tt.config.OutputToFile)
-			}
 			if tt.config.OutputToStderr != tt.expectedStderr {
 				t.Errorf("OutputToStderr should be %v, got: %v", tt.expectedStderr, tt.config.OutputToStderr)
-			}
-			if tt.config.LogFilePath != tt.expectedPath {
-				t.Errorf("LogFilePath should be %v, got: %v", tt.expectedPath, tt.config.LogFilePath)
 			}
 			if tt.config.AppName != tt.expectedApp {
 				t.Errorf("AppName should be %v, got: %v", tt.expectedApp, tt.config.AppName)

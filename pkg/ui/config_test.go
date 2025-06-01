@@ -118,7 +118,7 @@ func TestValidateAndFixConfig(t *testing.T) {
 				VerticalPadding:   3,
 			},
 			Logging: LoggingConfig{
-				MaxLogDays: 15,
+				LogLevel: "DEBUG",
 			},
 		}
 

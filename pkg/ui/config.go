@@ -81,16 +81,9 @@ type CompletedTaskTransitionConfig struct {
 	TransitionHour int `mapstructure:"transition_hour"`
 }
 
-// LoggingConfig represents logging configuration
+// LoggingConfig defines logging settings
 type LoggingConfig struct {
-	// Enable debug logging
-	EnableDebug bool `mapstructure:"enable_debug"`
-
-	// Custom log file path (optional, ファイル出力は常に有効)
-	LogFilePath string `mapstructure:"log_file_path"`
-
-	// Maximum days to keep log files
-	MaxLogDays int `mapstructure:"max_log_days"`
+	LogLevel string `mapstructure:"log_level"`
 }
 
 // DefaultAppConfig returns the default application configuration
@@ -111,9 +104,7 @@ func DefaultAppConfig() AppConfig {
 			},
 		},
 		Logging: LoggingConfig{
-			EnableDebug: false,
-			LogFilePath: "", // 空の場合はデフォルトパスを使用
-			MaxLogDays:  30, // 30日間ログを保持
+			LogLevel: "WARN", // デフォルトは警告レベル
 		},
 	}
 }
@@ -276,19 +267,26 @@ func validateAndFixConfig(config AppConfig) AppConfig {
 		config.UI.CompletedTaskTransition.TransitionHour = 5
 	}
 
-	// Validate logging settings
-	if config.Logging.MaxLogDays <= 0 {
-		config.Logging.MaxLogDays = 30
+	// Validate log level
+	validLogLevels := []string{"DEBUG", "INFO", "WARN", "WARNING", "ERROR"}
+	isValidLogLevel := false
+	if config.Logging.LogLevel != "" {
+		upperLogLevel := strings.ToUpper(config.Logging.LogLevel)
+		for _, level := range validLogLevels {
+			if upperLogLevel == level {
+				isValidLogLevel = true
+				config.Logging.LogLevel = upperLogLevel // 正規化（大文字に統一）
+				break
+			}
+		}
+		if !isValidLogLevel {
+			config.Logging.LogLevel = "WARN" // 無効な場合はデフォルトに
+		}
 	}
 
 	// Expand ~ in path if present (only if path is specified)
 	if config.DefaultTodoFile != "" {
 		config.DefaultTodoFile = ExpandHomePath(config.DefaultTodoFile)
-	}
-
-	// Expand ~ in log file path if present
-	if config.Logging.LogFilePath != "" {
-		config.Logging.LogFilePath = ExpandHomePath(config.Logging.LogFilePath)
 	}
 
 	return config
@@ -321,9 +319,7 @@ func SaveConfigToFile(config AppConfig, configPath string) error {
 	v.Set("ui.completed_task_transition.transition_hour", config.UI.CompletedTaskTransition.TransitionHour)
 
 	// Set logging configuration
-	v.Set("logging.enable_debug", config.Logging.EnableDebug)
-	v.Set("logging.log_file_path", config.Logging.LogFilePath)
-	v.Set("logging.max_log_days", config.Logging.MaxLogDays)
+	v.Set("logging.log_level", config.Logging.LogLevel)
 
 	// Set config file path (Viper will determine format by extension)
 	v.SetConfigFile(configPath)
