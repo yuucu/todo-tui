@@ -12,13 +12,6 @@ import (
 	"github.com/yuucu/todotui/pkg/ui"
 )
 
-// Build information variables (set by goreleaser)
-var (
-	version = "dev"
-	commit  = "none"
-	date    = "unknown"
-)
-
 // config represents the parsed command line configuration
 type config struct {
 	configFile  string
@@ -42,12 +35,6 @@ func parseLogLevel(levelStr string) slog.Level {
 	default:
 		return slog.LevelWarn // デフォルトは警告レベル
 	}
-}
-
-func printVersion() {
-	fmt.Printf("todotui %s\n", version)
-	fmt.Printf("Commit: %s\n", commit)
-	fmt.Printf("Built: %s\n", date)
 }
 
 func printUsage() {
@@ -140,7 +127,7 @@ func runBubbleTea(cfg *config) error {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to initialize logger: %v\n", err)
 	}
 
-	logger.Info("todotui started", "version", version, "commit", commit)
+	logger.Info("todotui started", "version", GetVersion(), "commit", GetCommit())
 
 	// Determine todo file path
 	var finalTodoFile string
@@ -193,7 +180,7 @@ func Run() error {
 	}
 
 	if cfg.showVersion {
-		printVersion()
+		PrintVersion()
 		return nil
 	}
 
