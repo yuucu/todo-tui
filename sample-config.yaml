@@ -1,60 +1,155 @@
+# =====================================
 # Todo TUI Configuration File
-# Configuration file location: ~/.config/todotui/config.yaml
+# =====================================
+# 
+# This is a comprehensive configuration file for Todo TUI.
+# Copy this file to your configuration directory:
+# 
+# macOS/Linux: ~/.config/todotui/config.yaml
+# Windows:     %APPDATA%/todotui/config.yaml
+#
+# All settings are optional. If not specified, defaults will be used.
+# Remove or comment out any settings you don't want to customize.
 
 # =====================================
 # Theme Settings
 # =====================================
-# Available themes: catppuccin, nord, everforest-dark, everforest-light
+# Controls the color scheme of the application
+# Available themes:
+#   - catppuccin      (default, warm pastel colors)
+#   - nord            (cool, arctic-inspired colors)
+#   - everforest-dark (earthy, forest-inspired dark theme)
+#   - everforest-light (earthy, forest-inspired light theme)
 theme: catppuccin
 
 # =====================================
 # Priority Level Settings
 # =====================================
-# First empty string ("") represents no priority (required)
+# Define custom priority levels for your tasks
+# Rules:
+#   - First element MUST be empty string ("") for "no priority"
+#   - Use single letters (A-Z) for priority levels
+#   - Order defines priority hierarchy (first = highest priority)
+#   - You can add/remove levels as needed
 priority_levels:
-  - ""    # No priority
+  - ""    # No priority (required)
   - A     # Highest priority
   - B     # High priority
   - C     # Medium priority
   - D     # Low priority
+  # - E   # You can add more levels like this
 
 # =====================================
 # File Settings
 # =====================================
 # Default todo.txt file path
+# If specified, you don't need to provide a file path when running todotui
+# Supports:
+#   - Absolute paths: /path/to/todo.txt
+#   - Home directory: ~/todo.txt
+#   - Relative paths: ./todo.txt
 default_todo_file: ./sample.todo.txt
 
 # =====================================
-# UI Settings
+# User Interface Settings
 # =====================================
 ui:
-  # Layout settings
-  left_pane_ratio: 0.33        # Left pane width ratio (0.1-0.9)
-  min_left_pane_width: 18      # Minimum left pane width
-  min_right_pane_width: 28     # Minimum right pane width
-  vertical_padding: 2          # Vertical padding (1-5)
+  # Layout Configuration
+  # ====================
+  
+  # Left pane width as a ratio of total terminal width
+  # Range: 0.1 - 0.9
+  # Recommended: 0.25 - 0.4 for optimal balance
+  left_pane_ratio: 0.33
+  
+  # Minimum width constraints (in characters)
+  # These prevent panes from becoming too narrow on small terminals
+  min_left_pane_width: 18      # Filter/project list pane
+  min_right_pane_width: 28     # Task detail pane
+  
+  # Vertical spacing around content
+  # Range: 1 - 5
+  # Recommended: 2 - 3 for comfortable viewing
+  vertical_padding: 2
 
-  # Completed task transition settings
+  # Completed Task Management
+  # =========================
   completed_task_transition:
-    # Number of days to wait before moving completed tasks to "Completed Tasks" filter
-    delay_days: 1              # Default: 1 day (0 for immediate move)
+    # Days to wait before moving completed tasks to "Completed Tasks" filter
+    # 0 = move immediately
+    # 1+ = wait specified days before moving
+    # This helps you review recently completed tasks
+    delay_days: 1
     
-    # Time of day (24-hour format) when the transition should occur
-    transition_hour: 5         # Default: 5 (05:00 morning)
+    # Hour of day (24-hour format) when transition occurs
+    # Range: 0 - 23 (0 = midnight, 12 = noon, 23 = 11 PM)
+    # Recommended: Early morning hours (3-6) for daily cleanup
+    transition_hour: 5
 
 # =====================================
-# Logging Settings
+# Logging Configuration
 # =====================================
-# Log files are always created for troubleshooting
+# Todo TUI creates log files for troubleshooting and debugging
 logging:
-  # Debug mode - shows detailed internal operations
+  # Debug Mode
+  # ==========
+  # Enable detailed logging for troubleshooting
+  # true  = verbose logging (useful for bug reports)
+  # false = normal logging (recommended for daily use)
   enable_debug: false
 
-  # Custom log file path (leave empty for OS-specific default)
-  # macOS: ~/Library/Logs/todotui/todotui-YYYY-MM-DD.log
-  # Linux: ~/.local/share/todotui/logs/todotui-YYYY-MM-DD.log
+  # Log File Location
+  # =================
+  # Custom path for log files (leave empty for OS defaults)
+  # 
+  # Default locations when empty:
+  # macOS:   ~/Library/Logs/todotui/todotui-YYYY-MM-DD.log
+  # Linux:   ~/.local/share/todotui/logs/todotui-YYYY-MM-DD.log
   # Windows: %APPDATA%/todotui/logs/todotui-YYYY-MM-DD.log
+  # 
+  # Custom examples:
+  # log_file_path: "~/logs/todotui.log"
+  # log_file_path: "/var/log/todotui/app.log"
   log_file_path: ""
 
-  # Number of days to keep log files (automatic cleanup)
+  # Log Retention
+  # =============
+  # Number of days to keep old log files
+  # Older files are automatically deleted to save disk space
+  # Range: 1 - 365
+  # Recommended: 7 - 30 days
   max_log_days: 30
+
+# =====================================
+# Example Configurations
+# =====================================
+# 
+# Minimal Configuration:
+# ----------------------
+# theme: catppuccin
+# default_todo_file: ~/todo.txt
+# 
+# Compact Layout (for smaller terminals):
+# ---------------------------------------
+# theme: nord
+# ui:
+#   left_pane_ratio: 0.25
+#   min_left_pane_width: 15
+#   min_right_pane_width: 25
+#   vertical_padding: 1
+# 
+# Spacious Layout (for larger terminals):
+# ---------------------------------------
+# theme: everforest-dark
+# ui:
+#   left_pane_ratio: 0.4
+#   min_left_pane_width: 25
+#   min_right_pane_width: 35
+#   vertical_padding: 3
+# 
+# Developer Setup (with debug logging):
+# -------------------------------------
+# logging:
+#   enable_debug: true
+#   log_file_path: "~/todotui-debug.log"
+#   max_log_days: 7

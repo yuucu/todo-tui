@@ -71,21 +71,27 @@ x 2025-01-14 Clean garage @home +chores
 
 ## ⚙️ Configuration
 
-Create a YAML configuration file at `~/.config/todotui/config.yaml`:
+Todo TUI can be configured using a `config.yaml` file for detailed customization.
+
+### 📍 Configuration File Location
+
+- **macOS/Linux**: `~/.config/todotui/config.yaml`
+- **Windows**: `%APPDATA%/todotui/config.yaml`
+
+### 🎨 Basic Configuration Example
 
 ```yaml
 # ~/.config/todotui/config.yaml
 theme: catppuccin                # Available: catppuccin, nord, everforest-dark, everforest-light
 priority_levels: ["", A, B, C, D]
 default_todo_file: ~/todo.txt
-ui:
-  left_pane_ratio: 0.33
-  min_left_pane_width: 18
-  min_right_pane_width: 28
-  vertical_padding: 2
 ```
 
-**Usage:**
+**📚 Complete Configuration Reference**: 
+- **[sample-config.yaml](sample-config.yaml)** - Comprehensive configuration file with all options and detailed explanations
+
+### 💻 Usage
+
 ```bash
 # Automatic config detection (loads ~/.config/todotui/config.yaml)
 todotui ~/my-todo.txt
@@ -97,7 +103,7 @@ todotui
 todotui --config /path/to/config.yaml
 ```
 
-Supported formats: YAML, JSON, TOML
+**Supported formats**: YAML, JSON, TOML
 
 ## 🏗️ Development
 
