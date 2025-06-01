@@ -27,9 +27,19 @@
 
 ## 🚀 Installation
 
+### Go Install
+
 ```bash
+# Install latest version
 go install github.com/yuucu/todotui/cmd/todotui@latest
+
+# Install specific version
+go install github.com/yuucu/todotui/cmd/todotui@vx.x.x
 ```
+
+### Binary Download
+
+Download pre-built binaries for your platform from the [Releases page](https://github.com/yuucu/todotui/releases).
 
 ## 🚀 Quick Start
 
