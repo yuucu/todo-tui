@@ -91,16 +91,8 @@ ui:
 # =====================================
 # Todo TUI outputs logs to stderr for troubleshooting
 logging:
-  # Debug Mode
-  # ==========
-  # Controls log verbosity level
-  # true  = debug level (all logs including detailed debugging info)
-  # false = warning level (warnings and errors only, default)
-  enable_debug: false
-
   # Log Level
   # =========
-  # Specify exact log level (takes precedence over enable_debug)
   # Available levels: DEBUG, INFO, WARN, ERROR
   # Default: WARN (warnings and errors only)
   log_level: "WARN"
