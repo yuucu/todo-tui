@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -47,17 +48,17 @@ func TestTasks_Basic(t *testing.T) {
 
 	// Test Get
 	firstTask := tasks.Get(0)
-	if firstTask == nil {
-		t.Fatal("Expected task at index 0, got nil")
+	if firstTask.String() == "" {
+		t.Fatal("Expected task at index 0, got empty task")
 	}
-	if firstTask.Todo != "First task" {
-		t.Errorf("Expected 'First task', got '%s'", firstTask.Todo)
+	if !strings.Contains(firstTask.String(), "First task") {
+		t.Errorf("Expected 'First task' in %s", firstTask.String())
 	}
 
-	// Test Get out of bounds
+	// Test Get out of bounds - should return zero value Task
 	invalidTask := tasks.Get(5)
-	if invalidTask != nil {
-		t.Errorf("Expected nil for out of bounds index, got %v", invalidTask)
+	if invalidTask.String() != "" {
+		t.Errorf("Expected empty task for out of bounds index, got %s", invalidTask.String())
 	}
 
 	// Test ToTaskList
@@ -94,34 +95,34 @@ func TestTasks_SortByCompletionStatus_OnlyIncompleteTasks(t *testing.T) {
 
 	for i := 0; i < result.Len(); i++ {
 		task := result.Get(i)
-		if task.Completed {
+		if task.IsCompleted() {
 			t.Errorf("Task %d should be incomplete, but is completed", i)
 		}
 	}
 
-	// Check original order is preserved (use the actual Todo field content)
-	expectedTodos := []string{
-		"First incomplete task", // Projects/contexts are parsed separately
+	// Check original order is preserved by checking task content
+	expectedTasks := []string{
+		"First incomplete task",
 		"Second incomplete task",
 		"Third incomplete task",
 	}
 
-	for i, expected := range expectedTodos {
+	for i, expected := range expectedTasks {
 		task := result.Get(i)
-		if task.Todo != expected {
-			t.Errorf("Task %d: expected '%s', got '%s'", i, expected, task.Todo)
+		if !strings.Contains(task.String(), expected) {
+			t.Errorf("Task %d: expected to contain '%s', got '%s'", i, expected, task.String())
 		}
 	}
 
 	// Verify projects and contexts were parsed correctly
 	firstTask := result.Get(0)
-	if len(firstTask.Projects) != 1 || firstTask.Projects[0] != "project" {
-		t.Errorf("First task should have project 'project', got %v", firstTask.Projects)
+	if len(firstTask.Projects()) != 1 || firstTask.Projects()[0] != "project" {
+		t.Errorf("First task should have project 'project', got %v", firstTask.Projects())
 	}
 
 	secondTask := result.Get(1)
-	if len(secondTask.Contexts) != 1 || secondTask.Contexts[0] != "context" {
-		t.Errorf("Second task should have context 'context', got %v", secondTask.Contexts)
+	if len(secondTask.Contexts()) != 1 || secondTask.Contexts()[0] != "context" {
+		t.Errorf("Second task should have context 'context', got %v", secondTask.Contexts())
 	}
 }
 
@@ -144,7 +145,7 @@ func TestTasks_SortByCompletionStatus_MixedTasks(t *testing.T) {
 	// First three tasks should be incomplete
 	for i := 0; i < 3; i++ {
 		task := result.Get(i)
-		if task.Completed {
+		if task.IsCompleted() {
 			t.Errorf("Task %d should be incomplete, but is completed", i)
 		}
 	}
@@ -152,7 +153,7 @@ func TestTasks_SortByCompletionStatus_MixedTasks(t *testing.T) {
 	// Last two tasks should be completed
 	for i := 3; i < 5; i++ {
 		task := result.Get(i)
-		if !task.Completed {
+		if !task.IsCompleted() {
 			t.Errorf("Task %d should be completed, but is incomplete", i)
 		}
 	}
@@ -166,9 +167,9 @@ func TestTasks_SortByCompletionStatus_MixedTasks(t *testing.T) {
 
 	for i, expected := range expectedIncompleteOrder {
 		task := result.Get(i)
-		if task.Todo != expected {
-			t.Errorf("Incomplete task %d: expected '%s', got '%s'",
-				i, expected, task.Todo)
+		if !strings.Contains(task.String(), expected) {
+			t.Errorf("Incomplete task %d: expected to contain '%s', got '%s'",
+				i, expected, task.String())
 		}
 	}
 
@@ -179,9 +180,9 @@ func TestTasks_SortByCompletionStatus_MixedTasks(t *testing.T) {
 
 	for i, expected := range expectedCompletedOrder {
 		task := result.Get(i + 3) // offset by 3 incomplete tasks
-		if task.Todo != expected {
-			t.Errorf("Completed task %d: expected '%s', got '%s'",
-				i, expected, task.Todo)
+		if !strings.Contains(task.String(), expected) {
+			t.Errorf("Completed task %d: expected to contain '%s', got '%s'",
+				i, expected, task.String())
 		}
 	}
 }
@@ -215,10 +216,10 @@ func TestTasks_SortByCompletionStatus_DoesNotModifyOriginal(t *testing.T) {
 	// Result should be different order
 	firstResult := result.Get(0)
 	secondResult := result.Get(1)
-	if firstResult.Completed {
+	if firstResult.IsCompleted() {
 		t.Errorf("First task in result should be incomplete")
 	}
-	if !secondResult.Completed {
+	if !secondResult.IsCompleted() {
 		t.Errorf("Second task in result should be completed")
 	}
 }

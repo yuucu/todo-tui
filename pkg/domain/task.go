@@ -177,3 +177,8 @@ func (t *Task) IsDueThisWeek(now time.Time) bool {
 func (t *Task) String() string {
 	return t.task.String()
 }
+
+// ToTodoTxtTask returns the underlying todotxt.Task
+func (t *Task) ToTodoTxtTask() *todotxt.Task {
+	return t.task
+}
