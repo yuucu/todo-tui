@@ -323,7 +323,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 								// Parse the modified task string back to update the task
 								if newTask, err := todotxt.ParseTask(taskString); err == nil {
-									m.updateTaskAtIndex(index, domain.NewTask(newTask))
+									if domainTask, err := domain.NewTask(newTask); err == nil {
+										m.updateTaskAtIndex(index, domainTask)
+									}
 								}
 							}
 						}
@@ -396,7 +398,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 								// Parse the modified task string back to update the task
 								if newTask, err := todotxt.ParseTask(taskString); err == nil {
-									m.updateTaskAtIndex(index, domain.NewTask(newTask))
+									if domainTask, err := domain.NewTask(newTask); err == nil {
+										m.updateTaskAtIndex(index, domainTask)
+									}
 								}
 							}
 						}
@@ -489,6 +493,11 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 // cyclePriority cycles through priority levels based on configuration
 func (m *Model) cyclePriority(task *todotxt.Task) {
+	// Safety check: ensure PriorityLevels is not empty
+	if len(m.appConfig.PriorityLevels) == 0 {
+		return // Cannot cycle if no priority levels are configured
+	}
+
 	currentPriority := ""
 	if task.HasPriority() {
 		currentPriority = task.Priority
@@ -499,7 +508,7 @@ func (m *Model) cyclePriority(task *todotxt.Task) {
 		return priority == currentPriority
 	})
 	if !found {
-		currentIndex = 0
+		currentIndex = -1 // Use -1 to indicate not found, so next index becomes 0
 	}
 
 	// Move to next priority level (cycle around)
@@ -523,7 +532,10 @@ func (m *Model) toggleDueToday(task *todotxt.Task) {
 	taskString := task.String()
 
 	// Check if task is already due today using domain method
-	domainTask := domain.NewTask(task)
+	domainTask, err := domain.NewTask(task)
+	if err != nil {
+		return // Skip if task creation fails
+	}
 	hasDueToday := domainTask.IsDueToday(now)
 
 	var newTaskString string

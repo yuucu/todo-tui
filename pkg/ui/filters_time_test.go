@@ -20,53 +20,53 @@ func TestIsOverdue(t *testing.T) {
 		description string
 	}{
 		{
-			name:        "overdue_task_yesterday",
+			name:        "overdue_yesterday",
 			taskString:  "Test task due:2025-05-30",
 			now:         baseTime,
 			expected:    true,
-			description: "昨日が期限のタスクはoverdue",
+			description: "昨日が期限のタスクは期限切れ",
 		},
 		{
-			name:        "overdue_task_week_ago",
+			name:        "overdue_week_ago",
 			taskString:  "Test task due:2025-05-24",
 			now:         baseTime,
 			expected:    true,
-			description: "1週間前が期限のタスクはoverdue",
+			description: "1週間前が期限のタスクは期限切れ",
 		},
 		{
 			name:        "not_overdue_today",
 			taskString:  "Test task due:2025-05-31",
 			now:         baseTime,
 			expected:    false,
-			description: "今日が期限のタスクはoverdueではない",
+			description: "今日が期限のタスクは期限切れではない",
 		},
 		{
 			name:        "not_overdue_tomorrow",
 			taskString:  "Test task due:2025-06-01",
 			now:         baseTime,
 			expected:    false,
-			description: "明日が期限のタスクはoverdueではない",
+			description: "明日が期限のタスクは期限切れではない",
 		},
 		{
 			name:        "not_overdue_no_due_date",
 			taskString:  "Test task without due date",
 			now:         baseTime,
 			expected:    false,
-			description: "期限なしのタスクはoverdueではない",
+			description: "期限なしのタスクは期限切れではない",
 		},
 		{
 			name:        "not_overdue_completed",
 			taskString:  "x 2025-05-31 Test completed task due:2025-05-30",
 			now:         baseTime,
-			expected:    true,
-			description: "完了済みタスクでもoverdueになる",
+			expected:    false,
+			description: "完了済みタスクは期限切れとしない",
 		},
 		{
 			name:        "not_overdue_deleted",
 			taskString:  "Test deleted task due:2025-05-30 deleted_at:2025-05-31",
 			now:         baseTime,
 			expected:    false,
-			description: "削除済みタスクはoverdueではない",
+			description: "削除済みタスクは期限切れとしない",
 		},
 	}
 
@@ -77,7 +77,10 @@ func TestIsOverdue(t *testing.T) {
 				t.Fatalf("Failed to parse task: %v", err)
 			}
 
-			domainTask := domain.NewTask(task)
+			domainTask, err := domain.NewTask(task)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
 			result := domainTask.IsOverdue(tt.now)
 			if result != tt.expected {
 				t.Errorf("IsOverdue() = %v, expected %v for %s", result, tt.expected, tt.description)
@@ -129,8 +132,8 @@ func TestIsDueToday(t *testing.T) {
 			name:        "not_due_today_completed",
 			taskString:  "x 2025-05-31 Test completed task due:2025-05-31",
 			now:         baseTime,
-			expected:    true,
-			description: "完了済みタスクでも今日になる",
+			expected:    false,
+			description: "完了済みタスクは今日の期限から除外",
 		},
 	}
 
@@ -141,7 +144,10 @@ func TestIsDueToday(t *testing.T) {
 				t.Fatalf("Failed to parse task: %v", err)
 			}
 
-			domainTask := domain.NewTask(task)
+			domainTask, err := domain.NewTask(task)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
 			result := domainTask.IsDueToday(tt.now)
 			if result != tt.expected {
 				t.Errorf("IsDueToday() = %v, expected %v for %s", result, tt.expected, tt.description)
@@ -208,8 +214,8 @@ func TestIsThisWeek(t *testing.T) {
 			name:        "not_this_week_completed",
 			taskString:  "x 2025-05-31 Test completed task due:2025-05-31",
 			now:         baseTime,
-			expected:    true,
-			description: "完了済みタスクでも今週になる",
+			expected:    false,
+			description: "完了済みタスクは今週から除外",
 		},
 	}
 
@@ -220,7 +226,10 @@ func TestIsThisWeek(t *testing.T) {
 				t.Fatalf("Failed to parse task: %v", err)
 			}
 
-			domainTask := domain.NewTask(task)
+			domainTask, err := domain.NewTask(task)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
 			result := domainTask.IsThisWeek(tt.now)
 			if result != tt.expected {
 				t.Errorf("IsThisWeek() = %v, expected %v for %s", result, tt.expected, tt.description)
@@ -269,10 +278,13 @@ func TestOverdueBoundaryConditions(t *testing.T) {
 				t.Fatalf("Failed to parse task: %v", err)
 			}
 
-			domainTask := domain.NewTask(task)
+			domainTask, err := domain.NewTask(task)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
 			result := domainTask.IsOverdue(tt.now)
 			if result != tt.expected {
-				t.Errorf("IsOverdue() = %v, expected %v", result, tt.expected)
+				t.Errorf("IsOverdue() = %v, expected %v at %v", result, tt.expected, tt.now)
 			}
 		})
 	}

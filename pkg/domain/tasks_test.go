@@ -35,13 +35,12 @@ func createDeletedTestTask(text string) todotxt.Task {
 // TestTasks_Basic tests basic Tasks functionality
 func TestTasks_Basic(t *testing.T) {
 	taskList := todotxt.TaskList{
-		createTestTask("First task", false),
-		createTestTask("Second task", true),
+		createTestTask("First task +project @context", false),
+		createTestTask("Second task due:2024-01-15", false),
 	}
 
 	tasks := NewTasks(taskList)
 
-	// Test Len
 	if tasks.Len() != 2 {
 		t.Errorf("Expected length 2, got %d", tasks.Len())
 	}
@@ -55,17 +54,69 @@ func TestTasks_Basic(t *testing.T) {
 		t.Errorf("Expected 'First task' in %s", firstTask.String())
 	}
 
-	// Test Get out of bounds - should return zero value Task
-	invalidTask := tasks.Get(5)
-	if invalidTask.String() != "" {
-		t.Errorf("Expected empty task for out of bounds index, got %s", invalidTask.String())
-	}
-
 	// Test ToTaskList
 	convertedBack := tasks.ToTaskList()
 	if len(convertedBack) != 2 {
 		t.Errorf("Expected converted list length 2, got %d", len(convertedBack))
 	}
+}
+
+// TestTasks_SafeGet tests the SafeGet method
+func TestTasks_SafeGet(t *testing.T) {
+	tasks := NewTasks(todotxt.TaskList{
+		createTestTask("Test task", false),
+	})
+
+	// Test valid index
+	task, ok := tasks.SafeGet(0)
+	if !ok {
+		t.Error("Expected SafeGet(0) to return true for valid index")
+	}
+	if task.String() == "" {
+		t.Error("Expected valid task from SafeGet(0)")
+	}
+
+	// Test negative index
+	_, ok = tasks.SafeGet(-1)
+	if ok {
+		t.Error("Expected SafeGet(-1) to return false for negative index")
+	}
+
+	// Test too large index
+	_, ok = tasks.SafeGet(5)
+	if ok {
+		t.Error("Expected SafeGet(5) to return false for too large index")
+	}
+}
+
+// TestTasks_Get_OutOfBounds tests the Get method for out of bounds access
+func TestTasks_Get_OutOfBounds(t *testing.T) {
+	tasks := NewTasks(todotxt.TaskList{
+		createTestTask("Test task", false),
+	})
+
+	// Test negative index panic
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected panic for negative index")
+		}
+	}()
+	tasks.Get(-1)
+}
+
+// TestTasks_Get_IndexTooLarge tests the Get method for too large index access
+func TestTasks_Get_IndexTooLarge(t *testing.T) {
+	tasks := NewTasks(todotxt.TaskList{
+		createTestTask("Test task", false),
+	})
+
+	// Test too large index panic
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("Expected panic for too large index")
+		}
+	}()
+	tasks.Get(5)
 }
 
 // TestTasks_SortByCompletionStatus tests the new Tasks method

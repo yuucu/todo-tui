@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	todotxt "github.com/1set/todotxt"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/samber/lo"
 	"github.com/yuucu/todotui/pkg/domain"
@@ -273,21 +274,28 @@ func (m *Model) refreshTaskList() {
 
 		// Track completion status for the enhanced list display
 		// Consider both completed tasks and deleted tasks as "completed" for UI purposes
-		isTaskCompleted := task.Completed || domain.NewTask(task).IsDeleted()
+		var isTaskCompleted bool
+		if domainTask, err := domain.NewTask(task); err == nil {
+			isTaskCompleted = task.Completed || domainTask.IsDeleted()
+		} else {
+			isTaskCompleted = task.Completed // Fallback if domain task creation fails
+		}
 		completedItems = append(completedItems, isTaskCompleted)
 
 		// Calculate checkbox color based on due date for incomplete tasks
 		var checkboxColor lipgloss.Color
 		if !isTaskCompleted && task.HasDueDate() {
 			now := time.Now()
-			domainTask := domain.NewTask(task)
-
-			if domainTask.IsOverdue(now) {
-				checkboxColor = m.currentTheme.Danger // Overdue - red
-			} else if domainTask.IsDueToday(now) {
-				checkboxColor = m.currentTheme.Warning // Due today - yellow
+			if domainTask, err := domain.NewTask(task); err == nil {
+				if domainTask.IsOverdue(now) {
+					checkboxColor = m.currentTheme.Danger // Overdue - red
+				} else if domainTask.IsDueToday(now) {
+					checkboxColor = m.currentTheme.Warning // Due today - yellow
+				} else {
+					checkboxColor = m.currentTheme.Success // Future - green
+				}
 			} else {
-				checkboxColor = m.currentTheme.Success // Future - green
+				checkboxColor = m.currentTheme.Success // Default to green if domain task creation fails
 			}
 		} else {
 			// For completed tasks or tasks without due date, use default muted color
@@ -422,4 +430,50 @@ func (m *Model) addFilterIfNotEmpty(name string, filterFn func(domain.Tasks) dom
 		}
 	}
 	return nil
+}
+
+func FilterActiveTask(tasks domain.Tasks) domain.Tasks {
+	return tasks.Filter(func(task domain.Task, _ int) bool {
+		return !task.IsCompleted() && !task.IsDeleted()
+	})
+}
+
+// SortTasksByCompletionStatus sorts tasks by completion status
+func SortTasksByCompletionStatus(tasks todotxt.TaskList, currentFilter string) todotxt.TaskList {
+	// Convert each task only once and handle errors
+	domainTasks := make([]struct {
+		original    todotxt.Task
+		domain      *domain.Task
+		isCompleted bool
+	}, len(tasks))
+
+	for i, task := range tasks {
+		domainTasks[i].original = task
+		if domainTask, err := domain.NewTask(&task); err == nil {
+			domainTasks[i].domain = domainTask
+			domainTasks[i].isCompleted = task.Completed || domainTask.IsDeleted()
+		} else {
+			// Skip invalid tasks or treat as incomplete
+			domainTasks[i].domain = nil
+			domainTasks[i].isCompleted = task.Completed
+		}
+	}
+
+	// ソート: 完了したタスクを下の方に移動
+	sort.SliceStable(domainTasks, func(i, j int) bool {
+		// 完了状態が異なる場合：未完了を上に、完了を下に
+		if domainTasks[i].isCompleted != domainTasks[j].isCompleted {
+			return !domainTasks[i].isCompleted // 未完了（false）が上に来る
+		}
+		// 両方とも同じ完了状態の場合：元の順序を保持（安定ソート）
+		return false
+	})
+
+	// Extract original tasks in sorted order
+	result := make(todotxt.TaskList, len(tasks))
+	for i, taskInfo := range domainTasks {
+		result[i] = taskInfo.original
+	}
+
+	return result
 }

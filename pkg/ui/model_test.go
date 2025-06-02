@@ -9,48 +9,47 @@ import (
 	"github.com/yuucu/todotui/pkg/domain"
 )
 
-// テスト用のモデル作成ヘルパー
+// createTestModel creates a test model with sample data
 func createTestModel() *Model {
+	tasks := []string{
+		"(A) Buy milk +grocery @home",
+		"Write tests +project @work",
+		"x 2025-01-15 Completed task +project",
+		"Call mom @phone",
+	}
+
+	var taskList todotxt.TaskList
+	for _, taskStr := range tasks {
+		if task, err := todotxt.ParseTask(taskStr); err == nil {
+			taskList = append(taskList, *task)
+		}
+	}
+
 	return &Model{
-		tasks:        domain.NewTasks(createTestTaskList()),
-		activePane:   paneTask,
-		viewMode:     ViewFilter,
-		taskList:     SimpleList{},
-		filterList:   SimpleList{},
-		filters:      []FilterData{},
-		todoFilePath: "/tmp/test.todo.txt",
-		appConfig:    DefaultAppConfig(),
+		tasks:     domain.NewTasks(taskList),
+		appConfig: DefaultAppConfig(), // Add default app config to prevent divide by zero
 	}
 }
 
 func TestModel_findTaskInList(t *testing.T) {
-	// Create test model
-	model := &Model{
-		tasks:        domain.NewTasks(createTestTaskList()),
-		viewMode:     ViewFilter,
-		activePane:   paneFilter,
-		todoFilePath: "test.txt",
-	}
+	model := createTestModel()
 
-	// Get a task to search for
 	if model.tasks.Len() == 0 {
-		t.Fatal("Test task list is empty")
+		t.Fatal("Test model should have tasks")
 	}
-
-	targetTask := model.tasks.Get(0)
 
 	// Test finding existing task
+	targetTask := model.tasks.Get(0)
 	index, task, found := model.findTaskInList(targetTask)
 
 	if !found {
 		t.Error("findTaskInList() should find existing task")
 	}
 
-	if index < 0 || index >= model.tasks.Len() {
-		t.Errorf("findTaskInList() returned invalid index: %d", index)
+	if index != 0 {
+		t.Errorf("findTaskInList() returned wrong index: got %d, want 0", index)
 	}
 
-	// Test that found task matches the target
 	if task.String() != targetTask.String() {
 		t.Errorf("findTaskInList() returned wrong task: got %s, want %s",
 			task.String(), targetTask.String())
@@ -59,7 +58,10 @@ func TestModel_findTaskInList(t *testing.T) {
 	// Test finding non-existing task - create a simple task for testing
 	nonExistentTaskStr := "Non-existent task that should not be found"
 	nonExistentTodoTxtTask, _ := todotxt.ParseTask(nonExistentTaskStr)
-	nonExistentTask := domain.NewTask(nonExistentTodoTxtTask)
+	nonExistentTask, err := domain.NewTask(nonExistentTodoTxtTask)
+	if err != nil {
+		t.Fatalf("Failed to create domain task: %v", err)
+	}
 	_, _, found = model.findTaskInList(*nonExistentTask)
 
 	if found {
@@ -95,14 +97,20 @@ func TestCyclePriority(t *testing.T) {
 		{
 			name:           "priority_Z_to_none",
 			initialTask:    "(Z) Test task with priority Z",
-			expectedResult: "(A) Test task with priority Z",
-			description:    "優先度(Z) → 優先度(A)",
+			expectedResult: "Test task with priority Z",
+			description:    "優先度(Z) → 優先度なし（Zは設定にないので、最初の要素「なし」に戻る）",
 		},
 		{
 			name:           "priority_C_to_D",
 			initialTask:    "(C) Test task with priority C",
 			expectedResult: "(D) Test task with priority C",
 			description:    "優先度(C) → (D)",
+		},
+		{
+			name:           "priority_D_to_none",
+			initialTask:    "(D) Test task with priority D",
+			expectedResult: "Test task with priority D",
+			description:    "優先度(D) → 優先度なし（サイクル完了）",
 		},
 	}
 
@@ -409,7 +417,14 @@ func TestTaskListIntegrity(t *testing.T) {
 
 	// すべてのタスクが有効であることを確認
 	for i, task := range model.tasks.ToTaskList() {
-		if task.Todo == "" && !task.Completed && !domain.NewTask(&task).IsDeleted() {
+		// Check for domain task creation errors
+		domainTask, err := domain.NewTask(&task)
+		if err != nil {
+			t.Errorf("Failed to create domain task at index %d: %v", i, err)
+			continue
+		}
+
+		if task.Todo == "" && !task.Completed && !domainTask.IsDeleted() {
 			t.Errorf("Task at index %d has empty content and is not completed/deleted", i)
 		}
 

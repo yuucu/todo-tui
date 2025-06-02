@@ -15,9 +15,14 @@ type TaskFilter func(Tasks) Tasks
 
 // NewTasks creates a new Tasks instance from a TaskList
 func NewTasks(taskList todotxt.TaskList) Tasks {
-	tasks := make(Tasks, len(taskList))
-	for i, task := range taskList {
-		tasks[i] = *NewTask(&task)
+	tasks := make(Tasks, 0, len(taskList))
+	for _, task := range taskList {
+		domainTask, err := NewTask(&task)
+		if err != nil {
+			// Skip invalid tasks, but this should rarely happen
+			continue
+		}
+		tasks = append(tasks, *domainTask)
 	}
 	return tasks
 }
@@ -37,11 +42,20 @@ func (t Tasks) Len() int {
 }
 
 // Get returns the task at the specified index
+// Panics if index is out of bounds - use SafeGet for safe access
 func (t Tasks) Get(index int) Task {
 	if index < 0 || index >= len(t) {
-		return Task{} // Return zero value
+		panic("index out of range")
 	}
 	return t[index]
+}
+
+// SafeGet returns the task at the specified index and a boolean indicating whether the index was valid
+func (t Tasks) SafeGet(index int) (Task, bool) {
+	if index < 0 || index >= len(t) {
+		return Task{}, false
+	}
+	return t[index], true
 }
 
 // Filter applies a filter function and returns a new Tasks instance
