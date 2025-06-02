@@ -4,6 +4,7 @@ import (
 	"time"
 
 	todotxt "github.com/1set/todotxt"
+	"github.com/charmbracelet/bubbles/textinput"
 	"github.com/fsnotify/fsnotify"
 	"github.com/yuucu/todotui/pkg/domain"
 )
@@ -68,12 +69,10 @@ type Model struct {
 	todoFilePath     string
 	statusMessage    string
 	statusMessageEnd time.Time
-	editBuffer       string
 	originalTask     string
 	watcher          *fsnotify.Watcher
-	helpContent      []HelpContent // Help content for key bindings
-	helpScroll       int           // Current scroll position in help view
-	textarea         interface{}   // Placeholder for textarea
-	imeHelper        interface{}   // Placeholder for imeHelper
-	editingTask      *todotxt.Task // Currently editing task
+	helpContent      []HelpContent   // Help content for key bindings
+	helpScroll       int             // Current scroll position in help view
+	textInput        textinput.Model // Text input for adding/editing tasks
+	editingTask      *todotxt.Task   // Currently editing task
 }

@@ -6,6 +6,7 @@ import (
 
 	todotxt "github.com/1set/todotxt"
 	"github.com/atotto/clipboard"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fsnotify/fsnotify"
 	"github.com/yuucu/todotui/pkg/domain"
@@ -47,6 +48,12 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 	// Get theme for the lists
 	currentTheme := GetTheme(appConfig.Theme)
 
+	// Initialize text input for adding/editing tasks
+	ti := textinput.New()
+	ti.Placeholder = "Enter a task..."
+	ti.CharLimit = 512
+	ti.Width = 50 // Will be updated in updatePaneSizes
+
 	model := &Model{
 		filterList:       SimpleList{},
 		taskList:         SimpleList{},
@@ -59,12 +66,10 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 		height:           DefaultTerminalHeight,
 		currentTheme:     &currentTheme,
 		appConfig:        appConfig,
-		editBuffer:       "",
 		originalTask:     "",
 		statusMessage:    "",
 		statusMessageEnd: time.Now(),
-		textarea:         nil,
-		imeHelper:        nil,
+		textInput:        ti,
 		editingTask:      nil,
 	}
 
@@ -78,11 +83,9 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 	// Initialize help content
 	model.initializeHelpContent()
 
-	// TODO: Initialize textarea properly
-	// model.textarea.Placeholder = TaskInputPlaceholder
-	// model.textarea.CharLimit = TextAreaCharLimit
-	// model.textarea.SetWidth(DefaultTerminalWidth)
-	// model.textarea.SetHeight(TextAreaHeight)
+	// Initialize pane sizes and update text input width
+	model.updatePaneSizes()
+	model.updateTextInputSize()
 
 	// Initialize file watcher
 	logger.Debug("Initializing file watcher")
@@ -110,7 +113,7 @@ func (m *Model) saveAndRefresh() tea.Cmd {
 	logger.Debug("Saving tasks to file", "file", m.todoFilePath, "task_count", m.tasks.Len())
 	if err := todo.Save(m.tasks.ToTaskList(), m.todoFilePath); err != nil {
 		logger.Error("Failed to save tasks to file", "file", m.todoFilePath, "error", err)
-		return nil
+		return m.setStatusMessage("❌ Failed to save tasks to file: "+err.Error(), 5*time.Second)
 	}
 	logger.Debug("Tasks saved successfully", "file", m.todoFilePath)
 	m.refreshLists()
@@ -119,14 +122,105 @@ func (m *Model) saveAndRefresh() tea.Cmd {
 
 // Init initializes the model
 func (m *Model) Init() tea.Cmd {
-	// Initialize pane sizes first
-	m.updatePaneSizes()
+	// updatePaneSizes is already called in NewModel
 	m.refreshLists()
 	return m.watchFile()
 }
 
 // Update handles key input and state changes
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	// Handle input mode (add/edit) first
+	if m.viewMode == ViewAdd || m.viewMode == ViewEdit {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "ctrl+c", "esc":
+				// Cancel input
+				m.viewMode = ViewFilter
+				m.editingTask = nil
+				m.textInput.SetValue("")
+				m.textInput.Blur()
+				return m, nil
+			case "enter":
+				// Save task
+				text := strings.TrimSpace(m.textInput.Value())
+				logger.Debug("Attempting to save task", "text", text, "mode", m.viewMode)
+
+				if text != "" {
+					if m.viewMode == ViewAdd {
+						// Create new task
+						task, err := todotxt.ParseTask(text)
+						if err != nil {
+							logger.Error("Failed to parse new task", "text", text, "error", err)
+							return m, m.setStatusMessage("❌ Failed to parse task", 3*time.Second)
+						}
+						logger.Debug("Parsed new task successfully", "task", task.String())
+
+						taskList := m.tasks.ToTaskList()
+						taskList = append(taskList, *task)
+						m.tasks = domain.NewTasks(taskList)
+						logger.Debug("Added task to list", "total_tasks", len(taskList))
+
+					} else if m.viewMode == ViewEdit {
+						// Update existing task
+						if m.editingTask != nil {
+							// Parse the edited text and update the task
+							newTask, err := todotxt.ParseTask(text)
+							if err != nil {
+								logger.Error("Failed to parse edited task", "text", text, "error", err)
+								return m, m.setStatusMessage("❌ Failed to parse task", 3*time.Second)
+							}
+							logger.Debug("Parsed edited task successfully", "task", newTask.String())
+
+							*m.editingTask = *newTask
+							// Find and update the task in the main list
+							taskList := m.tasks.ToTaskList()
+							found := false
+							for i := range taskList {
+								if taskList[i].String() == m.originalTask {
+									taskList[i] = *newTask
+									found = true
+									logger.Debug("Updated task in list", "index", i, "original", m.originalTask, "new", newTask.String())
+									break
+								}
+							}
+							if !found {
+								logger.Warn("Original task not found in list for editing", "original", m.originalTask)
+							}
+							m.tasks = domain.NewTasks(taskList)
+						} else {
+							logger.Warn("editingTask is nil during edit mode")
+						}
+					}
+
+					m.viewMode = ViewFilter
+					m.editingTask = nil
+					m.textInput.SetValue("")
+					m.textInput.Blur()
+
+					logger.Debug("About to save and refresh")
+					return m, tea.Batch(
+						m.saveAndRefresh(),
+						m.setStatusMessage("✅ Task saved", 2*time.Second),
+					)
+				}
+				// If text is empty, just cancel the edit
+				logger.Debug("Empty text, canceling")
+				m.viewMode = ViewFilter
+				m.editingTask = nil
+				m.textInput.SetValue("")
+				m.textInput.Blur()
+				return m, nil
+			}
+		}
+		// Update text input
+		m.textInput, cmd = m.textInput.Update(msg)
+		logger.Debug("Text input updated", "value", m.textInput.Value(), "focused", m.textInput.Focused())
+		return m, cmd
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// Handle help mode with scrolling support
@@ -165,63 +259,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		// Handle input mode (add/edit)
-		if m.viewMode == ViewAdd || m.viewMode == ViewEdit {
-			switch msg.String() {
-			case ctrlCKey, escKey:
-				// Cancel input
-				m.viewMode = ViewFilter
-				m.editingTask = nil
-				// TODO: m.textarea.SetValue("")
-				return m, nil
-			case enterKey, ctrlSKey:
-				// Save task
-				text := strings.TrimSpace(m.editBuffer)
-				if text != "" {
-					if m.viewMode == ViewAdd {
-						// Create new task
-						task, err := todotxt.ParseTask(text)
-						if err == nil {
-							taskList := m.tasks.ToTaskList()
-							taskList = append(taskList, *task)
-							m.tasks = domain.NewTasks(taskList)
-						}
-						// TODO: Add error handling for failed task parsing
-					} else if m.viewMode == ViewEdit {
-						// Update existing task
-						if m.editingTask != nil {
-							// Parse the edited text and update the task
-							if newTask, err := todotxt.ParseTask(text); err == nil {
-								*m.editingTask = *newTask
-								// Find and update the task in the main list
-								taskList := m.tasks.ToTaskList()
-								for i := range taskList {
-									if taskList[i].String() == m.originalTask {
-										taskList[i] = *newTask
-										break
-									}
-								}
-								m.tasks = domain.NewTasks(taskList)
-							}
-						}
-					}
-					m.viewMode = ViewFilter
-					m.editingTask = nil
-					// TODO: m.textarea.SetValue("")
-					return m, m.saveAndRefresh()
-				}
-				// If text is empty, just cancel the edit
-				m.viewMode = ViewFilter
-				m.editingTask = nil
-				// TODO: m.textarea.SetValue("")
-				return m, nil
-			default:
-				// Handle text input for editBuffer
-				m.editBuffer += msg.String()
-				return m, nil
-			}
-		}
-
 		// Handle normal mode keys
 		switch msg.String() {
 		case helpKey:
@@ -234,8 +271,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case aKey:
 			// Add new task
 			m.viewMode = ViewAdd
-			m.editBuffer = ""
-			// TODO: m.textarea.Focus()
+			m.textInput.SetValue("")
+			m.textInput.Focus()
+			logger.Debug("Entering add mode", "focused", m.textInput.Focused(), "value", m.textInput.Value())
 			return m, nil
 		case eKey:
 			// Edit selected task
@@ -244,8 +282,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.viewMode = ViewEdit
 					// Store the task content for editing
 					selectedTask := m.filteredTasks.Get(m.taskList.selected)
-					m.editBuffer = selectedTask.String()
+					m.textInput.SetValue(selectedTask.String())
 					m.originalTask = selectedTask.String()
+
+					// Convert domain.Task to todotxt.Task for editing
+					m.editingTask = selectedTask.ToTodoTxtTask()
+
+					m.textInput.Focus()
+					logger.Debug("Starting edit mode", "original_task", m.originalTask, "editing_task", m.editingTask.String())
 					return m, nil
 				}
 			}
@@ -444,10 +488,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Update pane sizes with new terminal dimensions
 		m.updatePaneSizes()
 
-		// TODO: Also update textarea size if we're in add/edit mode
-		// if m.width > TextAreaPadding {
-		//     m.textarea.SetWidth(m.width - TextAreaPadding)
-		// }
+		// Update text input size for add/edit mode
+		m.updateTextInputSize()
 
 		// Force refresh of lists to apply new sizes and ensure content fits
 		m.refreshLists()
@@ -500,4 +542,18 @@ func (m *Model) findTaskInList(targetTask domain.Task) (int, domain.Task, bool) 
 		}
 	}
 	return -1, domain.Task{}, false
+}
+
+// updateTextInputSize updates the text input width based on current terminal size
+func (m *Model) updateTextInputSize() {
+	// Calculate appropriate width for text input (leave some padding)
+	inputWidth := m.width - 8 // Leave padding for borders and styling
+	if inputWidth < 20 {
+		inputWidth = 20 // Minimum width
+	}
+	if inputWidth > 80 {
+		inputWidth = 80 // Maximum width for better UX
+	}
+	m.textInput.Width = inputWidth
+	logger.Debug("Updated text input width", "width", inputWidth, "terminal_width", m.width)
 }

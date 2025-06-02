@@ -99,7 +99,7 @@ const (
 	EditTaskTitle = "Edit Task"
 
 	// Edit mode help
-	EditModeHelp = "Enter/Ctrl+S: save | Esc/Ctrl+C: cancel"
+	EditModeHelp = "Enter: save | Esc/Ctrl+C: cancel"
 
 	// Help text
 	HelpFilterPane      = "?: help | j/k: navigate | Enter: select filter & move to tasks | Tab/h/l: switch panes | a: add | q: quit"
@@ -148,7 +148,6 @@ const (
 // よく使用されるキー文字列定数
 const (
 	ctrlCKey = "ctrl+c"
-	ctrlSKey = "ctrl+s"
 	escKey   = "esc"
 	enterKey = "enter"
 	tabKey   = "tab"
