@@ -112,14 +112,14 @@ func (m *Model) View() string {
 	}
 
 	// If in help mode, show help screen
-	if m.currentMode == modeHelp {
+	if m.viewMode == ViewHelp {
 		return m.renderHelpView()
 	}
 
 	// If in add/edit mode, show textarea (keeping existing behavior as full screen)
-	if m.currentMode == modeAdd || m.currentMode == modeEdit {
+	if m.viewMode == ViewAdd || m.viewMode == ViewEdit {
 		title := AddTaskTitle
-		if m.currentMode == modeEdit {
+		if m.viewMode == ViewEdit {
 			title = EditTaskTitle
 		}
 
@@ -139,7 +139,7 @@ func (m *Model) View() string {
 
 		return lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render(title),
-			inputStyle.Render(m.textarea.View()),
+			inputStyle.Render(m.editBuffer),
 			helpStyle.Render(EditModeHelp),
 		)
 	}

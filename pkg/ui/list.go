@@ -312,25 +312,39 @@ func (l *SimpleList) styleTaskContentInternal(item string, backgroundColor *lipg
 			if backgroundColor != nil {
 				dueStyle = dueStyle.Background(*backgroundColor).Bold(true)
 			}
-			dueDateStr := strings.TrimPrefix(part, "due:")
 
 			// Create a temporary task to use domain methods for date comparison
 			tempTaskStr := "temp task " + part
 			if tempTask, err := todotxt.ParseTask(tempTaskStr); err == nil {
-				domainTask := domain.NewTask(tempTask)
-				now := time.Now()
+				if domainTask, err := domain.NewTask(tempTask); err == nil {
+					now := time.Now()
 
-				if domainTask.IsOverdue(now) {
-					dueStyle = dueStyle.Foreground(l.theme.Danger) // Overdue
-				} else if domainTask.IsDueToday(now) {
-					dueStyle = dueStyle.Foreground(l.theme.Warning) // Due today
+					if domainTask.IsOverdue(now) {
+						dueStyle = dueStyle.Foreground(l.theme.Danger) // Overdue
+					} else if domainTask.IsDueToday(now) {
+						dueStyle = dueStyle.Foreground(l.theme.Warning) // Due today
+					} else {
+						dueStyle = dueStyle.Foreground(l.theme.Success) // Future
+					}
 				} else {
-					dueStyle = dueStyle.Foreground(l.theme.Success) // Future
+					// Fallback to simple string comparison if domain task creation fails
+					now := time.Now()
+					today := now.Format("2006-01-02")
+					dueDateStr := strings.TrimPrefix(part, "due:")
+
+					if dueDateStr < today {
+						dueStyle = dueStyle.Foreground(l.theme.Danger) // Overdue
+					} else if dueDateStr == today {
+						dueStyle = dueStyle.Foreground(l.theme.Warning) // Due today
+					} else {
+						dueStyle = dueStyle.Foreground(l.theme.Success) // Future
+					}
 				}
 			} else {
 				// Fallback to simple string comparison if parsing fails
 				now := time.Now()
 				today := now.Format("2006-01-02")
+				dueDateStr := strings.TrimPrefix(part, "due:")
 
 				if dueDateStr < today {
 					dueStyle = dueStyle.Foreground(l.theme.Danger) // Overdue

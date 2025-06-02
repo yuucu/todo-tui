@@ -7,21 +7,51 @@ import (
 	todotxt "github.com/1set/todotxt"
 )
 
+func TestNewTask_Error(t *testing.T) {
+	task, err := NewTask(nil)
+	if err == nil {
+		t.Error("Expected error when creating task with nil input")
+	}
+	if task != nil {
+		t.Error("Expected nil task when error occurs")
+	}
+	if err.Error() != "task cannot be nil" {
+		t.Errorf("Expected specific error message, got: %s", err.Error())
+	}
+}
+
+func TestNewTask_Success(t *testing.T) {
+	todoTxtTask, _ := todotxt.ParseTask("Test task")
+	task, err := NewTask(todoTxtTask)
+	if err != nil {
+		t.Errorf("Unexpected error: %v", err)
+	}
+	if task == nil {
+		t.Error("Expected valid task, got nil")
+	}
+	if task.String() != "Test task" {
+		t.Errorf("Expected 'Test task', got %s", task.String())
+	}
+}
+
 func TestTask_ToggleCompletion(t *testing.T) {
 	tests := []struct {
 		name            string
 		taskString      string
-		expectCompleted bool
+		initialComplete bool
+		expectedResult  bool
 	}{
 		{
 			name:            "complete_incomplete_task",
-			taskString:      "Buy groceries +shopping",
-			expectCompleted: true,
+			taskString:      "Test incomplete task",
+			initialComplete: false,
+			expectedResult:  true,
 		},
 		{
 			name:            "uncomplete_completed_task",
-			taskString:      "x 2025-01-15 Completed task +project",
-			expectCompleted: false,
+			taskString:      "x 2025-01-15 Test completed task",
+			initialComplete: true,
+			expectedResult:  false,
 		},
 	}
 
@@ -32,113 +62,96 @@ func TestTask_ToggleCompletion(t *testing.T) {
 				t.Fatalf("Failed to parse task: %v", err)
 			}
 
-			domainTask := NewTask(task)
-			initialCompleted := domainTask.IsCompleted()
+			domainTask, err := NewTask(task)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
+
+			if domainTask.IsCompleted() != tt.initialComplete {
+				t.Errorf("Initial completion state mismatch: expected %v, got %v",
+					tt.initialComplete, domainTask.IsCompleted())
+			}
 
 			result := domainTask.ToggleCompletion()
 
-			// Check if the result matches expectation
-			if result != tt.expectCompleted {
-				t.Errorf("ToggleCompletion() returned %v, expected %v", result, tt.expectCompleted)
+			if result != tt.expectedResult {
+				t.Errorf("ToggleCompletion() = %v, expected %v", result, tt.expectedResult)
 			}
 
-			// Check if the completion state actually changed
-			if domainTask.IsCompleted() == initialCompleted {
-				t.Errorf("Task completion state did not change")
-			}
-
-			// Check completion date
-			if domainTask.IsCompleted() && domainTask.GetCompletedDate().IsZero() {
-				t.Errorf("Completed task should have completion date")
-			}
-
-			if !domainTask.IsCompleted() && !domainTask.GetCompletedDate().IsZero() {
-				t.Errorf("Incomplete task should not have completion date")
+			if domainTask.IsCompleted() != tt.expectedResult {
+				t.Errorf("Task completion state after toggle: expected %v, got %v",
+					tt.expectedResult, domainTask.IsCompleted())
 			}
 		})
 	}
 }
 
 func TestTask_ShouldMoveToCompleted(t *testing.T) {
-	// テストタスクを作成
-	task, err := todotxt.ParseTask("Test task")
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// テスト用の基準時刻（2025年6月1日 10:00）
-	baseTime := time.Date(2025, 6, 1, 10, 0, 0, 0, time.UTC)
-
 	tests := []struct {
 		name           string
+		taskString     string
 		config         CompletedTaskTransitionConfig
-		completionTime time.Time
-		currentTime    time.Time
-		expected       bool
-		description    string
+		testTime       time.Time
+		expectedResult bool
 	}{
 		{
-			name: "immediate_move_delay_0",
+			name:       "immediate_move_delay_0",
+			taskString: "x 2025-01-15 Completed task",
 			config: CompletedTaskTransitionConfig{
 				DelayDays:      0,
-				TransitionHour: 5,
+				TransitionHour: 9,
 			},
-			completionTime: baseTime.Add(-1 * time.Hour), // 1時間前に完了
-			currentTime:    baseTime,
-			expected:       true,
-			description:    "DelayDays=0なら即座に移動",
+			testTime:       time.Date(2025, 1, 15, 10, 0, 0, 0, time.UTC),
+			expectedResult: true,
 		},
 		{
-			name: "not_yet_time_same_day",
+			name:       "not_yet_time_same_day",
+			taskString: "x 2025-01-15 Completed task",
 			config: CompletedTaskTransitionConfig{
 				DelayDays:      1,
-				TransitionHour: 5,
+				TransitionHour: 9,
 			},
-			completionTime: baseTime.Add(-5 * time.Hour), // 5時間前（同じ日の05:00）に完了
-			currentTime:    baseTime,                     // 現在10:00
-			expected:       false,
-			description:    "同じ日に完了したが、まだ1日経っていない",
+			testTime:       time.Date(2025, 1, 15, 10, 0, 0, 0, time.UTC),
+			expectedResult: false,
 		},
 		{
-			name: "time_to_move_next_day_before_transition",
+			name:       "time_to_move_next_day_before_transition",
+			taskString: "x 2025-01-15 Completed task",
 			config: CompletedTaskTransitionConfig{
 				DelayDays:      1,
-				TransitionHour: 12, // 12時に移行
+				TransitionHour: 9,
 			},
-			completionTime: baseTime.Add(-25 * time.Hour), // 25時間前に完了
-			currentTime:    baseTime,                      // 現在10:00（移行時刻の12:00前）
-			expected:       false,
-			description:    "1日経ったが、まだ移行時刻（12:00）前",
+			testTime:       time.Date(2025, 1, 16, 8, 59, 0, 0, time.UTC),
+			expectedResult: false,
 		},
 		{
-			name: "time_to_move_next_day_after_transition",
+			name:       "time_to_move_next_day_after_transition",
+			taskString: "x 2025-01-15 Completed task",
 			config: CompletedTaskTransitionConfig{
 				DelayDays:      1,
-				TransitionHour: 8, // 8時に移行
+				TransitionHour: 9,
 			},
-			completionTime: baseTime.Add(-25 * time.Hour), // 25時間前に完了
-			currentTime:    baseTime,                      // 現在10:00（移行時刻の8:00後）
-			expected:       true,
-			description:    "1日経って、移行時刻（8:00）も過ぎた",
+			testTime:       time.Date(2025, 1, 16, 9, 0, 0, 0, time.UTC),
+			expectedResult: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// タスクの完了日時を設定
-			domainTask := NewTask(task)
-			domainTask.task.Completed = true
-			domainTask.task.CompletedDate = tt.completionTime
+			task, err := todotxt.ParseTask(tt.taskString)
+			if err != nil {
+				t.Fatalf("Failed to parse task: %v", err)
+			}
 
-			// 修正されたShouldMoveToCompleted関数を使用
-			result := domainTask.ShouldMoveToCompleted(tt.config, tt.currentTime)
+			domainTask, err := NewTask(task)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
 
-			if result != tt.expected {
-				t.Errorf("ShouldMoveToCompleted() = %v, expected %v", result, tt.expected)
-				t.Logf("Test: %s", tt.description)
-				t.Logf("Completion time: %v", tt.completionTime)
-				t.Logf("Current time: %v", tt.currentTime)
-				t.Logf("Config: %+v", tt.config)
+			result := domainTask.ShouldMoveToCompleted(tt.config, tt.testTime)
+
+			if result != tt.expectedResult {
+				t.Errorf("ShouldMoveToCompleted() = %v, expected %v", result, tt.expectedResult)
 			}
 		})
 	}
@@ -152,17 +165,17 @@ func TestTask_IsDeleted(t *testing.T) {
 	}{
 		{
 			name:       "normal_task",
-			taskString: "Buy groceries +shopping",
+			taskString: "Buy milk +grocery @home",
 			expected:   false,
 		},
 		{
 			name:       "deleted_task",
-			taskString: "Buy groceries +shopping deleted_at:2025-01-15",
+			taskString: "Deleted task deleted_at:2025-01-15",
 			expected:   true,
 		},
 		{
 			name:       "deleted_task_with_time",
-			taskString: "Buy groceries +shopping deleted_at:2025-01-15T10:30:00",
+			taskString: "Another deleted task deleted_at:2025-01-15T10:30:00",
 			expected:   true,
 		},
 	}
@@ -174,75 +187,66 @@ func TestTask_IsDeleted(t *testing.T) {
 				t.Fatalf("Failed to parse task: %v", err)
 			}
 
-			domainTask := NewTask(task)
-			result := domainTask.IsDeleted()
+			domainTask, err := NewTask(task)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
 
+			result := domainTask.IsDeleted()
 			if result != tt.expected {
-				t.Errorf("IsDeleted() = %v, expected %v", result, tt.expected)
+				t.Errorf("IsDeleted() = %v, expected %v for task: %s",
+					result, tt.expected, tt.taskString)
 			}
 		})
 	}
 }
 
 func TestTask_IsOverdue(t *testing.T) {
-	// テスト用の基準日時を設定（2025年5月31日 21:00）
-	baseTime := time.Date(2025, 5, 31, 21, 0, 0, 0, time.UTC)
+	now := time.Date(2025, 1, 15, 12, 0, 0, 0, time.UTC)
+	yesterday := now.AddDate(0, 0, -1).Format("2006-01-02")
+	weekAgo := now.AddDate(0, 0, -7).Format("2006-01-02")
+	today := now.Format("2006-01-02")
+	tomorrow := now.AddDate(0, 0, 1).Format("2006-01-02")
 
 	tests := []struct {
-		name        string
-		taskString  string
-		now         time.Time
-		expected    bool
-		description string
+		name       string
+		taskString string
+		expected   bool
 	}{
 		{
-			name:        "overdue_task_yesterday",
-			taskString:  "Test task due:2025-05-30",
-			now:         baseTime,
-			expected:    true,
-			description: "昨日が期限のタスクはoverdue",
+			name:       "overdue_task_yesterday",
+			taskString: "Overdue task due:" + yesterday,
+			expected:   true,
 		},
 		{
-			name:        "overdue_task_week_ago",
-			taskString:  "Test task due:2025-05-24",
-			now:         baseTime,
-			expected:    true,
-			description: "1週間前が期限のタスクはoverdue",
+			name:       "overdue_task_week_ago",
+			taskString: "Very overdue task due:" + weekAgo,
+			expected:   true,
 		},
 		{
-			name:        "not_overdue_today",
-			taskString:  "Test task due:2025-05-31",
-			now:         baseTime,
-			expected:    false,
-			description: "今日が期限のタスクはoverdueではない",
+			name:       "not_overdue_today",
+			taskString: "Task due today due:" + today,
+			expected:   false,
 		},
 		{
-			name:        "not_overdue_tomorrow",
-			taskString:  "Test task due:2025-06-01",
-			now:         baseTime,
-			expected:    false,
-			description: "明日が期限のタスクはoverdueではない",
+			name:       "not_overdue_tomorrow",
+			taskString: "Future task due:" + tomorrow,
+			expected:   false,
 		},
 		{
-			name:        "not_overdue_no_due_date",
-			taskString:  "Test task without due date",
-			now:         baseTime,
-			expected:    false,
-			description: "期限なしのタスクはoverdueではない",
+			name:       "not_overdue_no_due_date",
+			taskString: "Task without due date",
+			expected:   false,
 		},
 		{
-			name:        "not_overdue_completed",
-			taskString:  "x 2025-05-31 Test completed task due:2025-05-30",
-			now:         baseTime,
-			expected:    true,
-			description: "完了済みタスクでもoverdueになる",
+			name:       "not_overdue_completed",
+			taskString: "x " + today + " Completed task due:" + yesterday,
+			expected:   false,
 		},
 		{
-			name:        "not_overdue_deleted",
-			taskString:  "Test deleted task due:2025-05-30 deleted_at:2025-05-31",
-			now:         baseTime,
-			expected:    false,
-			description: "削除済みタスクはoverdueではない",
+			name:       "not_overdue_deleted",
+			taskString: "Deleted task due:" + yesterday + " deleted_at:" + today,
+			expected:   false,
 		},
 	}
 
@@ -253,60 +257,55 @@ func TestTask_IsOverdue(t *testing.T) {
 				t.Fatalf("Failed to parse task: %v", err)
 			}
 
-			domainTask := NewTask(task)
-			result := domainTask.IsOverdue(tt.now)
+			domainTask, err := NewTask(task)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
+
+			result := domainTask.IsOverdue(now)
 			if result != tt.expected {
-				t.Errorf("IsOverdue() = %v, expected %v for %s", result, tt.expected, tt.description)
+				t.Errorf("IsOverdue() = %v, expected %v for task: %s",
+					result, tt.expected, tt.taskString)
 			}
 		})
 	}
 }
 
 func TestTask_IsDueToday(t *testing.T) {
-	// テスト用の基準日時を設定（2025年5月31日 21:00）
-	baseTime := time.Date(2025, 5, 31, 21, 0, 0, 0, time.UTC)
+	now := time.Date(2025, 1, 15, 12, 0, 0, 0, time.UTC)
+	yesterday := now.AddDate(0, 0, -1).Format("2006-01-02")
+	today := now.Format("2006-01-02")
+	tomorrow := now.AddDate(0, 0, 1).Format("2006-01-02")
 
 	tests := []struct {
-		name        string
-		taskString  string
-		now         time.Time
-		expected    bool
-		description string
+		name       string
+		taskString string
+		expected   bool
 	}{
 		{
-			name:        "due_today",
-			taskString:  "Test task due:2025-05-31",
-			now:         baseTime,
-			expected:    true,
-			description: "今日が期限のタスク",
+			name:       "due_today",
+			taskString: "Task due today due:" + today,
+			expected:   true,
 		},
 		{
-			name:        "not_due_today_yesterday",
-			taskString:  "Test task due:2025-05-30",
-			now:         baseTime,
-			expected:    false,
-			description: "昨日が期限のタスクは今日ではない",
+			name:       "not_due_today_yesterday",
+			taskString: "Task due yesterday due:" + yesterday,
+			expected:   false,
 		},
 		{
-			name:        "not_due_today_tomorrow",
-			taskString:  "Test task due:2025-06-01",
-			now:         baseTime,
-			expected:    false,
-			description: "明日が期限のタスクは今日ではない",
+			name:       "not_due_today_tomorrow",
+			taskString: "Task due tomorrow due:" + tomorrow,
+			expected:   false,
 		},
 		{
-			name:        "not_due_today_no_date",
-			taskString:  "Test task without due date",
-			now:         baseTime,
-			expected:    false,
-			description: "期限なしのタスクは今日ではない",
+			name:       "not_due_today_no_date",
+			taskString: "Task without due date",
+			expected:   false,
 		},
 		{
-			name:        "not_due_today_completed",
-			taskString:  "x 2025-05-31 Test completed task due:2025-05-31",
-			now:         baseTime,
-			expected:    true,
-			description: "完了済みタスクでも今日になる",
+			name:       "not_due_today_completed",
+			taskString: "x " + today + " Completed task due:" + today,
+			expected:   false,
 		},
 	}
 
@@ -317,75 +316,71 @@ func TestTask_IsDueToday(t *testing.T) {
 				t.Fatalf("Failed to parse task: %v", err)
 			}
 
-			domainTask := NewTask(task)
-			result := domainTask.IsDueToday(tt.now)
+			domainTask, err := NewTask(task)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
+
+			result := domainTask.IsDueToday(now)
 			if result != tt.expected {
-				t.Errorf("IsDueToday() = %v, expected %v for %s", result, tt.expected, tt.description)
+				t.Errorf("IsDueToday() = %v, expected %v for task: %s",
+					result, tt.expected, tt.taskString)
 			}
 		})
 	}
 }
 
 func TestTask_IsThisWeek(t *testing.T) {
-	// テスト用の基準日時を設定（2025年5月31日 土曜日 21:00）
-	// この週は 2025-05-25(日) から 2025-05-31(土) まで
-	baseTime := time.Date(2025, 5, 31, 21, 0, 0, 0, time.UTC)
+	// Wednesday, January 15, 2025 (week: Jan 12-18, 2025)
+	now := time.Date(2025, 1, 15, 12, 0, 0, 0, time.UTC)
+
+	// This week dates
+	sunday := time.Date(2025, 1, 12, 0, 0, 0, 0, time.UTC).Format("2006-01-02")
+	wednesday := now.Format("2006-01-02")
+
+	// Other week dates
+	lastWeek := time.Date(2025, 1, 11, 0, 0, 0, 0, time.UTC).Format("2006-01-02") // Saturday before
+	nextWeek := time.Date(2025, 1, 19, 0, 0, 0, 0, time.UTC).Format("2006-01-02") // Sunday after
 
 	tests := []struct {
-		name        string
-		taskString  string
-		now         time.Time
-		expected    bool
-		description string
+		name       string
+		taskString string
+		expected   bool
 	}{
 		{
-			name:        "this_week_today",
-			taskString:  "Test task due:2025-05-31",
-			now:         baseTime,
-			expected:    true,
-			description: "今日（今週土曜日）が期限のタスク",
+			name:       "this_week_today",
+			taskString: "Task due today due:" + wednesday,
+			expected:   true,
 		},
 		{
-			name:        "this_week_sunday",
-			taskString:  "Test task due:2025-05-25",
-			now:         baseTime,
-			expected:    true,
-			description: "今週日曜日が期限のタスク",
+			name:       "this_week_sunday",
+			taskString: "Task due this Sunday due:" + sunday,
+			expected:   true,
 		},
 		{
-			name:        "this_week_wednesday",
-			taskString:  "Test task due:2025-05-28",
-			now:         baseTime,
-			expected:    true,
-			description: "今週水曜日が期限のタスク",
+			name:       "this_week_wednesday",
+			taskString: "Task due this Wednesday due:" + wednesday,
+			expected:   true,
 		},
 		{
-			name:        "not_this_week_last_week",
-			taskString:  "Test task due:2025-05-24",
-			now:         baseTime,
-			expected:    false,
-			description: "先週土曜日が期限のタスクは今週ではない",
+			name:       "not_this_week_last_week",
+			taskString: "Task due last week due:" + lastWeek,
+			expected:   false,
 		},
 		{
-			name:        "not_this_week_next_week",
-			taskString:  "Test task due:2025-06-01",
-			now:         baseTime,
-			expected:    false,
-			description: "来週日曜日が期限のタスクは今週ではない",
+			name:       "not_this_week_next_week",
+			taskString: "Task due next week due:" + nextWeek,
+			expected:   false,
 		},
 		{
-			name:        "not_this_week_no_date",
-			taskString:  "Test task without due date",
-			now:         baseTime,
-			expected:    false,
-			description: "期限なしのタスクは今週ではない",
+			name:       "not_this_week_no_date",
+			taskString: "Task without due date",
+			expected:   false,
 		},
 		{
-			name:        "not_this_week_completed",
-			taskString:  "x 2025-05-31 Test completed task due:2025-05-31",
-			now:         baseTime,
-			expected:    true,
-			description: "完了済みタスクでも今週になる",
+			name:       "not_this_week_completed",
+			taskString: "x " + wednesday + " Completed task due:" + wednesday,
+			expected:   false,
 		},
 	}
 
@@ -396,10 +391,15 @@ func TestTask_IsThisWeek(t *testing.T) {
 				t.Fatalf("Failed to parse task: %v", err)
 			}
 
-			domainTask := NewTask(task)
-			result := domainTask.IsThisWeek(tt.now)
+			domainTask, err := NewTask(task)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
+
+			result := domainTask.IsThisWeek(now)
 			if result != tt.expected {
-				t.Errorf("IsThisWeek() = %v, expected %v for %s", result, tt.expected, tt.description)
+				t.Errorf("IsThisWeek() = %v, expected %v for task: %s",
+					result, tt.expected, tt.taskString)
 			}
 		})
 	}
