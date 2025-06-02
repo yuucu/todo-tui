@@ -99,7 +99,7 @@ func DefaultAppConfig() AppConfig {
 			VerticalPadding:   2,
 			CheckboxStyle:     DefaultCheckboxStyle,
 			CompletedTaskTransition: CompletedTaskTransitionConfig{
-				DelayDays:      1, // Default: 1 day
+				DelayDays:      0, // Default: 0 days (move immediately)
 				TransitionHour: 5, // Default: 05:00 (5 AM)
 			},
 		},
@@ -260,7 +260,7 @@ func validateAndFixConfig(config AppConfig) AppConfig {
 
 	// Validate completed task transition settings
 	if config.UI.CompletedTaskTransition.DelayDays < 0 {
-		config.UI.CompletedTaskTransition.DelayDays = 1
+		config.UI.CompletedTaskTransition.DelayDays = 0
 	}
 
 	if config.UI.CompletedTaskTransition.TransitionHour < 0 || config.UI.CompletedTaskTransition.TransitionHour > 23 {
