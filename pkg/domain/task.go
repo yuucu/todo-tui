@@ -22,6 +22,9 @@ func NewTask(task *todotxt.Task) *Task {
 // ToggleCompletion toggles the completion status of the task
 // Returns true if the task is now completed, false if it's now incomplete
 func (t *Task) ToggleCompletion() bool {
+	if t.task == nil {
+		return false
+	}
 	if t.task.Completed {
 		// Mark as incomplete
 		t.task.Completed = false
@@ -37,18 +40,24 @@ func (t *Task) ToggleCompletion() bool {
 
 // IsCompleted returns whether the task is completed
 func (t *Task) IsCompleted() bool {
+	if t.task == nil {
+		return false
+	}
 	return t.task.Completed
 }
 
 // GetCompletedDate returns the completion date of the task
 func (t *Task) GetCompletedDate() time.Time {
+	if t.task == nil {
+		return time.Time{}
+	}
 	return t.task.CompletedDate
 }
 
 // ShouldMoveToCompleted checks if a completed task should be moved to "Completed Tasks" filter
 // based on the completion date and transition configuration
 func (t *Task) ShouldMoveToCompleted(config CompletedTaskTransitionConfig, now time.Time) bool {
-	if !t.task.Completed || t.task.CompletedDate.IsZero() {
+	if t.task == nil || !t.task.Completed || t.task.CompletedDate.IsZero() {
 		return false
 	}
 
@@ -79,13 +88,16 @@ func (t *Task) ShouldMoveToCompleted(config CompletedTaskTransitionConfig, now t
 
 // IsDeleted checks if the task has been soft deleted
 func (t *Task) IsDeleted() bool {
+	if t.task == nil {
+		return false
+	}
 	taskString := t.task.String()
 	return containsDeletedPrefix(taskString)
 }
 
 // IsOverdue checks if a task is overdue based on the current date
 func (t *Task) IsOverdue(now time.Time) bool {
-	if !t.task.HasDueDate() || t.IsDeleted() {
+	if t.task == nil || !t.task.HasDueDate() || t.IsDeleted() {
 		return false
 	}
 
@@ -96,7 +108,7 @@ func (t *Task) IsOverdue(now time.Time) bool {
 
 // IsDueToday checks if a task is due today
 func (t *Task) IsDueToday(now time.Time) bool {
-	if !t.task.HasDueDate() || t.IsDeleted() {
+	if t.task == nil || !t.task.HasDueDate() || t.IsDeleted() {
 		return false
 	}
 
@@ -107,7 +119,7 @@ func (t *Task) IsDueToday(now time.Time) bool {
 
 // IsThisWeek checks if a task is due this week
 func (t *Task) IsThisWeek(now time.Time) bool {
-	if !t.task.HasDueDate() || t.IsDeleted() {
+	if t.task == nil || !t.task.HasDueDate() || t.IsDeleted() {
 		return false
 	}
 
@@ -142,22 +154,31 @@ func containsDeletedPrefix(taskString string) bool {
 
 // Projects returns the projects associated with the task
 func (t *Task) Projects() []string {
+	if t.task == nil {
+		return []string{}
+	}
 	return t.task.Projects
 }
 
 // Contexts returns the contexts associated with the task
 func (t *Task) Contexts() []string {
+	if t.task == nil {
+		return []string{}
+	}
 	return t.task.Contexts
 }
 
 // HasDueDate returns true if the task has a due date
 func (t *Task) HasDueDate() bool {
+	if t.task == nil {
+		return false
+	}
 	return t.task.HasDueDate()
 }
 
 // IsDueThisWeek returns true if the task is due this week
 func (t *Task) IsDueThisWeek(now time.Time) bool {
-	if !t.HasDueDate() {
+	if t.task == nil || !t.HasDueDate() {
 		return false
 	}
 
@@ -175,6 +196,9 @@ func (t *Task) IsDueThisWeek(now time.Time) bool {
 
 // String returns the string representation of the task
 func (t *Task) String() string {
+	if t.task == nil {
+		return ""
+	}
 	return t.task.String()
 }
 

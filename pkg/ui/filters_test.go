@@ -87,7 +87,7 @@ func TestIsTaskDeleted(t *testing.T) {
 func TestGetUniqueProjects(t *testing.T) {
 	// モデルを作成（最小限の設定）
 	model := &Model{
-		tasks: createTestTaskList(),
+		tasks: domain.NewTasks(createTestTaskList()),
 	}
 
 	projects := model.getUniqueProjects()
@@ -111,7 +111,7 @@ func TestGetUniqueProjects(t *testing.T) {
 func TestGetUniqueContexts(t *testing.T) {
 	// モデルを作成（最小限の設定）
 	model := &Model{
-		tasks: createTestTaskList(),
+		tasks: domain.NewTasks(createTestTaskList()),
 	}
 
 	contexts := model.getUniqueContexts()
@@ -349,7 +349,7 @@ func TestFilterIntegration(t *testing.T) {
 
 	// モデルを作成
 	model := &Model{
-		tasks: tasks,
+		tasks: domain.NewTasks(tasks),
 	}
 
 	// プロジェクトリストの取得

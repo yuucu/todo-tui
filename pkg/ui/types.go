@@ -60,7 +60,6 @@ type Model struct {
 	taskList         SimpleList
 	filters          []FilterData
 	filteredTasks    domain.Tasks
-	currentFilter    string
 	activePane       Pane
 	viewMode         ViewMode
 	width            int

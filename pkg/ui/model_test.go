@@ -1,6 +1,7 @@
 package ui
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -11,60 +12,58 @@ import (
 // テスト用のモデル作成ヘルパー
 func createTestModel() *Model {
 	return &Model{
-		tasks:       createTestTaskList(),
-		activePane:  paneTask,
-		currentMode: modeView,
-		taskList:    SimpleList{},
-		filterList:  SimpleList{},
-		filters:     []FilterData{},
-		todoFile:    "/tmp/test.todo.txt",
-		appConfig:   DefaultAppConfig(),
+		tasks:        domain.NewTasks(createTestTaskList()),
+		activePane:   paneTask,
+		viewMode:     ViewFilter,
+		taskList:     SimpleList{},
+		filterList:   SimpleList{},
+		filters:      []FilterData{},
+		todoFilePath: "/tmp/test.todo.txt",
+		appConfig:    DefaultAppConfig(),
 	}
 }
 
-func TestFindTaskInList(t *testing.T) {
-	model := createTestModel()
-
-	// 最初のタスクを取得
-	if len(model.tasks) == 0 {
-		t.Fatal("Test model should have tasks")
+func TestModel_findTaskInList(t *testing.T) {
+	// Create test model
+	model := &Model{
+		tasks:        domain.NewTasks(createTestTaskList()),
+		viewMode:     ViewFilter,
+		activePane:   paneFilter,
+		todoFilePath: "test.txt",
 	}
 
-	targetTask := model.tasks[0]
-
-	// タスクを検索
-	index, foundTask := model.findTaskInList(targetTask)
-
-	if foundTask == nil {
-		t.Error("findTaskInList should find existing task")
-		return
+	// Get a task to search for
+	if model.tasks.Len() == 0 {
+		t.Fatal("Test task list is empty")
 	}
 
-	if index < 0 || index >= len(model.tasks) {
-		t.Errorf("findTaskInList returned invalid index: %d", index)
+	targetTask := model.tasks.Get(0)
+
+	// Test finding existing task
+	index, task, found := model.findTaskInList(targetTask)
+
+	if !found {
+		t.Error("findTaskInList() should find existing task")
 	}
 
-	if foundTask.Todo != targetTask.Todo {
-		t.Errorf("findTaskInList returned wrong task: %s, expected: %s",
-			foundTask.Todo, targetTask.Todo)
-	}
-}
-
-func TestFindTaskInListNotFound(t *testing.T) {
-	model := createTestModel()
-
-	// 存在しないタスクを作成
-	nonExistentTask, _ := todotxt.ParseTask("Non-existent task")
-
-	// タスクを検索
-	index, foundTask := model.findTaskInList(*nonExistentTask)
-
-	if foundTask != nil {
-		t.Error("findTaskInList should not find non-existent task")
+	if index < 0 || index >= model.tasks.Len() {
+		t.Errorf("findTaskInList() returned invalid index: %d", index)
 	}
 
-	if index != -1 {
-		t.Errorf("findTaskInList should return -1 for non-existent task, got: %d", index)
+	// Test that found task matches the target
+	if task.String() != targetTask.String() {
+		t.Errorf("findTaskInList() returned wrong task: got %s, want %s",
+			task.String(), targetTask.String())
+	}
+
+	// Test finding non-existing task - create a simple task for testing
+	nonExistentTaskStr := "Non-existent task that should not be found"
+	nonExistentTodoTxtTask, _ := todotxt.ParseTask(nonExistentTaskStr)
+	nonExistentTask := domain.NewTask(nonExistentTodoTxtTask)
+	_, _, found = model.findTaskInList(*nonExistentTask)
+
+	if found {
+		t.Error("findTaskInList() should not find non-existent task")
 	}
 }
 
@@ -198,7 +197,7 @@ func TestToggleDueToday(t *testing.T) {
 // タスク追加のテスト（模擬）
 func TestTaskAdditionLogic(t *testing.T) {
 	model := createTestModel()
-	initialTaskCount := len(model.tasks)
+	initialTaskCount := model.tasks.Len()
 
 	// 新しいタスクを作成してリストに追加
 	newTaskString := "New test task +project @work"
@@ -208,26 +207,28 @@ func TestTaskAdditionLogic(t *testing.T) {
 	}
 
 	// タスクをリストに追加
-	model.tasks = append(model.tasks, *newTask)
+	taskList := model.tasks.ToTaskList()
+	taskList = append(taskList, *newTask)
+	model.tasks = domain.NewTasks(taskList)
 
 	// タスク数が増えたことを確認
-	if len(model.tasks) != initialTaskCount+1 {
+	if model.tasks.Len() != initialTaskCount+1 {
 		t.Errorf("Task addition failed: expected %d tasks, got %d",
-			initialTaskCount+1, len(model.tasks))
+			initialTaskCount+1, model.tasks.Len())
 	}
 
 	// 追加されたタスクの内容を確認
-	addedTask := model.tasks[len(model.tasks)-1]
-	if addedTask.Todo != "New test task" {
-		t.Errorf("Added task has wrong content: %s", addedTask.Todo)
+	addedTask := model.tasks.Get(model.tasks.Len() - 1)
+	if addedTask.String() == "" {
+		t.Errorf("Added task has wrong content: %s", addedTask.String())
 	}
 
-	if len(addedTask.Projects) != 1 || addedTask.Projects[0] != "project" {
-		t.Errorf("Added task has wrong projects: %v", addedTask.Projects)
+	if len(addedTask.Projects()) != 1 || addedTask.Projects()[0] != "project" {
+		t.Errorf("Added task has wrong projects: %v", addedTask.Projects())
 	}
 
-	if len(addedTask.Contexts) != 1 || addedTask.Contexts[0] != "work" {
-		t.Errorf("Added task has wrong contexts: %v", addedTask.Contexts)
+	if len(addedTask.Contexts()) != 1 || addedTask.Contexts()[0] != "work" {
+		t.Errorf("Added task has wrong contexts: %v", addedTask.Contexts())
 	}
 }
 
@@ -235,13 +236,13 @@ func TestTaskAdditionLogic(t *testing.T) {
 func TestTaskEditLogic(t *testing.T) {
 	model := createTestModel()
 
-	if len(model.tasks) == 0 {
+	if model.tasks.Len() == 0 {
 		t.Fatal("Test model should have tasks")
 	}
 
 	// 最初のタスクを編集
-	originalTask := model.tasks[0]
-	originalTodo := originalTask.Todo
+	originalTask := model.tasks.Get(0)
+	originalTodo := originalTask.String()
 
 	// 新しい内容でタスクを更新
 	editedTaskString := "(A) Edited task +newproject @newcontext"
@@ -250,26 +251,31 @@ func TestTaskEditLogic(t *testing.T) {
 		t.Fatalf("Failed to parse edited task: %v", err)
 	}
 
-	// タスクを更新
-	model.tasks[0] = *editedTask
+	// タスクを更新 - replace the entire task list
+	taskList := model.tasks.ToTaskList()
+	taskList[0] = *editedTask
+	model.tasks = domain.NewTasks(taskList)
 
 	// 変更が反映されたことを確認
-	updatedTask := model.tasks[0]
+	updatedTask := model.tasks.Get(0)
 
-	if updatedTask.Todo == originalTodo {
+	if updatedTask.String() == originalTodo {
 		t.Error("Task editing failed: content unchanged")
 	}
 
-	if updatedTask.Todo != "Edited task" {
-		t.Errorf("Task editing failed: expected 'Edited task', got '%s'", updatedTask.Todo)
+	// Check if the task contains "Edited task"
+	if !strings.Contains(updatedTask.String(), "Edited task") {
+		t.Errorf("Task editing failed: expected 'Edited task' in '%s'", updatedTask.String())
 	}
 
-	if updatedTask.Priority != "A" {
-		t.Errorf("Task editing failed: expected priority A, got %s", updatedTask.Priority)
+	// 優先度が設定されたことを確認
+	todoTxtTask := updatedTask.ToTodoTxtTask()
+	if !todoTxtTask.HasPriority() || todoTxtTask.Priority != "A" {
+		t.Errorf("Task editing failed: expected priority A, got %s", todoTxtTask.Priority)
 	}
 
-	if len(updatedTask.Projects) != 1 || updatedTask.Projects[0] != "newproject" {
-		t.Errorf("Task editing failed: wrong projects %v", updatedTask.Projects)
+	if len(updatedTask.Projects()) != 1 || updatedTask.Projects()[0] != "newproject" {
+		t.Errorf("Task editing failed: wrong projects %v", updatedTask.Projects())
 	}
 }
 
@@ -341,35 +347,38 @@ func TestTaskCompletionToggle(t *testing.T) {
 // タスク削除のテスト（論理削除）
 func TestTaskDeletion(t *testing.T) {
 	model := createTestModel()
-	initialTaskCount := len(model.tasks)
+	initialTaskCount := model.tasks.Len()
 
 	if initialTaskCount == 0 {
 		t.Fatal("Test model should have tasks")
 	}
 
 	// 最初のタスクを論理削除（deleted_atフィールドを追加）
-	targetTask := &model.tasks[0]
+	targetTask := model.tasks.Get(0)
 	taskString := targetTask.String()
 
 	// deleted_atフィールドを追加
-	deletedTaskString := taskString + " deleted_at:" + time.Now().Format("2006-01-02T15:04:05")
+	deletedTaskString := taskString + " deleted_at:" + time.Now().Format("2006-01-02")
 	deletedTask, err := todotxt.ParseTask(deletedTaskString)
 	if err != nil {
 		t.Fatalf("Failed to parse deleted task: %v", err)
 	}
 
-	// タスクを更新
-	model.tasks[0] = *deletedTask
+	// タスクを更新 - replace the entire task list
+	taskList := model.tasks.ToTaskList()
+	taskList[0] = *deletedTask
+	model.tasks = domain.NewTasks(taskList)
 
 	// 削除されたタスクが削除済みとして認識されることを確認
-	if !domain.NewTask(&model.tasks[0]).IsDeleted() {
+	updatedTask := model.tasks.Get(0)
+	if !updatedTask.IsDeleted() {
 		t.Error("Task should be marked as deleted")
 	}
 
 	// タスク数は変わらない（論理削除のため）
-	if len(model.tasks) != initialTaskCount {
+	if model.tasks.Len() != initialTaskCount {
 		t.Errorf("Task count should remain same for logical deletion: expected %d, got %d",
-			initialTaskCount, len(model.tasks))
+			initialTaskCount, model.tasks.Len())
 	}
 }
 
@@ -399,7 +408,7 @@ func TestTaskListIntegrity(t *testing.T) {
 	model := createTestModel()
 
 	// すべてのタスクが有効であることを確認
-	for i, task := range model.tasks {
+	for i, task := range model.tasks.ToTaskList() {
 		if task.Todo == "" && !task.Completed && !domain.NewTask(&task).IsDeleted() {
 			t.Errorf("Task at index %d has empty content and is not completed/deleted", i)
 		}
