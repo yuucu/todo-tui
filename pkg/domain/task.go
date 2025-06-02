@@ -6,6 +6,32 @@ import (
 	"time"
 
 	todotxt "github.com/1set/todotxt"
+	"github.com/samber/lo"
+)
+
+// ===============================
+// Task Field Constants
+// ===============================
+
+// Task field names
+const (
+	TaskFieldDeleted = "deleted_at"
+	TaskFieldDue     = "due"
+)
+
+// Task field prefixes (with colon)
+const (
+	TaskFieldDeletedPrefix = TaskFieldDeleted + ":"
+	TaskFieldDuePrefix     = TaskFieldDue + ":"
+)
+
+// ===============================
+// Date Format Constants
+// ===============================
+
+const (
+	// Go standard date format (ISO 8601)
+	DateFormat = "2006-01-02"
 )
 
 // Task represents the domain logic for a task
@@ -185,4 +211,149 @@ func (t *Task) String() string {
 // ToTodoTxtTask returns the underlying todotxt.Task
 func (t *Task) ToTodoTxtTask() *todotxt.Task {
 	return t.task
+}
+
+// CyclePriority cycles through priority levels based on the provided configuration
+func (t *Task) CyclePriority(priorityLevels []string) error {
+	// Safety check: ensure PriorityLevels is not empty
+	if len(priorityLevels) == 0 {
+		return errors.New("priority levels cannot be empty")
+	}
+
+	currentPriority := ""
+	if t.task.HasPriority() {
+		currentPriority = t.task.Priority
+	}
+
+	// Find current priority index in configuration using lo.FindIndexOf
+	_, currentIndex, found := lo.FindIndexOf(priorityLevels, func(priority string) bool {
+		return priority == currentPriority
+	})
+	if !found {
+		currentIndex = -1 // Use -1 to indicate not found, so next index becomes 0
+	}
+
+	// Move to next priority level (cycle around)
+	nextIndex := (currentIndex + 1) % len(priorityLevels)
+	nextPriority := priorityLevels[nextIndex]
+
+	// Set the new priority
+	if nextPriority == "" {
+		t.task.Priority = ""
+	} else {
+		t.task.Priority = nextPriority
+	}
+
+	return nil
+}
+
+// ToggleDueToday toggles the due date of a task to today or removes it if already set to today
+func (t *Task) ToggleDueToday(now time.Time) error {
+	today := now.Format(DateFormat)
+
+	// Get the current task string
+	taskString := t.task.String()
+
+	// Check if task is already due today
+	hasDueToday := t.IsDueToday(now)
+
+	var newTaskString string
+
+	if hasDueToday {
+		// Remove due date - remove due:YYYY-MM-DD from task string using lo.Filter
+		parts := strings.Fields(taskString)
+		newParts := lo.Filter(parts, func(part string, _ int) bool {
+			return !strings.HasPrefix(part, TaskFieldDuePrefix)
+		})
+		newTaskString = strings.Join(newParts, " ")
+	} else {
+		// Add or update due date
+		if t.task.HasDueDate() {
+			// Replace existing due date using lo.Map
+			parts := strings.Fields(taskString)
+			newParts := lo.Map(parts, func(part string, _ int) string {
+				if strings.HasPrefix(part, TaskFieldDuePrefix) {
+					return TaskFieldDuePrefix + today
+				}
+				return part
+			})
+			newTaskString = strings.Join(newParts, " ")
+		} else {
+			// Add new due date
+			newTaskString = taskString + " " + TaskFieldDuePrefix + today
+		}
+	}
+
+	// Parse the new task string and update the task
+	newTask, err := todotxt.ParseTask(newTaskString)
+	if err != nil {
+		return err
+	}
+	*t.task = *newTask
+	return nil
+}
+
+// SoftDelete marks the task as deleted by adding a deleted_at field
+func (t *Task) SoftDelete(now time.Time) error {
+	taskString := t.task.String()
+
+	// Check if already deleted
+	if strings.Contains(taskString, TaskFieldDeletedPrefix) {
+		return nil // Already deleted, no action needed
+	}
+
+	// Add deleted_at field to mark as soft deleted
+	currentDate := now.Format(DateFormat)
+	newTaskString := taskString + " " + TaskFieldDeletedPrefix + currentDate
+
+	// Parse the modified task string back to update the task
+	newTask, err := todotxt.ParseTask(newTaskString)
+	if err != nil {
+		return err
+	}
+	*t.task = *newTask
+	return nil
+}
+
+// RestoreFromDeleted removes the deleted_at field to restore the task
+func (t *Task) RestoreFromDeleted() error {
+	taskString := t.task.String()
+
+	// Check if task is deleted
+	if !strings.Contains(taskString, TaskFieldDeletedPrefix) {
+		return nil // Not deleted, no action needed
+	}
+
+	// Remove deleted_at field from the task string using lo.Filter
+	parts := strings.Fields(taskString)
+	cleanParts := lo.Filter(parts, func(part string, _ int) bool {
+		return !strings.HasPrefix(part, TaskFieldDeletedPrefix)
+	})
+	newTaskString := strings.Join(cleanParts, " ")
+
+	// Parse the modified task string back to update the task
+	newTask, err := todotxt.ParseTask(newTaskString)
+	if err != nil {
+		return err
+	}
+	*t.task = *newTask
+	return nil
+}
+
+// GetPriority returns the current priority of the task
+func (t *Task) GetPriority() string {
+	if t.task.HasPriority() {
+		return t.task.Priority
+	}
+	return ""
+}
+
+// HasPriority returns true if the task has a priority
+func (t *Task) HasPriority() bool {
+	return t.task.HasPriority()
+}
+
+// GetDueDate returns the due date of the task
+func (t *Task) GetDueDate() time.Time {
+	return t.task.DueDate
 }

@@ -404,3 +404,491 @@ func TestTask_IsThisWeek(t *testing.T) {
 		})
 	}
 }
+
+func TestTask_CyclePriority(t *testing.T) {
+	tests := []struct {
+		name           string
+		taskText       string
+		priorityLevels []string
+		expectedSteps  []string
+		shouldError    bool
+	}{
+		{
+			name:           "Basic priority cycling",
+			taskText:       "Test task",
+			priorityLevels: []string{"", "A", "B", "C"},
+			expectedSteps:  []string{"(A) Test task", "(B) Test task", "(C) Test task", "Test task"},
+			shouldError:    false,
+		},
+		{
+			name:           "Cycling with existing priority A",
+			taskText:       "(A) Test task",
+			priorityLevels: []string{"", "A", "B", "C"},
+			expectedSteps:  []string{"(B) Test task", "(C) Test task", "Test task", "(A) Test task"},
+			shouldError:    false,
+		},
+		{
+			name:           "Cycling with priority not in levels",
+			taskText:       "(Z) Test task",
+			priorityLevels: []string{"", "A", "B", "C"},
+			expectedSteps:  []string{"Test task", "(A) Test task", "(B) Test task", "(C) Test task"},
+			shouldError:    false,
+		},
+		{
+			name:           "Single priority level",
+			taskText:       "Test task",
+			priorityLevels: []string{"A"},
+			expectedSteps:  []string{"(A) Test task", "(A) Test task"},
+			shouldError:    false,
+		},
+		{
+			name:           "Empty priority levels",
+			taskText:       "Test task",
+			priorityLevels: []string{},
+			expectedSteps:  nil,
+			shouldError:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			todoTask, err := todotxt.ParseTask(tt.taskText)
+			if err != nil {
+				t.Fatalf("Failed to parse task: %v", err)
+			}
+
+			task, err := NewTask(todoTask)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
+
+			if tt.shouldError {
+				err := task.CyclePriority(tt.priorityLevels)
+				if err == nil {
+					t.Errorf("Expected error but got none")
+				}
+				return
+			}
+
+			// Test cycling through all expected steps
+			for i, expected := range tt.expectedSteps {
+				err := task.CyclePriority(tt.priorityLevels)
+				if err != nil {
+					t.Errorf("Step %d: Unexpected error: %v", i, err)
+					continue
+				}
+
+				actual := task.String()
+				if actual != expected {
+					t.Errorf("Step %d: Expected %q, got %q", i, expected, actual)
+				}
+			}
+		})
+	}
+}
+
+func TestTask_ToggleDueToday(t *testing.T) {
+	testTime := time.Date(2025, 1, 15, 10, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name     string
+		taskText string
+		expected string
+	}{
+		{
+			name:     "Add due today to task without due date",
+			taskText: "Test task",
+			expected: "Test task due:2025-01-15",
+		},
+		{
+			name:     "Remove due today from task due today",
+			taskText: "Test task due:2025-01-15",
+			expected: "Test task",
+		},
+		{
+			name:     "Change due tomorrow to due today",
+			taskText: "Test task due:2025-01-16",
+			expected: "Test task due:2025-01-15",
+		},
+		{
+			name:     "Add due today to task with priority",
+			taskText: "(A) Test task",
+			expected: "(A) Test task due:2025-01-15",
+		},
+		{
+			name:     "Remove due today from prioritized task",
+			taskText: "(A) Test task due:2025-01-15",
+			expected: "(A) Test task",
+		},
+		{
+			name:     "Toggle with project and context",
+			taskText: "Test task +project @context",
+			expected: "Test task @context +project due:2025-01-15",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			todoTask, err := todotxt.ParseTask(tt.taskText)
+			if err != nil {
+				t.Fatalf("Failed to parse task: %v", err)
+			}
+
+			task, err := NewTask(todoTask)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
+
+			err = task.ToggleDueToday(testTime)
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+
+			actual := task.String()
+			if actual != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, actual)
+			}
+		})
+	}
+}
+
+func TestTask_ToggleDueToday_DoubleToggle(t *testing.T) {
+	testTime := time.Date(2025, 1, 15, 10, 0, 0, 0, time.UTC)
+	original := "Test task"
+
+	todoTask, err := todotxt.ParseTask(original)
+	if err != nil {
+		t.Fatalf("Failed to parse task: %v", err)
+	}
+
+	task, err := NewTask(todoTask)
+	if err != nil {
+		t.Fatalf("Failed to create domain task: %v", err)
+	}
+
+	// First toggle: add due today
+	err = task.ToggleDueToday(testTime)
+	if err != nil {
+		t.Fatalf("First toggle failed: %v", err)
+	}
+
+	expected1 := "Test task due:2025-01-15"
+	if task.String() != expected1 {
+		t.Errorf("After first toggle: expected %q, got %q", expected1, task.String())
+	}
+
+	// Second toggle: remove due today
+	err = task.ToggleDueToday(testTime)
+	if err != nil {
+		t.Fatalf("Second toggle failed: %v", err)
+	}
+
+	if task.String() != original {
+		t.Errorf("After second toggle: expected %q, got %q", original, task.String())
+	}
+}
+
+func TestTask_SoftDelete(t *testing.T) {
+	testTime := time.Date(2025, 1, 15, 10, 0, 0, 0, time.UTC)
+
+	tests := []struct {
+		name     string
+		taskText string
+		expected string
+	}{
+		{
+			name:     "Delete simple task",
+			taskText: "Test task",
+			expected: "Test task deleted_at:2025-01-15",
+		},
+		{
+			name:     "Delete task with priority",
+			taskText: "(A) Test task",
+			expected: "(A) Test task deleted_at:2025-01-15",
+		},
+		{
+			name:     "Delete task with project and context",
+			taskText: "Test task +project @context",
+			expected: "Test task @context +project deleted_at:2025-01-15",
+		},
+		{
+			name:     "Delete already deleted task (no change)",
+			taskText: "Test task deleted_at:2025-01-10",
+			expected: "Test task deleted_at:2025-01-10",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			todoTask, err := todotxt.ParseTask(tt.taskText)
+			if err != nil {
+				t.Fatalf("Failed to parse task: %v", err)
+			}
+
+			task, err := NewTask(todoTask)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
+
+			err = task.SoftDelete(testTime)
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+
+			actual := task.String()
+			if actual != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, actual)
+			}
+
+			// Verify IsDeleted returns true
+			if !task.IsDeleted() {
+				t.Errorf("Task should be marked as deleted")
+			}
+		})
+	}
+}
+
+func TestTask_RestoreFromDeleted(t *testing.T) {
+	tests := []struct {
+		name     string
+		taskText string
+		expected string
+	}{
+		{
+			name:     "Restore simple deleted task",
+			taskText: "Test task deleted_at:2025-01-15",
+			expected: "Test task",
+		},
+		{
+			name:     "Restore deleted task with priority",
+			taskText: "(A) Test task deleted_at:2025-01-15",
+			expected: "(A) Test task",
+		},
+		{
+			name:     "Restore deleted task with project and context",
+			taskText: "Test task +project @context deleted_at:2025-01-15",
+			expected: "Test task @context +project",
+		},
+		{
+			name:     "Restore task that's not deleted (no change)",
+			taskText: "Test task",
+			expected: "Test task",
+		},
+		{
+			name:     "Restore task with multiple fields including deleted_at",
+			taskText: "Test task +project @context due:2025-01-20 deleted_at:2025-01-15",
+			expected: "Test task @context +project due:2025-01-20",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			todoTask, err := todotxt.ParseTask(tt.taskText)
+			if err != nil {
+				t.Fatalf("Failed to parse task: %v", err)
+			}
+
+			task, err := NewTask(todoTask)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
+
+			err = task.RestoreFromDeleted()
+			if err != nil {
+				t.Errorf("Unexpected error: %v", err)
+			}
+
+			actual := task.String()
+			if actual != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, actual)
+			}
+
+			// Verify IsDeleted returns false
+			if task.IsDeleted() {
+				t.Errorf("Task should not be marked as deleted after restoration")
+			}
+		})
+	}
+}
+
+func TestTask_GetPriority(t *testing.T) {
+	tests := []struct {
+		name     string
+		taskText string
+		expected string
+	}{
+		{
+			name:     "Task with priority A",
+			taskText: "(A) Test task",
+			expected: "A",
+		},
+		{
+			name:     "Task with priority Z",
+			taskText: "(Z) Test task",
+			expected: "Z",
+		},
+		{
+			name:     "Task without priority",
+			taskText: "Test task",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			todoTask, err := todotxt.ParseTask(tt.taskText)
+			if err != nil {
+				t.Fatalf("Failed to parse task: %v", err)
+			}
+
+			task, err := NewTask(todoTask)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
+
+			actual := task.GetPriority()
+			if actual != tt.expected {
+				t.Errorf("Expected %q, got %q", tt.expected, actual)
+			}
+		})
+	}
+}
+
+func TestTask_HasPriority(t *testing.T) {
+	tests := []struct {
+		name     string
+		taskText string
+		expected bool
+	}{
+		{
+			name:     "Task with priority",
+			taskText: "(A) Test task",
+			expected: true,
+		},
+		{
+			name:     "Task without priority",
+			taskText: "Test task",
+			expected: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			todoTask, err := todotxt.ParseTask(tt.taskText)
+			if err != nil {
+				t.Fatalf("Failed to parse task: %v", err)
+			}
+
+			task, err := NewTask(todoTask)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
+
+			actual := task.HasPriority()
+			if actual != tt.expected {
+				t.Errorf("Expected %t, got %t", tt.expected, actual)
+			}
+		})
+	}
+}
+
+func TestTask_GetDueDate(t *testing.T) {
+	tests := []struct {
+		name     string
+		taskText string
+		hasDate  bool
+	}{
+		{
+			name:     "Task with due date",
+			taskText: "Test task due:2025-01-15",
+			hasDate:  true,
+		},
+		{
+			name:     "Task without due date",
+			taskText: "Test task",
+			hasDate:  false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			todoTask, err := todotxt.ParseTask(tt.taskText)
+			if err != nil {
+				t.Fatalf("Failed to parse task: %v", err)
+			}
+
+			task, err := NewTask(todoTask)
+			if err != nil {
+				t.Fatalf("Failed to create domain task: %v", err)
+			}
+
+			actual := task.GetDueDate()
+			if tt.hasDate {
+				if actual.IsZero() {
+					t.Errorf("Expected a valid date, got zero time")
+				}
+				// Check if the date is 2025-01-15, regardless of timezone
+				if actual.Year() != 2025 || actual.Month() != 1 || actual.Day() != 15 {
+					t.Errorf("Expected date 2025-01-15, got %v", actual)
+				}
+			} else {
+				if !actual.IsZero() {
+					t.Errorf("Expected zero time, got %v", actual)
+				}
+			}
+		})
+	}
+}
+
+// Integration test for soft delete and restore workflow
+func TestTask_SoftDeleteAndRestore_Integration(t *testing.T) {
+	testTime := time.Date(2025, 1, 15, 10, 0, 0, 0, time.UTC)
+	original := "(A) Important task +project @context due:2025-01-20"
+
+	todoTask, err := todotxt.ParseTask(original)
+	if err != nil {
+		t.Fatalf("Failed to parse task: %v", err)
+	}
+
+	task, err := NewTask(todoTask)
+	if err != nil {
+		t.Fatalf("Failed to create domain task: %v", err)
+	}
+
+	// Initial state - not deleted
+	if task.IsDeleted() {
+		t.Errorf("Task should not be deleted initially")
+	}
+
+	// Soft delete
+	err = task.SoftDelete(testTime)
+	if err != nil {
+		t.Fatalf("Failed to soft delete: %v", err)
+	}
+
+	// Should be marked as deleted
+	if !task.IsDeleted() {
+		t.Errorf("Task should be marked as deleted")
+	}
+
+	expectedDeleted := "(A) Important task @context +project deleted_at:2025-01-15 due:2025-01-20"
+	if task.String() != expectedDeleted {
+		t.Errorf("Expected %q, got %q", expectedDeleted, task.String())
+	}
+
+	// Restore from deleted
+	err = task.RestoreFromDeleted()
+	if err != nil {
+		t.Fatalf("Failed to restore: %v", err)
+	}
+
+	// Should not be marked as deleted
+	if task.IsDeleted() {
+		t.Errorf("Task should not be marked as deleted after restoration")
+	}
+
+	expectedRestored := "(A) Important task @context +project due:2025-01-20"
+	if task.String() != expectedRestored {
+		t.Errorf("Expected %q, got %q", expectedRestored, task.String())
+	}
+}

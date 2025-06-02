@@ -44,26 +44,29 @@ const (
 // todo.txt Field Constants
 // ===============================
 
-// Task field names
-const (
-	TaskFieldDeleted = "deleted_at"
-	TaskFieldDue     = "due"
-)
+// Task field names - Moved to domain package
+// const (
+// 	TaskFieldDeleted = "deleted_at"
+// 	TaskFieldDue     = "due"
+// )
 
-// Task field prefixes (with colon)
-const (
-	TaskFieldDeletedPrefix = TaskFieldDeleted + ":"
-	TaskFieldDuePrefix     = TaskFieldDue + ":"
-)
+// Task field prefixes (with colon) - Moved to domain package
+// const (
+// 	TaskFieldDeletedPrefix = TaskFieldDeleted + ":"
+// 	TaskFieldDuePrefix     = TaskFieldDue + ":"
+// )
 
 // ===============================
 // Date & Time Format Constants
 // ===============================
 
-const (
-	// Go standard date format (ISO 8601)
-	DateFormat = "2006-01-02"
+// Date format moved to domain package
+// const (
+// 	// Go standard date format (ISO 8601)
+// 	DateFormat = "2006-01-02"
+// )
 
+const (
 	// Time display format
 	TimeFormat = "15:04"
 )

@@ -8,7 +8,6 @@ import (
 	"github.com/atotto/clipboard"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fsnotify/fsnotify"
-	"github.com/samber/lo"
 	"github.com/yuucu/todotui/pkg/domain"
 	"github.com/yuucu/todotui/pkg/logger"
 	"github.com/yuucu/todotui/pkg/todo"
@@ -308,25 +307,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.taskList.selected < m.filteredTasks.Len() {
 					// Check if current filter is "Deleted Tasks"
 					if m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name != FilterDeletedTasks {
-						// Soft delete with deleted_at field
+						// Soft delete using domain method
 						taskToDelete := m.filteredTasks.Get(m.taskList.selected)
-						// Find the task in main tasks list and add deleted_at field using lo
+						// Find the task in main tasks list and soft delete using domain method
 						index, task, found := m.findTaskInList(taskToDelete)
 						if found {
-							// Add deleted_at field to mark as soft deleted
-							currentDate := time.Now().Format(DateFormat)
-							taskString := task.String()
-
-							// Add deleted_at field to the task string
-							if !strings.Contains(taskString, TaskFieldDeletedPrefix) {
-								taskString += " " + TaskFieldDeletedPrefix + currentDate
-
-								// Parse the modified task string back to update the task
-								if newTask, err := todotxt.ParseTask(taskString); err == nil {
-									if domainTask, err := domain.NewTask(newTask); err == nil {
-										m.updateTaskAtIndex(index, domainTask)
-									}
-								}
+							err := task.SoftDelete(time.Now())
+							if err == nil {
+								// Update the task in the list
+								taskList := m.tasks.ToTaskList()
+								taskList[index] = *task.ToTodoTxtTask()
+								m.tasks = domain.NewTasks(taskList)
 							}
 						}
 						return m, m.saveAndRefresh()
@@ -338,15 +329,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Toggle priority level
 				if m.taskList.selected < m.filteredTasks.Len() {
 					taskToUpdate := m.filteredTasks.Get(m.taskList.selected)
-					// Find the task in main tasks list and cycle priority using lo
+					// Find the task in main tasks list and cycle priority using domain method
 					index, task, found := m.findTaskInList(taskToUpdate)
 					if found {
-						todoTxtTask := task.ToTodoTxtTask()
-						m.cyclePriority(todoTxtTask)
-						// Update the task in the list
-						taskList := m.tasks.ToTaskList()
-						taskList[index] = *todoTxtTask
-						m.tasks = domain.NewTasks(taskList)
+						err := task.CyclePriority(m.appConfig.PriorityLevels)
+						if err == nil {
+							// Update the task in the list
+							taskList := m.tasks.ToTaskList()
+							taskList[index] = *task.ToTodoTxtTask()
+							m.tasks = domain.NewTasks(taskList)
+						}
 					}
 					return m, m.saveAndRefresh()
 				}
@@ -356,15 +348,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Toggle due date to today
 				if m.taskList.selected < m.filteredTasks.Len() {
 					taskToUpdate := m.filteredTasks.Get(m.taskList.selected)
-					// Find the task in main tasks list and toggle due date using lo
+					// Find the task in main tasks list and toggle due date using domain method
 					index, task, found := m.findTaskInList(taskToUpdate)
 					if found {
-						todoTxtTask := task.ToTodoTxtTask()
-						m.toggleDueToday(todoTxtTask)
-						// Update the task in the list
-						taskList := m.tasks.ToTaskList()
-						taskList[index] = *todoTxtTask
-						m.tasks = domain.NewTasks(taskList)
+						err := task.ToggleDueToday(time.Now())
+						if err == nil {
+							// Update the task in the list
+							taskList := m.tasks.ToTaskList()
+							taskList[index] = *task.ToTodoTxtTask()
+							m.tasks = domain.NewTasks(taskList)
+						}
 					}
 					return m, m.saveAndRefresh()
 				}
@@ -382,26 +375,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					// Handle deleted tasks restoration
 					if currentFilter == FilterDeletedTasks {
-						// Find the task in main tasks list and remove deleted_at field using lo
+						// Find the task in main tasks list and restore using domain method
 						index, task, found := m.findTaskInList(taskToRestore)
 						if found {
-							// Remove deleted_at field to restore the task
-							taskString := task.String()
-
-							// Remove deleted_at field from the task string using lo.Filter
-							if strings.Contains(taskString, "deleted_at:") {
-								parts := strings.Fields(taskString)
-								cleanParts := lo.Filter(parts, func(part string, _ int) bool {
-									return !strings.HasPrefix(part, "deleted_at:")
-								})
-								taskString = strings.Join(cleanParts, " ")
-
-								// Parse the modified task string back to update the task
-								if newTask, err := todotxt.ParseTask(taskString); err == nil {
-									if domainTask, err := domain.NewTask(newTask); err == nil {
-										m.updateTaskAtIndex(index, domainTask)
-									}
-								}
+							err := task.RestoreFromDeleted()
+							if err == nil {
+								// Update the task in the list
+								taskList := m.tasks.ToTaskList()
+								taskList[index] = *task.ToTodoTxtTask()
+								m.tasks = domain.NewTasks(taskList)
 							}
 						}
 						return m, m.saveAndRefresh()
@@ -491,86 +473,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	return m, nil
 }
 
-// cyclePriority cycles through priority levels based on configuration
-func (m *Model) cyclePriority(task *todotxt.Task) {
-	// Safety check: ensure PriorityLevels is not empty
-	if len(m.appConfig.PriorityLevels) == 0 {
-		return // Cannot cycle if no priority levels are configured
-	}
-
-	currentPriority := ""
-	if task.HasPriority() {
-		currentPriority = task.Priority
-	}
-
-	// Find current priority index in configuration using lo.FindIndexOf
-	_, currentIndex, found := lo.FindIndexOf(m.appConfig.PriorityLevels, func(priority string) bool {
-		return priority == currentPriority
-	})
-	if !found {
-		currentIndex = -1 // Use -1 to indicate not found, so next index becomes 0
-	}
-
-	// Move to next priority level (cycle around)
-	nextIndex := (currentIndex + 1) % len(m.appConfig.PriorityLevels)
-	nextPriority := m.appConfig.PriorityLevels[nextIndex]
-
-	// Set the new priority
-	if nextPriority == "" {
-		task.Priority = ""
-	} else {
-		task.Priority = nextPriority
-	}
-}
-
-// toggleDueToday toggles the due date of a task to today or removes it if already set to today
-func (m *Model) toggleDueToday(task *todotxt.Task) {
-	now := time.Now()
-	today := now.Format(DateFormat)
-
-	// Get the current task string
-	taskString := task.String()
-
-	// Check if task is already due today using domain method
-	domainTask, err := domain.NewTask(task)
-	if err != nil {
-		return // Skip if task creation fails
-	}
-	hasDueToday := domainTask.IsDueToday(now)
-
-	var newTaskString string
-
-	if hasDueToday {
-		// Remove due date - remove due:YYYY-MM-DD from task string using lo.Filter
-		parts := strings.Fields(taskString)
-		newParts := lo.Filter(parts, func(part string, _ int) bool {
-			return !strings.HasPrefix(part, TaskFieldDuePrefix)
-		})
-		newTaskString = strings.Join(newParts, " ")
-	} else {
-		// Add or update due date
-		if task.HasDueDate() {
-			// Replace existing due date using lo.Map
-			parts := strings.Fields(taskString)
-			newParts := lo.Map(parts, func(part string, _ int) string {
-				if strings.HasPrefix(part, TaskFieldDuePrefix) {
-					return TaskFieldDuePrefix + today
-				}
-				return part
-			})
-			newTaskString = strings.Join(newParts, " ")
-		} else {
-			// Add new due date
-			newTaskString = taskString + " " + TaskFieldDuePrefix + today
-		}
-	}
-
-	// Parse the new task string and update the task
-	if newTask, err := todotxt.ParseTask(newTaskString); err == nil {
-		*task = *newTask
-	}
-}
-
 // Cleanup closes the file watcher
 func (m *Model) Cleanup() {
 	if m.watcher != nil {
@@ -598,13 +500,4 @@ func (m *Model) findTaskInList(targetTask domain.Task) (int, domain.Task, bool) 
 		}
 	}
 	return -1, domain.Task{}, false
-}
-
-// updateTaskAtIndex updates a task at the given index using domain.Task
-func (m *Model) updateTaskAtIndex(index int, newTask *domain.Task) {
-	if index >= 0 && index < m.tasks.Len() {
-		taskList := m.tasks.ToTaskList()
-		taskList[index] = *newTask.ToTodoTxtTask()
-		m.tasks = domain.NewTasks(taskList)
-	}
 }

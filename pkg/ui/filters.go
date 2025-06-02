@@ -319,8 +319,8 @@ func (m *Model) refreshTaskList() {
 			tags = append(tags, "@"+context)
 		}
 		if task.HasDueDate() {
-			dueDate := task.DueDate.Format(DateFormat)
-			tags = append(tags, TaskFieldDuePrefix+dueDate)
+			dueDate := task.DueDate.Format(domain.DateFormat)
+			tags = append(tags, domain.TaskFieldDuePrefix+dueDate)
 		}
 
 		if len(tags) > 0 {
