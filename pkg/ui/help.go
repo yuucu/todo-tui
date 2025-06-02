@@ -206,7 +206,7 @@ func (m *Model) renderHelpView() string {
 type KeyBinding struct {
 	Key         string
 	Description string
-	Mode        mode
-	Pane        *pane // nil means any pane
+	Mode        ViewMode
+	Pane        *Pane // nil means any pane
 	Handler     func(m *Model) (tea.Model, tea.Cmd)
 }

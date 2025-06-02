@@ -4,37 +4,41 @@ import (
 	"time"
 
 	todotxt "github.com/1set/todotxt"
-	"github.com/charmbracelet/bubbles/textarea"
 	"github.com/fsnotify/fsnotify"
+	"github.com/yuucu/todotui/pkg/domain"
 )
 
-type pane int
-type mode int
+// ViewMode represents the current view mode
+type ViewMode int
 
 const (
-	paneFilter pane = iota
+	ViewFilter ViewMode = iota
+	ViewTask
+	ViewHelp
+	ViewEdit
+	ViewAdd
+)
+
+// Pane represents which pane is active
+type Pane int
+
+const (
+	paneFilter Pane = iota
 	paneTask
 )
 
-const (
-	modeView mode = iota
-	modeAdd
-	modeEdit
-	modeHelp
-)
-
-// FileChangedMsg is sent when the todo file is modified
-type FileChangedMsg struct{}
-
-// StatusMessageClearMsg is sent when a temporary status message should be cleared
-type StatusMessageClearMsg struct{}
-
-// FilterData represents filter information
+// FilterData holds information about a filter
 type FilterData struct {
 	name     string
-	filterFn func(todotxt.TaskList) todotxt.TaskList
+	filterFn func(domain.Tasks) domain.Tasks
 	count    int
 }
+
+// StatusMessageClearMsg is a message to clear the status message
+type StatusMessageClearMsg struct{}
+
+// TaskListChangedMsg is sent when the task list file changes
+type TaskListChangedMsg struct{}
 
 // HelpContent represents help information for key bindings
 type HelpContent struct {
@@ -48,31 +52,29 @@ type HelpItem struct {
 	Description string
 }
 
-// TaskCache はタスクデータのキャッシュを管理
-type TaskCache struct {
-	// 基本的なキャッシュ機能のみ残す（現在は使用していない）
-}
-
-// Model represents the main application state
+// Model represents the main application model
 type Model struct {
+	appConfig        AppConfig
+	tasks            domain.Tasks
 	filterList       SimpleList
 	taskList         SimpleList
-	textarea         textarea.Model
-	todoFile         string
-	tasks            todotxt.TaskList
-	activePane       pane
-	currentMode      mode
-	editingTask      *todotxt.Task
-	watcher          *fsnotify.Watcher
+	filters          []FilterData
+	filteredTasks    domain.Tasks
+	currentFilter    string
+	activePane       Pane
+	viewMode         ViewMode
 	width            int
 	height           int
-	filters          []FilterData
-	filteredTasks    todotxt.TaskList
-	currentTheme     Theme
-	appConfig        AppConfig     // Application configuration
-	imeHelper        *IMEHelper    // Add IME helper for Japanese input
+	currentTheme     *Theme
+	todoFilePath     string
+	statusMessage    string
+	statusMessageEnd time.Time
+	editBuffer       string
+	originalTask     string
+	watcher          *fsnotify.Watcher
 	helpContent      []HelpContent // Help content for key bindings
 	helpScroll       int           // Current scroll position in help view
-	statusMessage    string        // Temporary status message
-	statusMessageEnd time.Time     // When status message should disappear
+	textarea         interface{}   // Placeholder for textarea
+	imeHelper        interface{}   // Placeholder for imeHelper
+	editingTask      *todotxt.Task // Currently editing task
 }

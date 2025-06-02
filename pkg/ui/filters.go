@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	todotxt "github.com/1set/todotxt"
 	"github.com/charmbracelet/lipgloss"
 	"github.com/samber/lo"
 	"github.com/yuucu/todotui/pkg/domain"
@@ -42,19 +41,18 @@ func (m *Model) refreshFilterList() {
 	// Always add "All Tasks" filter
 	allTasksFilter := FilterData{
 		name: FilterAllTasks,
-		filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
-			return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
-				domainTask := domain.NewTask(&task)
-				if domainTask.IsDeleted() {
+		filterFn: func(tasks domain.Tasks) domain.Tasks {
+			return tasks.Filter(func(task domain.Task, _ int) bool {
+				if task.IsDeleted() {
 					return false
 				}
 				// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
-				if !task.Completed {
+				if !task.IsCompleted() {
 					return true
 				}
 				// For completed tasks, check if they should move
 				config := m.getCompletedTaskTransitionConfig()
-				return !domainTask.ShouldMoveToCompleted(config, time.Now())
+				return !task.ShouldMoveToCompleted(config, time.Now())
 			})
 		},
 	}
@@ -63,18 +61,17 @@ func (m *Model) refreshFilterList() {
 	// Add "No Project" filter for tasks without any project tags
 	noProjectFilter := FilterData{
 		name: FilterNoProject,
-		filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
-			return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
-				domainTask := domain.NewTask(&task)
-				if domainTask.IsDeleted() || len(task.Projects) > 0 {
+		filterFn: func(tasks domain.Tasks) domain.Tasks {
+			return tasks.Filter(func(task domain.Task, _ int) bool {
+				if task.IsDeleted() || len(task.Projects()) > 0 {
 					return false
 				}
 				// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
-				if !task.Completed {
+				if !task.IsCompleted() {
 					return true
 				}
 				config := m.getCompletedTaskTransitionConfig()
-				return !domainTask.ShouldMoveToCompleted(config, time.Now())
+				return !task.ShouldMoveToCompleted(config, time.Now())
 			})
 		},
 	}
@@ -85,26 +82,25 @@ func (m *Model) refreshFilterList() {
 	if len(projects) > 0 {
 		filters = append(filters, FilterData{
 			name: FilterHeaderProjects,
-			filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
-				return todotxt.TaskList{}
+			filterFn: func(tasks domain.Tasks) domain.Tasks {
+				return domain.Tasks{}
 			},
 		})
 		for _, project := range projects {
 			filters = append(filters, FilterData{
 				name: "  +" + project,
-				filterFn: func(p string) func(todotxt.TaskList) todotxt.TaskList {
-					return func(tasks todotxt.TaskList) todotxt.TaskList {
-						return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
-							domainTask := domain.NewTask(&task)
-							if domainTask.IsDeleted() || !lo.Contains(task.Projects, p) {
+				filterFn: func(p string) func(domain.Tasks) domain.Tasks {
+					return func(tasks domain.Tasks) domain.Tasks {
+						return tasks.Filter(func(task domain.Task, _ int) bool {
+							if task.IsDeleted() || !lo.Contains(task.Projects(), p) {
 								return false
 							}
 							// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
-							if !task.Completed {
+							if !task.IsCompleted() {
 								return true
 							}
 							config := m.getCompletedTaskTransitionConfig()
-							return !domainTask.ShouldMoveToCompleted(config, time.Now())
+							return !task.ShouldMoveToCompleted(config, time.Now())
 						})
 					}
 				}(project),
@@ -117,26 +113,25 @@ func (m *Model) refreshFilterList() {
 	if len(contexts) > 0 {
 		filters = append(filters, FilterData{
 			name: FilterHeaderContexts,
-			filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
-				return todotxt.TaskList{}
+			filterFn: func(tasks domain.Tasks) domain.Tasks {
+				return domain.Tasks{}
 			},
 		})
 		for _, context := range contexts {
 			filters = append(filters, FilterData{
 				name: "  @" + context,
-				filterFn: func(c string) func(todotxt.TaskList) todotxt.TaskList {
-					return func(tasks todotxt.TaskList) todotxt.TaskList {
-						return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
-							domainTask := domain.NewTask(&task)
-							if domainTask.IsDeleted() || !lo.Contains(task.Contexts, c) {
+				filterFn: func(c string) func(domain.Tasks) domain.Tasks {
+					return func(tasks domain.Tasks) domain.Tasks {
+						return tasks.Filter(func(task domain.Task, _ int) bool {
+							if task.IsDeleted() || !lo.Contains(task.Contexts(), c) {
 								return false
 							}
 							// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
-							if !task.Completed {
+							if !task.IsCompleted() {
 								return true
 							}
 							config := m.getCompletedTaskTransitionConfig()
-							return !domainTask.ShouldMoveToCompleted(config, time.Now())
+							return !task.ShouldMoveToCompleted(config, time.Now())
 						})
 					}
 				}(context),
@@ -146,31 +141,26 @@ func (m *Model) refreshFilterList() {
 
 	filters = append(filters, FilterData{
 		name: FilterCompletedTasks,
-		filterFn: func(tasks todotxt.TaskList) todotxt.TaskList {
-			return lo.Filter(tasks, func(task todotxt.Task, _ int) bool {
+		filterFn: func(tasks domain.Tasks) domain.Tasks {
+			return tasks.Filter(func(task domain.Task, _ int) bool {
 				// Only show completed tasks that should be moved to the "Completed Tasks" filter
 				// based on the transition configuration
-				domainTask := domain.NewTask(&task)
 				config := m.getCompletedTaskTransitionConfig()
-				return task.Completed && !domainTask.IsDeleted() &&
-					domainTask.ShouldMoveToCompleted(config, time.Now())
+				return task.IsCompleted() && !task.IsDeleted() &&
+					task.ShouldMoveToCompleted(config, time.Now())
 			})
 		},
 	})
 
 	// Deleted Tasks filter
-	deletedTasks := lo.Filter(m.tasks, func(task todotxt.Task, _ int) bool {
-		return domain.NewTask(&task).IsDeleted()
-	})
-	if len(deletedTasks) > 0 {
+	deletedTasks := m.tasks.FilterDeleted()
+	if deletedTasks.Len() > 0 {
 		filters = append(filters, FilterData{
 			name: FilterDeletedTasks,
-			filterFn: func(list todotxt.TaskList) todotxt.TaskList {
-				return lo.Filter(list, func(task todotxt.Task, _ int) bool {
-					return domain.NewTask(&task).IsDeleted()
-				})
+			filterFn: func(tasks domain.Tasks) domain.Tasks {
+				return tasks.FilterDeleted()
 			},
-			count: len(deletedTasks),
+			count: deletedTasks.Len(),
 		})
 	}
 
@@ -179,7 +169,7 @@ func (m *Model) refreshFilterList() {
 		// Count is already calculated for time-based filters, calculate for others
 		if filters[i].count == 0 {
 			filtered := filter.filterFn(m.tasks)
-			filters[i].count = len(filtered)
+			filters[i].count = filtered.Len()
 		}
 
 		if strings.Contains(filter.name, "─") {
@@ -232,7 +222,7 @@ func (m *Model) refreshFilterList() {
 
 // refreshTaskList updates the task list based on current filter
 func (m *Model) refreshTaskList() {
-	var filteredTasks todotxt.TaskList
+	var filteredTasks domain.Tasks
 
 	if m.filterList.selected < len(m.filters) {
 		filter := m.filters[m.filterList.selected]
@@ -243,7 +233,7 @@ func (m *Model) refreshTaskList() {
 
 	// Only show default tasks if we're not viewing a specific filter that returned 0 results
 	// Exception: Don't show default tasks for "Deleted Tasks" and "No Project" filters
-	if len(filteredTasks) == 0 {
+	if filteredTasks.Len() == 0 {
 		// Check if current filter is "Deleted Tasks" or "No Project"
 		isDeletedTasksFilter := m.filterList.selected < len(m.filters) &&
 			m.filters[m.filterList.selected].name == FilterDeletedTasks
@@ -252,30 +242,34 @@ func (m *Model) refreshTaskList() {
 
 		if !isDeletedTasksFilter && !isNoProjectFilter {
 			// Default to all incomplete tasks AND completed tasks that haven't moved yet
-			// (only for non-deleted and non-no-project task filters) using lo.Filter
-			filteredTasks = lo.Filter(m.tasks, func(task todotxt.Task, _ int) bool {
-				domainTask := domain.NewTask(&task)
-				if domainTask.IsDeleted() {
+			// (only for non-deleted and non-no-project task filters) using Filter
+			filteredTasks = m.tasks.Filter(func(task domain.Task, _ int) bool {
+				if task.IsDeleted() {
 					return false
 				}
 				// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
-				if !task.Completed {
+				if !task.IsCompleted() {
 					return true
 				}
 				// For completed tasks, check if they should move
 				config := m.getCompletedTaskTransitionConfig()
-				return !domainTask.ShouldMoveToCompleted(config, time.Now())
+				return !task.ShouldMoveToCompleted(config, time.Now())
 			})
 		}
 	}
+
+	// ソート処理をdomainの新しいTasks型に委譲
+	sortedTasks := filteredTasks.SortByCompletionStatus()
+	filteredTasks = sortedTasks
 
 	// Convert tasks to display strings and track completion status
 	var items []string
 	var completedItems []bool
 	var checkboxColors []lipgloss.Color
 
-	for i := range filteredTasks {
-		task := &filteredTasks[i]
+	taskList := filteredTasks.ToTaskList()
+	for i := range taskList {
+		task := &taskList[i]
 
 		// Track completion status for the enhanced list display
 		// Consider both completed tasks and deleted tasks as "completed" for UI purposes
@@ -339,14 +333,13 @@ func (m *Model) refreshTaskList() {
 // getUniqueProjects returns sorted unique project names
 func (m *Model) getUniqueProjects() []string {
 	// Get all incomplete, non-deleted tasks
-	activeTasks := lo.Filter(m.tasks, func(task todotxt.Task, _ int) bool {
-		return !task.Completed && !domain.NewTask(&task).IsDeleted()
-	})
+	activeTasks := m.tasks.FilterActive()
 
 	// Extract all projects from active tasks
-	allProjects := lo.FlatMap(activeTasks, func(task todotxt.Task, _ int) []string {
-		return task.Projects
-	})
+	var allProjects []string
+	for _, task := range activeTasks {
+		allProjects = append(allProjects, task.Projects()...)
+	}
 
 	// Get unique projects and sort
 	uniqueProjects := lo.Uniq(allProjects)
@@ -357,14 +350,13 @@ func (m *Model) getUniqueProjects() []string {
 // getUniqueContexts returns sorted unique context names
 func (m *Model) getUniqueContexts() []string {
 	// Get all incomplete, non-deleted tasks
-	activeTasks := lo.Filter(m.tasks, func(task todotxt.Task, _ int) bool {
-		return !task.Completed && !domain.NewTask(&task).IsDeleted()
-	})
+	activeTasks := m.tasks.FilterActive()
 
 	// Extract all contexts from active tasks
-	allContexts := lo.FlatMap(activeTasks, func(task todotxt.Task, _ int) []string {
-		return task.Contexts
-	})
+	var allContexts []string
+	for _, task := range activeTasks {
+		allContexts = append(allContexts, task.Contexts()...)
+	}
 
 	// Get unique contexts and sort
 	uniqueContexts := lo.Uniq(allContexts)
@@ -410,12 +402,9 @@ func (m *Model) getStatusInfo() string {
 		currentFilter = "All"
 	}
 
-	// Task counts using lo.CountBy for more functional approach
-	totalTasks := lo.CountBy(m.tasks, func(task todotxt.Task) bool {
-		return !task.Completed
-	})
-
-	filteredCount := len(m.filteredTasks)
+	// Task counts
+	totalTasks := m.tasks.FilterActive().Len()
+	filteredCount := m.filteredTasks.Len()
 
 	// Icons and info
 	return fmt.Sprintf("🏷️  %s │ 📋 %d/%d │ 🕐 %s",
@@ -423,13 +412,13 @@ func (m *Model) getStatusInfo() string {
 }
 
 // Helper function to create filters with count check
-func (m *Model) addFilterIfNotEmpty(name string, filterFn func(todotxt.TaskList) todotxt.TaskList) *FilterData {
+func (m *Model) addFilterIfNotEmpty(name string, filterFn func(domain.Tasks) domain.Tasks) *FilterData {
 	filtered := filterFn(m.tasks)
-	if len(filtered) > 0 {
+	if filtered.Len() > 0 {
 		return &FilterData{
 			name:     name,
 			filterFn: filterFn,
-			count:    len(filtered),
+			count:    filtered.Len(),
 		}
 	}
 	return nil

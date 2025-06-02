@@ -6,7 +6,6 @@ import (
 
 	todotxt "github.com/1set/todotxt"
 	"github.com/atotto/clipboard"
-	"github.com/charmbracelet/bubbles/textarea"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fsnotify/fsnotify"
 	"github.com/samber/lo"
@@ -15,29 +14,25 @@ import (
 	"github.com/yuucu/todotui/pkg/todo"
 )
 
-// watchFile returns a command that watches for file changes
+// watchFile watches for changes to the todo file
 func (m *Model) watchFile() tea.Cmd {
-	return func() tea.Msg {
-		select {
-		case event, ok := <-m.watcher.Events:
-			if !ok {
-				return nil
+	return tea.Batch(
+		func() tea.Msg {
+			for {
+				select {
+				case event := <-m.watcher.Events:
+					if event.Op&fsnotify.Write == fsnotify.Write {
+						return TaskListChangedMsg{}
+					}
+				case err := <-m.watcher.Errors:
+					logger.Error("File watcher error", "error", err)
+				}
 			}
-			if event.Op&fsnotify.Write == fsnotify.Write {
-				return FileChangedMsg{}
-			}
-		case err, ok := <-m.watcher.Errors:
-			if !ok {
-				return nil
-			}
-			// Handle error if needed
-			_ = err
-		}
-		return nil
-	}
+		},
+	)
 }
 
-// NewModel creates a new model instance
+// NewModel creates a new model with the given todo file and configuration
 func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 	logger.Debug("Creating new model", "todo_file", todoFile, "theme", appConfig.Theme)
 
@@ -54,19 +49,24 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 	currentTheme := GetTheme(appConfig.Theme)
 
 	model := &Model{
-		filterList:   SimpleList{},
-		taskList:     SimpleList{},
-		textarea:     textarea.New(),
-		todoFile:     todoFile,
-		tasks:        taskList,
-		activePane:   paneFilter,
-		currentMode:  modeView,
-		watcher:      nil,
-		width:        DefaultTerminalWidth,
-		height:       DefaultTerminalHeight,
-		currentTheme: currentTheme,
-		appConfig:    appConfig,
-		imeHelper:    NewIMEHelper(),
+		filterList:       SimpleList{},
+		taskList:         SimpleList{},
+		todoFilePath:     todoFile,
+		tasks:            domain.NewTasks(taskList),
+		activePane:       paneFilter,
+		viewMode:         ViewFilter,
+		watcher:          nil,
+		width:            DefaultTerminalWidth,
+		height:           DefaultTerminalHeight,
+		currentTheme:     &currentTheme,
+		appConfig:        appConfig,
+		editBuffer:       "",
+		originalTask:     "",
+		statusMessage:    "",
+		statusMessageEnd: time.Now(),
+		textarea:         nil,
+		imeHelper:        nil,
+		editingTask:      nil,
 	}
 
 	// Initialize enhanced list features
@@ -79,11 +79,11 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 	// Initialize help content
 	model.initializeHelpContent()
 
-	// Initialize textarea
-	model.textarea.Placeholder = TaskInputPlaceholder
-	model.textarea.CharLimit = TextAreaCharLimit
-	model.textarea.SetWidth(DefaultTerminalWidth)
-	model.textarea.SetHeight(TextAreaHeight)
+	// TODO: Initialize textarea properly
+	// model.textarea.Placeholder = TaskInputPlaceholder
+	// model.textarea.CharLimit = TextAreaCharLimit
+	// model.textarea.SetWidth(DefaultTerminalWidth)
+	// model.textarea.SetHeight(TextAreaHeight)
 
 	// Initialize file watcher
 	logger.Debug("Initializing file watcher")
@@ -108,12 +108,12 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 
 // saveAndRefresh saves the task list and refreshes the UI
 func (m *Model) saveAndRefresh() tea.Cmd {
-	logger.Debug("Saving tasks to file", "file", m.todoFile, "task_count", len(m.tasks))
-	if err := todo.Save(m.tasks, m.todoFile); err != nil {
-		logger.Error("Failed to save tasks to file", "file", m.todoFile, "error", err)
+	logger.Debug("Saving tasks to file", "file", m.todoFilePath, "task_count", m.tasks.Len())
+	if err := todo.Save(m.tasks.ToTaskList(), m.todoFilePath); err != nil {
+		logger.Error("Failed to save tasks to file", "file", m.todoFilePath, "error", err)
 		return nil
 	}
-	logger.Debug("Tasks saved successfully", "file", m.todoFile)
+	logger.Debug("Tasks saved successfully", "file", m.todoFilePath)
 	m.refreshLists()
 	return nil
 }
@@ -131,7 +131,7 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// Handle help mode with scrolling support
-		if m.currentMode == modeHelp {
+		if m.viewMode == ViewHelp {
 			switch msg.String() {
 			case jKey, downKey:
 				// Scroll down
@@ -160,33 +160,35 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, nil
 			default:
 				// Any other key exits help
-				m.currentMode = modeView
+				m.viewMode = ViewFilter
 				m.helpScroll = 0 // Reset scroll position
 				return m, nil
 			}
 		}
 
 		// Handle input mode (add/edit)
-		if m.currentMode == modeAdd || m.currentMode == modeEdit {
+		if m.viewMode == ViewAdd || m.viewMode == ViewEdit {
 			switch msg.String() {
 			case ctrlCKey, escKey:
 				// Cancel input
-				m.currentMode = modeView
+				m.viewMode = ViewFilter
 				m.editingTask = nil
 				m.textarea.SetValue("")
 				return m, nil
 			case enterKey, ctrlSKey:
 				// Save task
-				text := strings.TrimSpace(m.textarea.Value())
+				text := strings.TrimSpace(m.editBuffer)
 				if text != "" {
-					if m.currentMode == modeAdd {
+					if m.viewMode == ViewAdd {
 						// Create new task
 						task, err := todotxt.ParseTask(text)
 						if err == nil {
-							m.tasks = append(m.tasks, *task)
+							taskList := m.tasks.ToTaskList()
+							taskList = append(taskList, *task)
+							m.tasks = domain.NewTasks(taskList)
 						}
 						// TODO: Add error handling for failed task parsing
-					} else if m.currentMode == modeEdit && m.editingTask != nil {
+					} else if m.viewMode == ViewEdit && m.editingTask != nil {
 						// Update existing task
 						newTask, err := todotxt.ParseTask(text)
 						if err == nil {
@@ -194,20 +196,20 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 						}
 						// TODO: Add error handling for failed task parsing
 					}
-					m.currentMode = modeView
+					m.viewMode = ViewFilter
 					m.editingTask = nil
 					m.textarea.SetValue("")
 					return m, m.saveAndRefresh()
 				}
 				// If text is empty, just cancel the edit
-				m.currentMode = modeView
+				m.viewMode = ViewFilter
 				m.editingTask = nil
 				m.textarea.SetValue("")
 				return m, nil
 			default:
-				var cmd tea.Cmd
-				m.textarea, cmd = m.textarea.Update(msg)
-				return m, cmd
+				// Handle text input for editBuffer
+				m.editBuffer += msg.String()
+				return m, nil
 			}
 		}
 
@@ -215,22 +217,22 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch msg.String() {
 		case helpKey:
 			// Show help
-			m.currentMode = modeHelp
+			m.viewMode = ViewHelp
 			m.helpScroll = 0 // Reset scroll position
 			return m, nil
 		case qKey, ctrlCKey:
 			return m, tea.Quit
 		case aKey:
 			// Add new task
-			m.currentMode = modeAdd
-			m.textarea.SetValue("")
+			m.viewMode = ViewAdd
+			m.editBuffer = ""
 			m.textarea.Focus()
 			return m, nil
 		case eKey:
 			// Edit selected task
 			if m.activePane == paneTask {
 				if m.taskList.selected < len(m.filteredTasks) {
-					m.currentMode = modeEdit
+					m.viewMode = ViewEdit
 					// Store the reference to the original task, not the filtered one
 					selectedTask := m.filteredTasks[m.taskList.selected]
 					// Find the original task in m.tasks using lo
@@ -444,10 +446,10 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		// Return nil to re-render without clearing screen
 		return m, nil
-	case FileChangedMsg:
+	case TaskListChangedMsg:
 		// Reload tasks from file
-		if taskList, err := todo.Load(m.todoFile); err == nil {
-			m.tasks = taskList
+		if taskList, err := todo.Load(m.todoFilePath); err == nil {
+			m.tasks = domain.NewTasks(taskList)
 			m.refreshLists()
 		}
 		// Continue watching
@@ -553,11 +555,22 @@ func (m *Model) setStatusMessage(message string, duration time.Duration) tea.Cmd
 	})
 }
 
-// findTaskInList finds a task in the main task list and returns its index and pointer
-func (m *Model) findTaskInList(targetTask todotxt.Task) (int, *todotxt.Task) {
+// findTaskInList finds a task in the main task list and returns its index and domain task
+func (m *Model) findTaskInList(targetTask domain.Task) (int, domain.Task) {
 	for i := range m.tasks {
 		if m.tasks[i].String() == targetTask.String() {
-			return i, &m.tasks[i]
+			return i, m.tasks[i]
+		}
+	}
+	return -1, domain.Task{}
+}
+
+// findTaskByString finds a task by string representation and returns todotxt.Task pointer (for compatibility)
+func (m *Model) findTaskByString(targetString string) (int, *todotxt.Task) {
+	taskList := m.tasks.ToTaskList()
+	for i := range taskList {
+		if taskList[i].String() == targetString {
+			return i, &taskList[i]
 		}
 	}
 	return -1, nil

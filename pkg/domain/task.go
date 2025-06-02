@@ -139,3 +139,41 @@ func containsDeletedPrefix(taskString string) bool {
 	// Check if the task string contains the "deleted_at:" prefix
 	return strings.Contains(taskString, "deleted_at:")
 }
+
+// Projects returns the projects associated with the task
+func (t *Task) Projects() []string {
+	return t.task.Projects
+}
+
+// Contexts returns the contexts associated with the task
+func (t *Task) Contexts() []string {
+	return t.task.Contexts
+}
+
+// HasDueDate returns true if the task has a due date
+func (t *Task) HasDueDate() bool {
+	return t.task.HasDueDate()
+}
+
+// IsDueThisWeek returns true if the task is due this week
+func (t *Task) IsDueThisWeek(now time.Time) bool {
+	if !t.HasDueDate() {
+		return false
+	}
+
+	// Get the start of this week (Monday)
+	weekday := int(now.Weekday())
+	if weekday == 0 { // Sunday
+		weekday = 7
+	}
+	startOfWeek := now.AddDate(0, 0, -(weekday - 1)).Truncate(24 * time.Hour)
+	endOfWeek := startOfWeek.AddDate(0, 0, 7)
+
+	dueDate := t.task.DueDate.Truncate(24 * time.Hour)
+	return !dueDate.Before(startOfWeek) && dueDate.Before(endOfWeek)
+}
+
+// String returns the string representation of the task
+func (t *Task) String() string {
+	return t.task.String()
+}
