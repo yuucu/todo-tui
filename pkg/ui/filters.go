@@ -47,13 +47,13 @@ func (m *Model) refreshFilterList() {
 				if task.IsDeleted() {
 					return false
 				}
-				// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
+				// Show incomplete tasks OR completed tasks that haven't been removed from original filters yet
 				if !task.IsCompleted() {
 					return true
 				}
-				// For completed tasks, check if they should move
+				// For completed tasks, check if they should be removed from original filters
 				config := m.getCompletedTaskTransitionConfig()
-				return !task.ShouldMoveToCompleted(config, time.Now())
+				return !task.ShouldRemoveFromOriginalFilters(config, time.Now())
 			})
 		},
 	}
@@ -67,12 +67,12 @@ func (m *Model) refreshFilterList() {
 				if task.IsDeleted() || len(task.Projects()) > 0 {
 					return false
 				}
-				// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
+				// Show incomplete tasks OR completed tasks that haven't been removed from original filters yet
 				if !task.IsCompleted() {
 					return true
 				}
 				config := m.getCompletedTaskTransitionConfig()
-				return !task.ShouldMoveToCompleted(config, time.Now())
+				return !task.ShouldRemoveFromOriginalFilters(config, time.Now())
 			})
 		},
 	}
@@ -96,12 +96,12 @@ func (m *Model) refreshFilterList() {
 							if task.IsDeleted() || !lo.Contains(task.Projects(), p) {
 								return false
 							}
-							// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
+							// Show incomplete tasks OR completed tasks that haven't been removed from original filters yet
 							if !task.IsCompleted() {
 								return true
 							}
 							config := m.getCompletedTaskTransitionConfig()
-							return !task.ShouldMoveToCompleted(config, time.Now())
+							return !task.ShouldRemoveFromOriginalFilters(config, time.Now())
 						})
 					}
 				}(project),
@@ -127,12 +127,12 @@ func (m *Model) refreshFilterList() {
 							if task.IsDeleted() || !lo.Contains(task.Contexts(), c) {
 								return false
 							}
-							// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
+							// Show incomplete tasks OR completed tasks that haven't been removed from original filters yet
 							if !task.IsCompleted() {
 								return true
 							}
 							config := m.getCompletedTaskTransitionConfig()
-							return !task.ShouldMoveToCompleted(config, time.Now())
+							return !task.ShouldRemoveFromOriginalFilters(config, time.Now())
 						})
 					}
 				}(context),
@@ -144,11 +144,8 @@ func (m *Model) refreshFilterList() {
 		name: FilterCompletedTasks,
 		filterFn: func(tasks domain.Tasks) domain.Tasks {
 			return tasks.Filter(func(task domain.Task, _ int) bool {
-				// Only show completed tasks that should be moved to the "Completed Tasks" filter
-				// based on the transition configuration
-				config := m.getCompletedTaskTransitionConfig()
-				return task.IsCompleted() && !task.IsDeleted() &&
-					task.ShouldMoveToCompleted(config, time.Now())
+				// Show all completed tasks immediately (not deleted)
+				return task.IsCompleted() && !task.IsDeleted()
 			})
 		},
 	})
@@ -242,19 +239,19 @@ func (m *Model) refreshTaskList() {
 			m.filters[m.filterList.selected].name == FilterNoProject
 
 		if !isDeletedTasksFilter && !isNoProjectFilter {
-			// Default to all incomplete tasks AND completed tasks that haven't moved yet
+			// Default to all incomplete tasks AND completed tasks that haven't been removed from original filters yet
 			// (only for non-deleted and non-no-project task filters) using Filter
 			filteredTasks = m.tasks.Filter(func(task domain.Task, _ int) bool {
 				if task.IsDeleted() {
 					return false
 				}
-				// Show incomplete tasks OR completed tasks that haven't moved to "Completed Tasks" yet
+				// Show incomplete tasks OR completed tasks that haven't been removed from original filters yet
 				if !task.IsCompleted() {
 					return true
 				}
-				// For completed tasks, check if they should move
+				// For completed tasks, check if they should be removed from original filters
 				config := m.getCompletedTaskTransitionConfig()
-				return !task.ShouldMoveToCompleted(config, time.Now())
+				return !task.ShouldRemoveFromOriginalFilters(config, time.Now())
 			})
 		}
 	}
