@@ -58,8 +58,8 @@ func TestIsOverdue(t *testing.T) {
 			name:        "not_overdue_completed",
 			taskString:  "x 2025-05-31 Test completed task due:2025-05-30",
 			now:         baseTime,
-			expected:    true,
-			description: "完了済みタスクでも日付が過去なら期限切れとして判定",
+			expected:    false,
+			description: "完了済みタスクは期限切れとしない",
 		},
 		{
 			name:        "not_overdue_deleted",
@@ -132,8 +132,8 @@ func TestIsDueToday(t *testing.T) {
 			name:        "not_due_today_completed",
 			taskString:  "x 2025-05-31 Test completed task due:2025-05-31",
 			now:         baseTime,
-			expected:    true,
-			description: "完了済みタスクでも日付が今日なら今日期限として判定",
+			expected:    false,
+			description: "完了済みタスクは今日期限として判定しない",
 		},
 	}
 
@@ -214,8 +214,8 @@ func TestIsThisWeek(t *testing.T) {
 			name:        "not_this_week_completed",
 			taskString:  "x 2025-05-31 Test completed task due:2025-05-31",
 			now:         baseTime,
-			expected:    true,
-			description: "完了済みタスクでも日付が今週なら今週として判定",
+			expected:    false,
+			description: "完了済みタスクは今週として判定しない",
 		},
 	}
 
