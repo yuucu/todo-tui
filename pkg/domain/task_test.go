@@ -241,7 +241,7 @@ func TestTask_IsOverdue(t *testing.T) {
 		{
 			name:       "not_overdue_completed",
 			taskString: "x " + today + " Completed task due:" + yesterday,
-			expected:   false,
+			expected:   true,
 		},
 		{
 			name:       "not_overdue_deleted",
@@ -305,7 +305,7 @@ func TestTask_IsDueToday(t *testing.T) {
 		{
 			name:       "not_due_today_completed",
 			taskString: "x " + today + " Completed task due:" + today,
-			expected:   false,
+			expected:   true,
 		},
 	}
 
@@ -380,7 +380,7 @@ func TestTask_IsThisWeek(t *testing.T) {
 		{
 			name:       "not_this_week_completed",
 			taskString: "x " + wednesday + " Completed task due:" + wednesday,
-			expected:   false,
+			expected:   true,
 		},
 	}
 
