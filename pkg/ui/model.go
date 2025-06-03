@@ -6,9 +6,9 @@ import (
 
 	todotxt "github.com/1set/todotxt"
 	"github.com/atotto/clipboard"
+	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/fsnotify/fsnotify"
-	"github.com/samber/lo"
 	"github.com/yuucu/todotui/pkg/domain"
 	"github.com/yuucu/todotui/pkg/logger"
 	"github.com/yuucu/todotui/pkg/todo"
@@ -48,6 +48,12 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 	// Get theme for the lists
 	currentTheme := GetTheme(appConfig.Theme)
 
+	// Initialize text input for adding/editing tasks
+	ti := textinput.New()
+	ti.Placeholder = "Enter a task..."
+	ti.CharLimit = 512
+	ti.Width = 50 // Will be updated in updatePaneSizes
+
 	model := &Model{
 		filterList:       SimpleList{},
 		taskList:         SimpleList{},
@@ -60,12 +66,10 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 		height:           DefaultTerminalHeight,
 		currentTheme:     &currentTheme,
 		appConfig:        appConfig,
-		editBuffer:       "",
 		originalTask:     "",
 		statusMessage:    "",
 		statusMessageEnd: time.Now(),
-		textarea:         nil,
-		imeHelper:        nil,
+		textInput:        ti,
 		editingTask:      nil,
 	}
 
@@ -79,11 +83,9 @@ func NewModel(todoFile string, appConfig AppConfig) (*Model, error) {
 	// Initialize help content
 	model.initializeHelpContent()
 
-	// TODO: Initialize textarea properly
-	// model.textarea.Placeholder = TaskInputPlaceholder
-	// model.textarea.CharLimit = TextAreaCharLimit
-	// model.textarea.SetWidth(DefaultTerminalWidth)
-	// model.textarea.SetHeight(TextAreaHeight)
+	// Initialize pane sizes and update text input width
+	model.updatePaneSizes()
+	model.updateTextInputSize()
 
 	// Initialize file watcher
 	logger.Debug("Initializing file watcher")
@@ -111,7 +113,7 @@ func (m *Model) saveAndRefresh() tea.Cmd {
 	logger.Debug("Saving tasks to file", "file", m.todoFilePath, "task_count", m.tasks.Len())
 	if err := todo.Save(m.tasks.ToTaskList(), m.todoFilePath); err != nil {
 		logger.Error("Failed to save tasks to file", "file", m.todoFilePath, "error", err)
-		return nil
+		return m.setStatusMessage("❌ Failed to save tasks to file: "+err.Error(), 5*time.Second)
 	}
 	logger.Debug("Tasks saved successfully", "file", m.todoFilePath)
 	m.refreshLists()
@@ -120,14 +122,105 @@ func (m *Model) saveAndRefresh() tea.Cmd {
 
 // Init initializes the model
 func (m *Model) Init() tea.Cmd {
-	// Initialize pane sizes first
-	m.updatePaneSizes()
+	// updatePaneSizes is already called in NewModel
 	m.refreshLists()
 	return m.watchFile()
 }
 
 // Update handles key input and state changes
 func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+
+	// Handle input mode (add/edit) first
+	if m.viewMode == ViewAdd || m.viewMode == ViewEdit {
+		switch msg := msg.(type) {
+		case tea.KeyMsg:
+			switch msg.String() {
+			case "ctrl+c", "esc":
+				// Cancel input
+				m.viewMode = ViewFilter
+				m.editingTask = nil
+				m.textInput.SetValue("")
+				m.textInput.Blur()
+				return m, nil
+			case "enter":
+				// Save task
+				text := strings.TrimSpace(m.textInput.Value())
+				logger.Debug("Attempting to save task", "text", text, "mode", m.viewMode)
+
+				if text != "" {
+					if m.viewMode == ViewAdd {
+						// Create new task
+						task, err := todotxt.ParseTask(text)
+						if err != nil {
+							logger.Error("Failed to parse new task", "text", text, "error", err)
+							return m, m.setStatusMessage("❌ Failed to parse task", 3*time.Second)
+						}
+						logger.Debug("Parsed new task successfully", "task", task.String())
+
+						taskList := m.tasks.ToTaskList()
+						taskList = append(taskList, *task)
+						m.tasks = domain.NewTasks(taskList)
+						logger.Debug("Added task to list", "total_tasks", len(taskList))
+
+					} else if m.viewMode == ViewEdit {
+						// Update existing task
+						if m.editingTask != nil {
+							// Parse the edited text and update the task
+							newTask, err := todotxt.ParseTask(text)
+							if err != nil {
+								logger.Error("Failed to parse edited task", "text", text, "error", err)
+								return m, m.setStatusMessage("❌ Failed to parse task", 3*time.Second)
+							}
+							logger.Debug("Parsed edited task successfully", "task", newTask.String())
+
+							*m.editingTask = *newTask
+							// Find and update the task in the main list
+							taskList := m.tasks.ToTaskList()
+							found := false
+							for i := range taskList {
+								if taskList[i].String() == m.originalTask {
+									taskList[i] = *newTask
+									found = true
+									logger.Debug("Updated task in list", "index", i, "original", m.originalTask, "new", newTask.String())
+									break
+								}
+							}
+							if !found {
+								logger.Warn("Original task not found in list for editing", "original", m.originalTask)
+							}
+							m.tasks = domain.NewTasks(taskList)
+						} else {
+							logger.Warn("editingTask is nil during edit mode")
+						}
+					}
+
+					m.viewMode = ViewFilter
+					m.editingTask = nil
+					m.textInput.SetValue("")
+					m.textInput.Blur()
+
+					logger.Debug("About to save and refresh")
+					return m, tea.Batch(
+						m.saveAndRefresh(),
+						m.setStatusMessage("✅ Task saved", 2*time.Second),
+					)
+				}
+				// If text is empty, just cancel the edit
+				logger.Debug("Empty text, canceling")
+				m.viewMode = ViewFilter
+				m.editingTask = nil
+				m.textInput.SetValue("")
+				m.textInput.Blur()
+				return m, nil
+			}
+		}
+		// Update text input
+		m.textInput, cmd = m.textInput.Update(msg)
+		logger.Debug("Text input updated", "value", m.textInput.Value(), "focused", m.textInput.Focused())
+		return m, cmd
+	}
+
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		// Handle help mode with scrolling support
@@ -166,63 +259,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
-		// Handle input mode (add/edit)
-		if m.viewMode == ViewAdd || m.viewMode == ViewEdit {
-			switch msg.String() {
-			case ctrlCKey, escKey:
-				// Cancel input
-				m.viewMode = ViewFilter
-				m.editingTask = nil
-				// TODO: m.textarea.SetValue("")
-				return m, nil
-			case enterKey, ctrlSKey:
-				// Save task
-				text := strings.TrimSpace(m.editBuffer)
-				if text != "" {
-					if m.viewMode == ViewAdd {
-						// Create new task
-						task, err := todotxt.ParseTask(text)
-						if err == nil {
-							taskList := m.tasks.ToTaskList()
-							taskList = append(taskList, *task)
-							m.tasks = domain.NewTasks(taskList)
-						}
-						// TODO: Add error handling for failed task parsing
-					} else if m.viewMode == ViewEdit {
-						// Update existing task
-						if m.editingTask != nil {
-							// Parse the edited text and update the task
-							if newTask, err := todotxt.ParseTask(text); err == nil {
-								*m.editingTask = *newTask
-								// Find and update the task in the main list
-								taskList := m.tasks.ToTaskList()
-								for i := range taskList {
-									if taskList[i].String() == m.originalTask {
-										taskList[i] = *newTask
-										break
-									}
-								}
-								m.tasks = domain.NewTasks(taskList)
-							}
-						}
-					}
-					m.viewMode = ViewFilter
-					m.editingTask = nil
-					// TODO: m.textarea.SetValue("")
-					return m, m.saveAndRefresh()
-				}
-				// If text is empty, just cancel the edit
-				m.viewMode = ViewFilter
-				m.editingTask = nil
-				// TODO: m.textarea.SetValue("")
-				return m, nil
-			default:
-				// Handle text input for editBuffer
-				m.editBuffer += msg.String()
-				return m, nil
-			}
-		}
-
 		// Handle normal mode keys
 		switch msg.String() {
 		case helpKey:
@@ -235,8 +271,9 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case aKey:
 			// Add new task
 			m.viewMode = ViewAdd
-			m.editBuffer = ""
-			// TODO: m.textarea.Focus()
+			m.textInput.SetValue("")
+			m.textInput.Focus()
+			logger.Debug("Entering add mode", "focused", m.textInput.Focused(), "value", m.textInput.Value())
 			return m, nil
 		case eKey:
 			// Edit selected task
@@ -245,8 +282,14 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.viewMode = ViewEdit
 					// Store the task content for editing
 					selectedTask := m.filteredTasks.Get(m.taskList.selected)
-					m.editBuffer = selectedTask.String()
+					m.textInput.SetValue(selectedTask.String())
 					m.originalTask = selectedTask.String()
+
+					// Convert domain.Task to todotxt.Task for editing
+					m.editingTask = selectedTask.ToTodoTxtTask()
+
+					m.textInput.Focus()
+					logger.Debug("Starting edit mode", "original_task", m.originalTask, "editing_task", m.editingTask.String())
 					return m, nil
 				}
 			}
@@ -308,25 +351,17 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				if m.taskList.selected < m.filteredTasks.Len() {
 					// Check if current filter is "Deleted Tasks"
 					if m.filterList.selected < len(m.filters) && m.filters[m.filterList.selected].name != FilterDeletedTasks {
-						// Soft delete with deleted_at field
+						// Soft delete using domain method
 						taskToDelete := m.filteredTasks.Get(m.taskList.selected)
-						// Find the task in main tasks list and add deleted_at field using lo
+						// Find the task in main tasks list and soft delete using domain method
 						index, task, found := m.findTaskInList(taskToDelete)
 						if found {
-							// Add deleted_at field to mark as soft deleted
-							currentDate := time.Now().Format(DateFormat)
-							taskString := task.String()
-
-							// Add deleted_at field to the task string
-							if !strings.Contains(taskString, TaskFieldDeletedPrefix) {
-								taskString += " " + TaskFieldDeletedPrefix + currentDate
-
-								// Parse the modified task string back to update the task
-								if newTask, err := todotxt.ParseTask(taskString); err == nil {
-									if domainTask, err := domain.NewTask(newTask); err == nil {
-										m.updateTaskAtIndex(index, domainTask)
-									}
-								}
+							err := task.SoftDelete(time.Now())
+							if err == nil {
+								// Update the task in the list
+								taskList := m.tasks.ToTaskList()
+								taskList[index] = *task.ToTodoTxtTask()
+								m.tasks = domain.NewTasks(taskList)
 							}
 						}
 						return m, m.saveAndRefresh()
@@ -338,15 +373,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Toggle priority level
 				if m.taskList.selected < m.filteredTasks.Len() {
 					taskToUpdate := m.filteredTasks.Get(m.taskList.selected)
-					// Find the task in main tasks list and cycle priority using lo
+					// Find the task in main tasks list and cycle priority using domain method
 					index, task, found := m.findTaskInList(taskToUpdate)
 					if found {
-						todoTxtTask := task.ToTodoTxtTask()
-						m.cyclePriority(todoTxtTask)
-						// Update the task in the list
-						taskList := m.tasks.ToTaskList()
-						taskList[index] = *todoTxtTask
-						m.tasks = domain.NewTasks(taskList)
+						err := task.CyclePriority(m.appConfig.PriorityLevels)
+						if err == nil {
+							// Update the task in the list
+							taskList := m.tasks.ToTaskList()
+							taskList[index] = *task.ToTodoTxtTask()
+							m.tasks = domain.NewTasks(taskList)
+						}
 					}
 					return m, m.saveAndRefresh()
 				}
@@ -356,15 +392,16 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				// Toggle due date to today
 				if m.taskList.selected < m.filteredTasks.Len() {
 					taskToUpdate := m.filteredTasks.Get(m.taskList.selected)
-					// Find the task in main tasks list and toggle due date using lo
+					// Find the task in main tasks list and toggle due date using domain method
 					index, task, found := m.findTaskInList(taskToUpdate)
 					if found {
-						todoTxtTask := task.ToTodoTxtTask()
-						m.toggleDueToday(todoTxtTask)
-						// Update the task in the list
-						taskList := m.tasks.ToTaskList()
-						taskList[index] = *todoTxtTask
-						m.tasks = domain.NewTasks(taskList)
+						err := task.ToggleDueToday(time.Now())
+						if err == nil {
+							// Update the task in the list
+							taskList := m.tasks.ToTaskList()
+							taskList[index] = *task.ToTodoTxtTask()
+							m.tasks = domain.NewTasks(taskList)
+						}
 					}
 					return m, m.saveAndRefresh()
 				}
@@ -382,26 +419,15 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					// Handle deleted tasks restoration
 					if currentFilter == FilterDeletedTasks {
-						// Find the task in main tasks list and remove deleted_at field using lo
+						// Find the task in main tasks list and restore using domain method
 						index, task, found := m.findTaskInList(taskToRestore)
 						if found {
-							// Remove deleted_at field to restore the task
-							taskString := task.String()
-
-							// Remove deleted_at field from the task string using lo.Filter
-							if strings.Contains(taskString, "deleted_at:") {
-								parts := strings.Fields(taskString)
-								cleanParts := lo.Filter(parts, func(part string, _ int) bool {
-									return !strings.HasPrefix(part, "deleted_at:")
-								})
-								taskString = strings.Join(cleanParts, " ")
-
-								// Parse the modified task string back to update the task
-								if newTask, err := todotxt.ParseTask(taskString); err == nil {
-									if domainTask, err := domain.NewTask(newTask); err == nil {
-										m.updateTaskAtIndex(index, domainTask)
-									}
-								}
+							err := task.RestoreFromDeleted()
+							if err == nil {
+								// Update the task in the list
+								taskList := m.tasks.ToTaskList()
+								taskList[index] = *task.ToTodoTxtTask()
+								m.tasks = domain.NewTasks(taskList)
 							}
 						}
 						return m, m.saveAndRefresh()
@@ -462,10 +488,8 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		// Update pane sizes with new terminal dimensions
 		m.updatePaneSizes()
 
-		// TODO: Also update textarea size if we're in add/edit mode
-		// if m.width > TextAreaPadding {
-		//     m.textarea.SetWidth(m.width - TextAreaPadding)
-		// }
+		// Update text input size for add/edit mode
+		m.updateTextInputSize()
 
 		// Force refresh of lists to apply new sizes and ensure content fits
 		m.refreshLists()
@@ -489,86 +513,6 @@ func (m *Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	}
 
 	return m, nil
-}
-
-// cyclePriority cycles through priority levels based on configuration
-func (m *Model) cyclePriority(task *todotxt.Task) {
-	// Safety check: ensure PriorityLevels is not empty
-	if len(m.appConfig.PriorityLevels) == 0 {
-		return // Cannot cycle if no priority levels are configured
-	}
-
-	currentPriority := ""
-	if task.HasPriority() {
-		currentPriority = task.Priority
-	}
-
-	// Find current priority index in configuration using lo.FindIndexOf
-	_, currentIndex, found := lo.FindIndexOf(m.appConfig.PriorityLevels, func(priority string) bool {
-		return priority == currentPriority
-	})
-	if !found {
-		currentIndex = -1 // Use -1 to indicate not found, so next index becomes 0
-	}
-
-	// Move to next priority level (cycle around)
-	nextIndex := (currentIndex + 1) % len(m.appConfig.PriorityLevels)
-	nextPriority := m.appConfig.PriorityLevels[nextIndex]
-
-	// Set the new priority
-	if nextPriority == "" {
-		task.Priority = ""
-	} else {
-		task.Priority = nextPriority
-	}
-}
-
-// toggleDueToday toggles the due date of a task to today or removes it if already set to today
-func (m *Model) toggleDueToday(task *todotxt.Task) {
-	now := time.Now()
-	today := now.Format(DateFormat)
-
-	// Get the current task string
-	taskString := task.String()
-
-	// Check if task is already due today using domain method
-	domainTask, err := domain.NewTask(task)
-	if err != nil {
-		return // Skip if task creation fails
-	}
-	hasDueToday := domainTask.IsDueToday(now)
-
-	var newTaskString string
-
-	if hasDueToday {
-		// Remove due date - remove due:YYYY-MM-DD from task string using lo.Filter
-		parts := strings.Fields(taskString)
-		newParts := lo.Filter(parts, func(part string, _ int) bool {
-			return !strings.HasPrefix(part, TaskFieldDuePrefix)
-		})
-		newTaskString = strings.Join(newParts, " ")
-	} else {
-		// Add or update due date
-		if task.HasDueDate() {
-			// Replace existing due date using lo.Map
-			parts := strings.Fields(taskString)
-			newParts := lo.Map(parts, func(part string, _ int) string {
-				if strings.HasPrefix(part, TaskFieldDuePrefix) {
-					return TaskFieldDuePrefix + today
-				}
-				return part
-			})
-			newTaskString = strings.Join(newParts, " ")
-		} else {
-			// Add new due date
-			newTaskString = taskString + " " + TaskFieldDuePrefix + today
-		}
-	}
-
-	// Parse the new task string and update the task
-	if newTask, err := todotxt.ParseTask(newTaskString); err == nil {
-		*task = *newTask
-	}
 }
 
 // Cleanup closes the file watcher
@@ -600,11 +544,16 @@ func (m *Model) findTaskInList(targetTask domain.Task) (int, domain.Task, bool) 
 	return -1, domain.Task{}, false
 }
 
-// updateTaskAtIndex updates a task at the given index using domain.Task
-func (m *Model) updateTaskAtIndex(index int, newTask *domain.Task) {
-	if index >= 0 && index < m.tasks.Len() {
-		taskList := m.tasks.ToTaskList()
-		taskList[index] = *newTask.ToTodoTxtTask()
-		m.tasks = domain.NewTasks(taskList)
+// updateTextInputSize updates the text input width based on current terminal size
+func (m *Model) updateTextInputSize() {
+	// Calculate appropriate width for text input (leave some padding)
+	inputWidth := m.width - 8 // Leave padding for borders and styling
+	if inputWidth < 20 {
+		inputWidth = 20 // Minimum width
 	}
+	if inputWidth > 80 {
+		inputWidth = 80 // Maximum width for better UX
+	}
+	m.textInput.Width = inputWidth
+	logger.Debug("Updated text input width", "width", inputWidth, "terminal_width", m.width)
 }

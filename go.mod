@@ -5,6 +5,7 @@ go 1.24
 require (
 	github.com/1set/todotxt v0.0.4
 	github.com/atotto/clipboard v0.1.4
+	github.com/charmbracelet/bubbles v0.21.0
 	github.com/charmbracelet/bubbletea v1.3.5
 	github.com/charmbracelet/lipgloss v1.1.0
 	github.com/fsnotify/fsnotify v1.9.0

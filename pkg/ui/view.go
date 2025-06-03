@@ -118,8 +118,10 @@ func (m *Model) View() string {
 
 	// If in add/edit mode, show textarea (keeping existing behavior as full screen)
 	if m.viewMode == ViewAdd || m.viewMode == ViewEdit {
-		title := AddTaskTitle
-		if m.viewMode == ViewEdit {
+		var title string
+		if m.viewMode == ViewAdd {
+			title = AddTaskTitle
+		} else {
 			title = EditTaskTitle
 		}
 
@@ -139,7 +141,7 @@ func (m *Model) View() string {
 
 		return lipgloss.JoinVertical(lipgloss.Left,
 			titleStyle.Render(title),
-			inputStyle.Render(m.editBuffer),
+			inputStyle.Render(m.textInput.View()),
 			helpStyle.Render(EditModeHelp),
 		)
 	}
