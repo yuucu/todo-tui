@@ -86,77 +86,6 @@ func TestTask_ToggleCompletion(t *testing.T) {
 	}
 }
 
-func TestTask_ShouldMoveToCompleted(t *testing.T) {
-	tests := []struct {
-		name           string
-		taskString     string
-		config         CompletedTaskTransitionConfig
-		testTime       time.Time
-		expectedResult bool
-	}{
-		{
-			name:       "immediate_move_delay_0",
-			taskString: "x 2025-01-15 Completed task",
-			config: CompletedTaskTransitionConfig{
-				DelayDays:      0,
-				TransitionHour: 9,
-			},
-			testTime:       time.Date(2025, 1, 15, 10, 0, 0, 0, time.UTC),
-			expectedResult: true,
-		},
-		{
-			name:       "not_yet_time_same_day",
-			taskString: "x 2025-01-15 Completed task",
-			config: CompletedTaskTransitionConfig{
-				DelayDays:      1,
-				TransitionHour: 9,
-			},
-			testTime:       time.Date(2025, 1, 15, 10, 0, 0, 0, time.UTC),
-			expectedResult: false,
-		},
-		{
-			name:       "time_to_move_next_day_before_transition",
-			taskString: "x 2025-01-15 Completed task",
-			config: CompletedTaskTransitionConfig{
-				DelayDays:      1,
-				TransitionHour: 9,
-			},
-			testTime:       time.Date(2025, 1, 16, 8, 59, 0, 0, time.UTC),
-			expectedResult: false,
-		},
-		{
-			name:       "time_to_move_next_day_after_transition",
-			taskString: "x 2025-01-15 Completed task",
-			config: CompletedTaskTransitionConfig{
-				DelayDays:      1,
-				TransitionHour: 9,
-			},
-			testTime:       time.Date(2025, 1, 16, 9, 0, 0, 0, time.UTC),
-			expectedResult: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			task, err := todotxt.ParseTask(tt.taskString)
-			if err != nil {
-				t.Fatalf("Failed to parse task: %v", err)
-			}
-
-			domainTask, err := NewTask(task)
-			if err != nil {
-				t.Fatalf("Failed to create domain task: %v", err)
-			}
-
-			result := domainTask.ShouldMoveToCompleted(tt.config, tt.testTime)
-
-			if result != tt.expectedResult {
-				t.Errorf("ShouldMoveToCompleted() = %v, expected %v", result, tt.expectedResult)
-			}
-		})
-	}
-}
-
 func TestTask_IsDeleted(t *testing.T) {
 	tests := []struct {
 		name       string
@@ -241,7 +170,7 @@ func TestTask_IsOverdue(t *testing.T) {
 		{
 			name:       "not_overdue_completed",
 			taskString: "x " + today + " Completed task due:" + yesterday,
-			expected:   true,
+			expected:   false,
 		},
 		{
 			name:       "not_overdue_deleted",
@@ -305,7 +234,7 @@ func TestTask_IsDueToday(t *testing.T) {
 		{
 			name:       "not_due_today_completed",
 			taskString: "x " + today + " Completed task due:" + today,
-			expected:   true,
+			expected:   false,
 		},
 	}
 
@@ -380,7 +309,7 @@ func TestTask_IsThisWeek(t *testing.T) {
 		{
 			name:       "not_this_week_completed",
 			taskString: "x " + wednesday + " Completed task due:" + wednesday,
-			expected:   true,
+			expected:   false,
 		},
 	}
 

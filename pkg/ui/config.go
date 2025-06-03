@@ -53,7 +53,7 @@ type AppConfig struct {
 	Logging LoggingConfig `mapstructure:"logging"`
 }
 
-// UIConfig represents UI-specific configuration
+// UIConfig defines UI-specific settings
 type UIConfig struct {
 	// Pane width ratio (left pane width / total width)
 	LeftPaneRatio float64 `mapstructure:"left_pane_ratio"`
@@ -67,18 +67,6 @@ type UIConfig struct {
 
 	// Checkbox style for task display
 	CheckboxStyle string `mapstructure:"checkbox_style"`
-
-	// Completed task transition configuration
-	CompletedTaskTransition CompletedTaskTransitionConfig `mapstructure:"completed_task_transition"`
-}
-
-// CompletedTaskTransitionConfig represents settings for when completed tasks move to "Completed Tasks" filter
-type CompletedTaskTransitionConfig struct {
-	// Number of days to wait before moving completed tasks to "Completed Tasks" filter
-	DelayDays int `mapstructure:"delay_days"`
-
-	// Time of day (24-hour format) when the transition should occur (0-23)
-	TransitionHour int `mapstructure:"transition_hour"`
 }
 
 // LoggingConfig defines logging settings
@@ -98,10 +86,6 @@ func DefaultAppConfig() AppConfig {
 			MinRightPaneWidth: 28,
 			VerticalPadding:   2,
 			CheckboxStyle:     DefaultCheckboxStyle,
-			CompletedTaskTransition: CompletedTaskTransitionConfig{
-				DelayDays:      0, // Default: 0 days (move immediately)
-				TransitionHour: 5, // Default: 05:00 (5 AM)
-			},
 		},
 		Logging: LoggingConfig{
 			LogLevel: "WARN", // デフォルトは警告レベル
@@ -258,15 +242,6 @@ func validateAndFixConfig(config AppConfig) AppConfig {
 		config.UI.CheckboxStyle = DefaultCheckboxStyle
 	}
 
-	// Validate completed task transition settings
-	if config.UI.CompletedTaskTransition.DelayDays < 0 {
-		config.UI.CompletedTaskTransition.DelayDays = 0
-	}
-
-	if config.UI.CompletedTaskTransition.TransitionHour < 0 || config.UI.CompletedTaskTransition.TransitionHour > 23 {
-		config.UI.CompletedTaskTransition.TransitionHour = 5
-	}
-
 	// Validate log level
 	validLogLevels := []string{"DEBUG", "INFO", "WARN", "WARNING", "ERROR"}
 	isValidLogLevel := false
@@ -313,10 +288,6 @@ func SaveConfigToFile(config AppConfig, configPath string) error {
 	v.Set("ui.min_right_pane_width", config.UI.MinRightPaneWidth)
 	v.Set("ui.vertical_padding", config.UI.VerticalPadding)
 	v.Set("ui.checkbox_style", config.UI.CheckboxStyle)
-
-	// Set completed task transition configuration
-	v.Set("ui.completed_task_transition.delay_days", config.UI.CompletedTaskTransition.DelayDays)
-	v.Set("ui.completed_task_transition.transition_hour", config.UI.CompletedTaskTransition.TransitionHour)
 
 	// Set logging configuration
 	v.Set("logging.log_level", config.Logging.LogLevel)

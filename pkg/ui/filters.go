@@ -12,14 +12,6 @@ import (
 	"github.com/yuucu/todotui/pkg/domain"
 )
 
-// getCompletedTaskTransitionConfig converts UI config to domain config
-func (m *Model) getCompletedTaskTransitionConfig() domain.CompletedTaskTransitionConfig {
-	return domain.CompletedTaskTransitionConfig{
-		DelayDays:      m.appConfig.UI.CompletedTaskTransition.DelayDays,
-		TransitionHour: m.appConfig.UI.CompletedTaskTransition.TransitionHour,
-	}
-}
-
 // refreshLists updates both filter and task lists
 func (m *Model) refreshLists() {
 	m.refreshFilterList()
@@ -44,16 +36,8 @@ func (m *Model) refreshFilterList() {
 		name: FilterAllTasks,
 		filterFn: func(tasks domain.Tasks) domain.Tasks {
 			return tasks.Filter(func(task domain.Task, _ int) bool {
-				if task.IsDeleted() {
-					return false
-				}
-				// Show incomplete tasks OR completed tasks that haven't been removed from original filters yet
-				if !task.IsCompleted() {
-					return true
-				}
-				// For completed tasks, check if they should be removed from original filters
-				config := m.getCompletedTaskTransitionConfig()
-				return !task.ShouldRemoveFromOriginalFilters(config, time.Now())
+				// Show only incomplete, non-deleted tasks
+				return !task.IsDeleted() && !task.IsCompleted()
 			})
 		},
 	}
@@ -64,15 +48,8 @@ func (m *Model) refreshFilterList() {
 		name: FilterNoProject,
 		filterFn: func(tasks domain.Tasks) domain.Tasks {
 			return tasks.Filter(func(task domain.Task, _ int) bool {
-				if task.IsDeleted() || len(task.Projects()) > 0 {
-					return false
-				}
-				// Show incomplete tasks OR completed tasks that haven't been removed from original filters yet
-				if !task.IsCompleted() {
-					return true
-				}
-				config := m.getCompletedTaskTransitionConfig()
-				return !task.ShouldRemoveFromOriginalFilters(config, time.Now())
+				// Show only incomplete, non-deleted tasks with no projects
+				return !task.IsDeleted() && !task.IsCompleted() && len(task.Projects()) == 0
 			})
 		},
 	}
@@ -93,15 +70,8 @@ func (m *Model) refreshFilterList() {
 				filterFn: func(p string) func(domain.Tasks) domain.Tasks {
 					return func(tasks domain.Tasks) domain.Tasks {
 						return tasks.Filter(func(task domain.Task, _ int) bool {
-							if task.IsDeleted() || !lo.Contains(task.Projects(), p) {
-								return false
-							}
-							// Show incomplete tasks OR completed tasks that haven't been removed from original filters yet
-							if !task.IsCompleted() {
-								return true
-							}
-							config := m.getCompletedTaskTransitionConfig()
-							return !task.ShouldRemoveFromOriginalFilters(config, time.Now())
+							// Show only incomplete, non-deleted tasks with the specified project
+							return !task.IsDeleted() && !task.IsCompleted() && lo.Contains(task.Projects(), p)
 						})
 					}
 				}(project),
@@ -124,15 +94,8 @@ func (m *Model) refreshFilterList() {
 				filterFn: func(c string) func(domain.Tasks) domain.Tasks {
 					return func(tasks domain.Tasks) domain.Tasks {
 						return tasks.Filter(func(task domain.Task, _ int) bool {
-							if task.IsDeleted() || !lo.Contains(task.Contexts(), c) {
-								return false
-							}
-							// Show incomplete tasks OR completed tasks that haven't been removed from original filters yet
-							if !task.IsCompleted() {
-								return true
-							}
-							config := m.getCompletedTaskTransitionConfig()
-							return !task.ShouldRemoveFromOriginalFilters(config, time.Now())
+							// Show only incomplete, non-deleted tasks with the specified context
+							return !task.IsDeleted() && !task.IsCompleted() && lo.Contains(task.Contexts(), c)
 						})
 					}
 				}(context),
@@ -144,7 +107,7 @@ func (m *Model) refreshFilterList() {
 		name: FilterCompletedTasks,
 		filterFn: func(tasks domain.Tasks) domain.Tasks {
 			return tasks.Filter(func(task domain.Task, _ int) bool {
-				// Show all completed tasks immediately (not deleted)
+				// Show all completed tasks (not deleted)
 				return task.IsCompleted() && !task.IsDeleted()
 			})
 		},
@@ -198,9 +161,9 @@ func (m *Model) refreshFilterList() {
 		wasTimeBasedFilter := lo.Contains(timeBasedFilters, currentFilterName)
 
 		if wasTimeBasedFilter {
-			// Find "All Tasks" filter and select it
+			// Try to find "All Tasks" filter instead
 			_, allTasksIndex, found := lo.FindIndexOf(filters, func(filter FilterData) bool {
-				return filter.name == "All Tasks"
+				return filter.name == FilterAllTasks
 			})
 			if found {
 				newSelectedIndex = allTasksIndex
@@ -239,19 +202,9 @@ func (m *Model) refreshTaskList() {
 			m.filters[m.filterList.selected].name == FilterNoProject
 
 		if !isDeletedTasksFilter && !isNoProjectFilter {
-			// Default to all incomplete tasks AND completed tasks that haven't been removed from original filters yet
-			// (only for non-deleted and non-no-project task filters) using Filter
+			// Default to all incomplete tasks (only for non-deleted and non-no-project task filters)
 			filteredTasks = m.tasks.Filter(func(task domain.Task, _ int) bool {
-				if task.IsDeleted() {
-					return false
-				}
-				// Show incomplete tasks OR completed tasks that haven't been removed from original filters yet
-				if !task.IsCompleted() {
-					return true
-				}
-				// For completed tasks, check if they should be removed from original filters
-				config := m.getCompletedTaskTransitionConfig()
-				return !task.ShouldRemoveFromOriginalFilters(config, time.Now())
+				return !task.IsDeleted() && !task.IsCompleted()
 			})
 		}
 	}

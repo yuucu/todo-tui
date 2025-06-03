@@ -72,20 +72,6 @@ ui:
   # Recommended: 2 - 3 for comfortable viewing
   vertical_padding: 2
 
-  # Completed Task Management
-  # =========================
-  completed_task_transition:
-    # Days to wait before moving completed tasks to "Completed Tasks" filter
-    # 0 = move immediately (default)
-    # 1+ = wait specified days before moving
-    # This helps you review recently completed tasks
-    delay_days: 0
-    
-    # Hour of day (24-hour format) when transition occurs
-    # Range: 0 - 23 (0 = midnight, 12 = noon, 23 = 11 PM)
-    # Recommended: Early morning hours (3-6) for daily cleanup
-    transition_hour: 5
-
 # =====================================
 # Logging Configuration
 # =====================================

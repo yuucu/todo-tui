@@ -30,10 +30,9 @@ func (m *Model) getTimeBasedFilters() []FilterData {
 func (m *Model) getDueTodayFilterFn() func(domain.Tasks) domain.Tasks {
 	return func(tasks domain.Tasks) domain.Tasks {
 		now := time.Now()
-		config := m.getCompletedTaskTransitionConfig()
 		return tasks.Filter(func(task domain.Task, _ int) bool {
-			// Skip deleted tasks
-			if task.IsDeleted() {
+			// Skip deleted and completed tasks
+			if task.IsDeleted() || task.IsCompleted() {
 				return false
 			}
 
@@ -42,15 +41,13 @@ func (m *Model) getDueTodayFilterFn() func(domain.Tasks) domain.Tasks {
 				return false
 			}
 
-			if task.IsDueToday(now) {
-				// For incomplete tasks, always include
-				if !task.IsCompleted() {
-					return true
-				}
-				// For completed tasks, include if they haven't been removed from original filters yet
-				return !task.ShouldRemoveFromOriginalFilters(config, now)
+			// For Due Today filter, we still want to show overdue tasks from today
+			// Only exclude tasks that are from previous days
+			if task.IsOverdue(now) && !task.IsDueToday(now) {
+				return false
 			}
-			return false
+
+			return task.IsDueToday(now)
 		})
 	}
 }
@@ -59,10 +56,9 @@ func (m *Model) getDueTodayFilterFn() func(domain.Tasks) domain.Tasks {
 func (m *Model) getThisWeekFilterFn() func(domain.Tasks) domain.Tasks {
 	return func(tasks domain.Tasks) domain.Tasks {
 		now := time.Now()
-		config := m.getCompletedTaskTransitionConfig()
 		return tasks.Filter(func(task domain.Task, _ int) bool {
-			// Skip deleted tasks
-			if task.IsDeleted() {
+			// Skip deleted and completed tasks
+			if task.IsDeleted() || task.IsCompleted() {
 				return false
 			}
 
@@ -71,15 +67,12 @@ func (m *Model) getThisWeekFilterFn() func(domain.Tasks) domain.Tasks {
 				return false
 			}
 
-			if task.IsThisWeek(now) {
-				// For incomplete tasks, always include
-				if !task.IsCompleted() {
-					return true
-				}
-				// For completed tasks, include if they haven't been removed from original filters yet
-				return !task.ShouldRemoveFromOriginalFilters(config, now)
+			// Skip overdue tasks - they should not appear in "This Week" filter
+			if task.IsOverdue(now) {
+				return false
 			}
-			return false
+
+			return task.IsThisWeek(now)
 		})
 	}
 }
@@ -88,10 +81,9 @@ func (m *Model) getThisWeekFilterFn() func(domain.Tasks) domain.Tasks {
 func (m *Model) getOverdueFilterFn() func(domain.Tasks) domain.Tasks {
 	return func(tasks domain.Tasks) domain.Tasks {
 		now := time.Now()
-		config := m.getCompletedTaskTransitionConfig()
 		return tasks.Filter(func(task domain.Task, _ int) bool {
-			// Skip deleted tasks
-			if task.IsDeleted() {
+			// Skip deleted and completed tasks
+			if task.IsDeleted() || task.IsCompleted() {
 				return false
 			}
 
@@ -100,15 +92,7 @@ func (m *Model) getOverdueFilterFn() func(domain.Tasks) domain.Tasks {
 				return false
 			}
 
-			if task.IsOverdue(now) {
-				// For incomplete tasks, always include
-				if !task.IsCompleted() {
-					return true
-				}
-				// For completed tasks, include if they haven't been removed from original filters yet
-				return !task.ShouldRemoveFromOriginalFilters(config, now)
-			}
-			return false
+			return task.IsOverdue(now)
 		})
 	}
 }
